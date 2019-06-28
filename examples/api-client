@@ -1,0 +1,115 @@
+#!/usr/bin/env ruby
+
+# frozen_string_literal: true
+
+require "http"
+require "thor"
+require "yaml"
+require_relative "api-authentication"
+
+class ApiClient < Thor
+  CONFIG_PATH = "api-client.yml"
+  CONTENT_TYPE_HEADERS = { 'Content-Type' => 'application/json' }.freeze
+
+  desc "config", "Display currently used configuration"
+  def config
+    load_config
+    puts "Using config: #{CONFIG_PATH}"
+    puts "base API URL: #{@config["api_url"]}"
+    puts "  API key ID: #{@config["api_key"]["id"]}"
+    api_key_pub = API::Authentication.pub_key_from_seed(@config["api_key"]["seed"])
+    puts "API key(pub): #{api_key_pub}"
+  end
+
+  desc "generate_key", "Generate a new API key pair"
+  def generate_key
+    puts "Generating a new API key pair"
+    key = API::Authentication.generate_key_pair
+    puts "   seed: #{key[:seed]}"
+    puts "pub_key: #{key[:pub_key]}"
+  end
+
+  desc "get PATH", "Send a GET request"
+  long_desc <<-LONGDESC.tr("\n", "\x5")
+    Send an authenticated GET request to a given PATH:
+
+    api-client get /v1/assets
+    api-client get /v1/entities/?page=42
+  LONGDESC
+  def get(path)
+    load_config
+    puts "> GET #{path}"
+    t_start = Time.now
+    result = request("GET", path)
+    puts "< #{result.status} (#{(Time.now - t_start).round(3)}s)"
+    pretty_print_response(result.body)
+  end
+
+  desc "post PATH [BODY]", "Send a POST request"
+  long_desc <<-LONGDESC.tr("\n", "\x5")
+    Send an authenticated POST request to a given PATH with an optional JSON BODY:
+
+    api-client post /v1/test
+    api-client post /v1/entities '{"person_id": "blah-blah"}'
+  LONGDESC
+  def post(path, body = "{}")
+    load_config
+    begin
+      JSON.parse(body) # validates POST body
+    rescue StandardError => e
+      abort "Provided POST request body does not appear to be a valid JSON"
+    end
+    puts "> POST #{path}"
+    t_start = Time.now
+    result = request("POST", path, body)
+    puts "< #{result.status} (#{(Time.now - t_start).round(3)}s)"
+    pretty_print_response(result.body)
+  end
+
+  private
+
+  # Loads and validates config stored in CONFIG_PATH
+  #
+  def load_config
+    @config = YAML.safe_load(File.read(CONFIG_PATH))
+    raise "A Hash is expected as config" unless @config.is_a?(Hash)
+    raise "A base API URL is not configured" unless @config["api_url"].is_a?(String)
+    raise "An API key is not configured" unless @config["api_key"].is_a?(Hash)
+    raise "An API key ID is not configured" unless @config["api_key"]["id"].is_a?(String)
+    raise "An API key seed (hex) is not configured" unless @config["api_key"]["seed"].is_a?(String)
+  rescue StandardError => e
+    abort "Failed to load config: #{e}"
+  end
+
+  # Executes an authenticated request against the API.
+  #
+  # @param request_method [String] "GET" or "POST"
+  # @param path [String] absolute path, e.g. "/v1/assets"
+  # @param body [String] body of the request
+  #
+  # @return [HTTP::Response]
+  #
+  def request(request_method, path, body = "")
+    url = @config["api_url"] + path
+    auth_headers = API::Authentication.construct_headers(
+      request_method, path, body, @config["api_key"]["id"], @config["api_key"]["seed"]
+    )
+    HTTP.headers(auth_headers.merge(CONTENT_TYPE_HEADERS)).send(request_method.downcase.to_sym, url, body: body)
+  rescue StandardError => e
+    puts "Failed to execute HTTP request: #{e}"
+    abort
+  end
+
+  # Attempts to pretty print the response body (parse as JSON and pretty print).
+  # If failed, prints the response as-is.
+  #
+  # @param body [String]
+  #
+  def pretty_print_response(body)
+    puts JSON.pretty_generate(JSON.parse(body))
+  rescue StandardError => _e
+    puts body
+  end
+end # class ApiClient
+
+ApiClient.start(ARGV)
