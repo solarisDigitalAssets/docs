@@ -46,7 +46,7 @@ api_key:
 The `api-client` CLI tool can be used to generate API Key pairs using `generate_key` comand:
 
 ```
-api-client generate_key
+./api-client generate_key
 
 Generating a new API key pair
    seed: a3e503936cd71da7e4450a3fe4c22e227a86fc6ea888fdecf09fcfb7c09cc2e8
@@ -72,9 +72,9 @@ As a result, the ID will be assigned to this API Key by the Platform. The `id` a
 Once configured with the API Key registered at the Platform, `api-client` can be used to talk to the API:
 
 ```
-api-client get /v1/assets
+./api-client get /v1/assets
 
-> GET /v1/assets
+> GET https://api.sb-cryptocustody-sandbox.aws.solarisbank.io/v1/assets
 < 200 OK
 {
   "items": [
@@ -98,4 +98,22 @@ api-client get /v1/assets
 }
 ```
 
+## Verbose HTTP requests
+
+For development and troubleshooting purposes it's helpful to see all the HTTP headers the API
+client calculates. It is possible to display them using `-v,--verbose` option of `get` and `post` commands:
+
+```
+./api-client get -v /v1/test
+
+> GET https://api.sb-cryptocustody-sandbox.aws.solarisbank.io/v1/test
+> Content-Type: application/json
+> Digest: SHA-256=47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=
+> X-Nonce: a3d3f4b41722882e83b6c881cf84b63b
+> Signature: keyId="42d3d5260710fe195bf9c2dfd2d38917akey",algorithm="hs2019",created=1562077723,headers="(request-target) (created) digest x-nonce",signature="TZgjuYD7/IGJsJCkXmQbqC21PIM/MhKgE3D9HkAA7tc0SLIup48pjJaIwt4mCDLlnyvvwvN1mHcHzqr8SpGEDQ=="
+< 200 OK (0.013s)
+{
+  "status": "OK"
+}
+```
 ---

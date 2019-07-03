@@ -38,16 +38,16 @@ module API
 
     # Constructs authentication headers for a HTTP request
     #
+    # @param key_id [String] an ID of the Ed25519 signing key supplied with the request
+    # @param key_seed [String] a hexadecimal string representation of the Ed25519 signing key seed
     # @param request_method [String] HTTP request method, e.g. "POST" or "GET"
     # @param path [String] HTTP request path, including query parameters, e.g. "/foo?a=1"
     # @param body [String] HTTP request payload (body)
-    # @param key_id [String] an ID of the Ed25519 signing key supplied with the request
-    # @param key_seed [String] a hexadecimal string representation of the Ed25519 signing key seed
+    # @param headers [Hash] (optional) HTTP request existing headers
     #
     # @return [Hash] a set of HTTP headers
     #
-    def self.construct_headers(request_method, path, body, key_id, key_seed)
-      headers = {}
+    def self.construct_headers(key_id, key_seed, request_method, path, body, headers = {})
       headers["Digest"] = construct_digest(body)
       headers[NONCE_HEADER] = nonce
       headers["Signature"] = construct_signature_header(request_method, path, headers, key_id, key_seed)
@@ -123,17 +123,16 @@ module API
 
     # Constructs the actual signature of the message (canonical Signature String as per draft)
     #
-    # As a first step the message is hashed using SHA-512, then a signature is produced
-    # using Ed25519 and encoded using base64.
+    # The signature is produced by signing the Signature String as the message
+    # using a Ed25519 private key. Then the signature is encoded using base64.
     #
     # @oaram signature_string [String] a Signature String
     # @param key_seed [String] a hexadecimal string representation of the Ed25519 signing key seed
     # @return [String] a base64 encoded signature
     #
     def self.construct_signature_param(signature_string, key_seed)
-      digest = Digest::SHA512.digest(signature_string)
       key = Ed25519::SigningKey.new(h2b(key_seed))
-      signature = key.sign(digest)
+      signature = key.sign(signature_string)
       Base64.strict_encode64(signature)
     end
 

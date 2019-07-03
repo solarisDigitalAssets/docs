@@ -9,7 +9,7 @@ require_relative "api-authentication"
 
 class ApiClient < Thor
   CONFIG_PATH = "api-client.yml"
-  CONTENT_TYPE_HEADERS = { 'Content-Type' => 'application/json' }.freeze
+  DEFAULT_HEADERS = { "Content-Type" => "application/json" }.freeze
 
   desc "config", "Display currently used configuration"
   def config
@@ -36,13 +36,13 @@ class ApiClient < Thor
     api-client get /v1/assets
     api-client get /v1/entities/?page=42
   LONGDESC
+  option :verbose, type: :boolean, aliases: ["-v"], desc: "Produce verbose output"
+  option :quiet,   type: :boolean, aliases: ["-q"], desc: "Output only request response"
   def get(path)
     load_config
-    puts "> GET #{path}"
-    t_start = Time.now
     result = request("GET", path)
-    puts "< #{result.status} (#{(Time.now - t_start).round(3)}s)"
     pretty_print_response(result.body)
+    abort unless result.status.success?
   end
 
   desc "post PATH [BODY]", "Send a POST request"
@@ -52,6 +52,8 @@ class ApiClient < Thor
     api-client post /v1/test
     api-client post /v1/entities '{"person_id": "blah-blah"}'
   LONGDESC
+  option :verbose, type: :boolean, aliases: ["-v"], desc: "Produce verbose output"
+  option :quiet,   type: :boolean, aliases: ["-q"], desc: "Output only request response"
   def post(path, body = "{}")
     load_config
     begin
@@ -59,11 +61,10 @@ class ApiClient < Thor
     rescue StandardError => e
       abort "Provided POST request body does not appear to be a valid JSON"
     end
-    puts "> POST #{path}"
-    t_start = Time.now
+    load_config
     result = request("POST", path, body)
-    puts "< #{result.status} (#{(Time.now - t_start).round(3)}s)"
     pretty_print_response(result.body)
+    abort unless result.status.success?
   end
 
   private
@@ -91,10 +92,16 @@ class ApiClient < Thor
   #
   def request(request_method, path, body = "")
     url = @config["api_url"] + path
+    puts "> #{request_method.to_s.upcase} #{url}" unless options[:quiet]
     auth_headers = API::Authentication.construct_headers(
-      request_method, path, body, @config["api_key"]["id"], @config["api_key"]["seed"]
+      @config["api_key"]["id"], @config["api_key"]["seed"], request_method, path, body
     )
-    HTTP.headers(auth_headers.merge(CONTENT_TYPE_HEADERS)).send(request_method.downcase.to_sym, url, body: body)
+    headers = DEFAULT_HEADERS.merge(auth_headers)
+    headers.each { |k, v| puts "> #{k}: #{v}" } if options[:verbose]
+    t_start = Time.now
+    result = HTTP.headers(headers).send(request_method.downcase.to_sym, url, body: body)
+    puts "< #{result.status} (#{(Time.now - t_start).round(3)}s)" unless options[:quiet]
+    result
   rescue StandardError => e
     puts "Failed to execute HTTP request: #{e}"
     abort

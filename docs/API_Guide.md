@@ -2,8 +2,8 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-* Version: [0.3.1]
-* Updated: [2019-06-28]
+* Version: [0.4.0]
+* Updated: [2019-07-02]
 
 ## Introduction
 
@@ -44,7 +44,7 @@ Before a partner can use the solarisBank Digital Assets Platform API we register
 
 During this process we are going to create a Wallet for the partner, a partner Entity, and an Account owned by the partner Entity in the created Wallet.
 
-The next step is to create a key pair that is going to be used by the partner to access the API. This happens on partner side, then the partner sends us the public key part. At no point the solarisBank Digital Assets Platform learns the corresponding private key.
+The next step is to create a key pair that is going to be used by the partner to access the API. This happens on partner side, then the partner sends us the public key part. At no point the solarisBank Digital Assets Platform platform learns the corresponding private key.
 
 Private key is using on the partners side for signing every API request and public key is used on solarisBank API side to verify the ownership and integrity of the request. We will provide additional instructions on how to generate key pairs combined with authentication code examples as separate document guide.
 
@@ -89,7 +89,7 @@ X-Nonce: 514bdd41b15f6b1a0443f8c673adc9db
 
 ### Signature Header
 
-Signature Header string is used to provide authentication and integrity assurances without the need for shared secrets. It also do not requires a round-trip in order to authenticate the client and allows the integrity of a message to be verified independently of the transport.
+Signature Header string is used to provide authentication and integrity assurances without the need for shared secrets. It also does not require an additional round-trip in order to authenticate the client and allows the integrity of a message to be verified independently of the transport.
 
 Signature Parameters:
 
@@ -136,9 +136,7 @@ Signature Parameters:
 
   * *Construct the canonical Signature String according to the value of the `headers` parameter*
 
-  * *Compute the SHA-512 digest of the Signature String*
-
-  * *Using the private key that corresponds to the provided `keyId` generate an Ed25519 signature of the digest obtained on a previous step*
+  * *Using the private key that corresponds to the provided `keyId` generate an Ed25519 signature of the Signature String obtained on a previous step*
 
   * *Base64-encode the signature*
 
@@ -355,17 +353,25 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b5
 
 ## Transactions
 
-A Transaction represents an atomic debit or credit operation that affected the balance of the Account.
+A Transaction represents an operation that affected the balance of the Account.
 
-Transactions describe the actual change that has been applied to the Account balance, and therefore are final and immutable.
-
-Transactions have a `type` attribute, which describes the nature or the reason for the operation:
+Transactions have a `type` attribute, which describes the operation:
 
 * DEPOSIT
 * WITHDRAWAL
-* WITHDRAWAL_FEE
-* WITHDRAWAL_PROCESSING_FEE
 * TRANSFER
+
+In addition Transaction have following attributes:
+
+| name                | type    | desc                                          |
+|---------------------|---------|-----------------------------------------------|
+| account_id          | String  | ID of the account tx belongs to               |
+| state               | String  | State of the tx, e.g. "PENDING"               |
+| amount              | Decimal | Transacted amount, positive or negative       |
+| fee_amount          | Decimal | Charged fee, always positive or 0             |
+| total_amount        | Decimal | Credited/debited amount, positive or negative |
+
+`total_amount` indicates by how much the account balance have changed. It always equals `amount - fee_amount`.
 
 See:
 
@@ -389,8 +395,10 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
       "id": "bf20c716075ea82a4b1f3f0b49657161atrx",
       "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
       "type": "DEPOSIT",
-      "amount": "0.12340000",
-      "operation_id": "06e5dc14d9f9b3ed4e8114403d740121dpst",
+      "state": "PENDING",
+      "amount": "1.12340000",
+      "fee_amount": "0.00000000",
+      "total_amount": "1.12340000",
       "created_at": "2019-04-02T13:15:47Z",
       "updated_at": "2019-04-02T13:15:47Z"
     },
@@ -398,17 +406,25 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
       "id": "4368fe9ac68c3215b2432a6acffddee8atrx",
       "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
       "type": "WITHDRAWAL",
-      "amount": "-0.10000000",
-      "operation_id": "5fb10538b7661bb9e3d2e858c72dceb2wtdr",
+      "state": "COMPLETED",
+      "amount": "-0.80000000",
+      "fee_amount": "0.12340000",
+      "total_amount": "-0.92340000",
+      "reference": "unique-a8e530db9b0e3ba8-blah",
       "created_at": "2019-04-02T13:18:51Z",
       "updated_at": "2019-04-02T13:18:51Z"
     },
     {
-      "id": "865d48cfdb90fa6ac383918d1b1bad85atrx",
+      "id": "4368fe9ac68c3215b2432a6acffddee8atrx",
       "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
-      "type": "WITHDRAWAL_FEE",
-      "amount": "-0.00010000",
-      "operation_id": "5fb10538b7661bb9e3d2e858c72dceb2wtdr",
+      "type": "TRANSFER",
+      "state": "COMPLETED",
+      "amount": "-0.50000000",
+      "fee_amount": "0.00000000",
+      "total_amount": "-0.50000000",
+      "reference": "example of reference",
+      "sender_account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
+      "receiver_account_id": "f0cfb103e6c3d4a37c2750a1256862a3acct",
       "created_at": "2019-04-02T13:18:51Z",
       "updated_at": "2019-04-02T13:18:51Z"
     }
@@ -418,64 +434,46 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
 
 ## Deposits
 
-A Deposit represents a single incoming blockchain-level transfer to some Account Address.
+A Deposit is a Transaction of type DEPOSIT. A Deposit represents a single incoming blockchain-level transfer to some Account Address.
 
 Whenever a blockchain transaction is made to one of the addresses created using the API, the sequence is following:
 
-* The transaction is first detected on the network and is registered on the platform as a new Deposit
-* The partner can then see the Deposit in the list of Account Deposits and start tracking its state
-* The transaction is confirmed by the network and the corresponding Deposit state is changed on the platform, a new `DEPOSIT` Transaction is created on the Account, crediting the funds
-* The partner can detect the state change by polling for the individual Deposit details or by listing the Account Transactions
-
-See:
-
-```
-GET /v1/entities/{entity_id}/accounts/{account_id}/deposits
-GET /v1/entities/{entity_id}/accounts/{account_id}/deposits/{deposit_id}
-```
+* The transaction is first detected on the network and is registered on the platform as a new Transaction of type DEPOSIT
+* The partner can then see the Deposit in the list of Account Transactions and start tracking its state
+* The transaction is confirmed by the network and the corresponding Transaction of type DEPOSIT state is changed on the platform, crediting the funds
+* The partner can detect the state change by polling for the individual Transaction details or by listing the Account Transactions
 
 ### Example
 
 ```
-GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57cb5078ae0a8b569acct/deposits/7ec4be669899f5b47ee2576b7af7e145dpst
+GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57cb5078ae0a8b569acct/transactions/bf20c716075ea82a4b1f3f0b49657161atrx
 ```
 
 ```
 200 OK
 
 {
-  "id": "7ec4be669899f5b47ee2576b7af7e145dpst",
+  "id": "bf20c716075ea82a4b1f3f0b49657161atrx",
   "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
+  "type": "DEPOSIT",
   "state": "PENDING",
-  "address": "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2",
-  "amount": "0.12340000",
-  "created_at": "2019-04-02T10:13:40Z",
-  "updated_at": "2019-04-02T10:14:17Z"
+  "amount": "1.12340000",
+  "fee_amount": "0.00000000",
+  "total_amount": "1.12340000",
+  "created_at": "2019-04-02T13:15:47Z",
+  "updated_at": "2019-04-02T13:15:47Z"
 }
 ```
 
 ## Withdrawals
 
-A Withdrawal represents a single transfer of funds from an Account to some external blockchain-level address.
+A Withdrawal is a Transaction of type WITHDRAWAL. A Withdrawal represents a single transfer of funds from an Account to some external blockchain-level address.
 
 ### Withdrawal Fee Model
 
 During a Withdrawal processing the platform charges the Withdrawal Fee on the originating Account on behalf of the partner and credits the amount to the partner Entity Account. The Withdrawal Fee charged here is completely configurable by the partner (or can be waived by the partner altogether).
 
 Depending on the underlying blockchain, the platform can batch multiple Withdrawals together and broadcast them in a single blockchain transaction. For the transactions happening on the blockchain-level the platform charges the full network fees amount on the partner Entity Account.
-
-![withdrawal_flow](./img/withdrawal_flow.png)
-
-|          |          | Customer | Partner  |
-| -------- | -------- | -------- | -------- |
-| Tx1     | WITHDRAWAL     | -1 BTC     |   |
-| Tx2     | WITHDRAWAL_FEE | -0.001 BTC | +0.001 BTC |
-
-![batching_withdrawals](./img/batching_withdrawals.png)
-
-|          |          | Customer | Partner  |
-| -------- | -------- | -------- | -------- |
-| Tx3      | WITHDRAWAL_PROCESSING_FEE | |-0.005 BTC   |
 
 ### Processing a Withdrawal
 
@@ -492,22 +490,18 @@ Withdrawals are NOT going to be processed if the partner Entity Account cannot p
 See:
 
 ```
-POST /v1/entities/{entity_id}/accounts/{account_id}/withdrawals
-GET /v1/entities/{entity_id}/accounts/{account_id}/withdrawals
-GET /v1/entities/{entity_id}/accounts/{account_id}/withdrawals/{withdrawal_id}
+POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/withdrawal
 ```
 
 ### Example
 
 ```
-POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57cb5078ae0a8b569acct/withdrawals
+POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57cb5078ae0a8b569acct/transactions/withdrawal
 
 {
   "reference": "unique-a8e530db9b0e3ba8-blah",
-  "receiver": {
-    "address": "3D2oetdNuZUqQHPJmcMDDHYoqkyNVsFk9r",
-    "amount": "1.00000000"
-  }
+  "address": "3D2oetdNuZUqQHPJmcMDDHYoqkyNVsFk9r",
+  "amount": "1.00000000"
 }
 ```
 
@@ -515,51 +509,35 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b5
 201 Created
 
 {
-  "id": "bede420fae7624091f337c22f9714fc0wtdr",
-  "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
-  "state": "PENDING",
-  "reference": "unique-a8e530db9b0e3ba8-blah",
-  "sender": {
-    "amount": "1.00010000"
-  },
-  "receiver": {
-    "address": "3D2oetdNuZUqQHPJmcMDDHYoqkyNVsFk9r",
-    "amount": "1.00000000"
-  },
-  "created_at": "2019-04-02T11:21:40Z",
-  "updated_at": "2019-04-02T11:22:31Z"
+  "transaction_id": "bede420fae7624091f337c22f9714fc0atrx"
 }
 ```
 
 ## Transfers
 
-A Transfer is a transfer of funds from one Account to another within the same Wallet. This operation is not reflected externally as a blockchain transaction or any other observable event.
+A Transfer is a Transaction of type TRANSFER. A Transfer is a transfer of funds from one Account to another within the same Wallet. This operation is not reflected externally as a blockchain transaction or any other observable event.
 
-It can be a Transfer between an end user and a partner Accounts, or a Transfer between two end user Accounts.
+It can be a Transfer between an end customer and a partner Accounts, or a Transfer between two end customer Accounts.
 
-To issue a Transfer on behalf of the Account holder, the partner creates a new Transfer object and provides a `reference` value, which MUST be unique across all Transfers of this partner and serves as idempotency key.
+To issue a Transfer on behalf of the Account holder, the partner creates a new Transaction of type TRANSFER and provides a `reference` value, which MUST be unique across all Transfers of this partner and serves as idempotency key.
 
-A Transfer object is created under the originating Account, and a corresponding Transaction is created in both the originating and receiving Accounts.
+A Transaction of type TRANSFER is created under the originating Account debiting the funds, and another Transaction of type TRANSFER is created in the receiving Account crediting the funds.
 
 See:
 
 ```
-POST /v1/entities/{entity_id}/accounts/{account_id}/transfers
-GET /v1/entities/{entity_id}/accounts/{account_id}/transfers
-GET /v1/entities/{entity_id}/accounts/{account_id}/transfers/{transfer_id}
+POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/transfer
 ```
 
 ### Example
 
 ```
-POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57cb5078ae0a8b569acct/transfers
+POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57cb5078ae0a8b569acct/transactions/transfer
 
 {
   "reference": "unique-32d57e1d72b9b5fa-blah",
-  "receiver": {
-    "account_id": "e0c7cea27569ba4c59572e4073ee823bacct",
-    "amount": "1.00000000"
-  }
+  "receiver_account_id": "e0c7cea27569ba4c59572e4073ee823bacct",
+  "amount": "1.00000000"
 }
 ```
 
@@ -567,19 +545,7 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b5
 201 Created
 
 {
-  "id": "fd213476ad3a1f2df48c7cbca394f3edtran",
-  "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
-  "state": "COMPLETED",
-  "reference": "unique-a8e530db9b0e3ba8-blah",
-  "sender": {
-    "amount": "1.00000000"
-  },
-  "receiver": {
-    "account_id": "e0c7cea27569ba4c59572e4073ee823bacct",
-    "amount": "1.00000000"
-  },
-  "created_at": "2019-04-03T16:51:10Z",
-  "updated_at": "2019-04-03T16:51:31Z"
+  "transaction_id": "fd213476ad3a1f2df48c7cbca394f3edatrx",
 }
 ```
 

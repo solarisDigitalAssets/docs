@@ -91,9 +91,7 @@ info:
 
       * *Construct the canonical Signature String according to the value of the `headers` parameter*
 
-      * *Compute the SHA-512 digest of the Signature String*
-
-      * *Using the private key that corresponds to the provided `keyId` generate an Ed25519 signature of the digest obtained on a previous step*
+      * *Using the private key that corresponds to the provided `keyId` generate an Ed25519 signature of the Signature String obtained on a previous step*
 
       * *Base64-encode the signature*
 
@@ -119,11 +117,11 @@ info:
 
     * HTTP Signatures, <https://tools.ietf.org/html/draft-cavage-http-signatures-11>
     * Ed25519, <https://ed25519.cr.yp.to/>
-  version: "0.3.1"
-  title: "solarisBank Digital Assets Custody API"
+  version: "0.4.0"
+  title: "solarisBank Digital Assets Platform API"
   contact:
     email: "Alexis.Hamel@solarisbank.de"
-host: "custody.api.solarisbank.de"
+host: "api.sb-cryptocustody-sandbox.aws.solarisbank.io"
 basePath: "/v1"
 tags:
 - name: "Asset"
@@ -138,8 +136,6 @@ tags:
   description: "Everything related to creating and viewing adresses"
 - name: "Transaction"
   description: "Everything related to viewing transactions"
-- name: "Deposit"
-  description: "Everything related to viewing deposits"
 - name: "Withdrawal"
   description: "Everything related to creating and viewing withdrawals"
 - name: "Transfer"
@@ -159,7 +155,13 @@ paths:
         200:
           description: "Asset response"
           schema:
-            $ref: "#/definitions/Assets"
+            type: object
+            properties:
+              items:
+                type: array
+                description: "An array containing assets"
+                items:
+                  $ref: "#/definitions/Asset"
   /assets/{asset_id}:
     get:
       tags:
@@ -177,13 +179,13 @@ paths:
         type: string
       responses:
         200:
-          description: "Returns a JSON containing a single asset."
+          description: "Returns a JSON containing a single asset"
           schema:
             $ref: "#/definitions/Asset"
         404:
           description: "Not found"
         500:
-          description: "Internal server error."
+          description: "Internal server error"
   /wallets:
     get:
       tags:
@@ -195,7 +197,13 @@ paths:
         200:
           description: "Wallet response"
           schema:
-            $ref: "#/definitions/Wallets"
+            type: object
+            properties:
+              items:
+                type: array
+                description: "An array containing all wallets of the partner"
+                items:
+                  $ref: "#/definitions/Wallet"
   /wallets/{wallet_id}:
     get:
       tags:
@@ -213,13 +221,13 @@ paths:
         type: string
       responses:
         200:
-          description: "Returns a JSON containing a single wallet."
+          description: "Returns a JSON containing a single wallet"
           schema:
             $ref: "#/definitions/Wallet"
         404:
           description: "Not found"
         500:
-          description: "Internal server error."
+          description: "Internal server error"
   /entities:
     get:
       tags:
@@ -231,11 +239,17 @@ paths:
         200:
           description: "Entity response"
           schema:
-            $ref: "#/definitions/Entities"
+            type: object
+            properties:
+              items:
+                type: array
+                description: "An array containing all entities of the partner"
+                items:
+                  $ref: "#/definitions/Entity"
     post:
       tags:
       - "Entity"
-      summary: "Creates and returns a new entity"
+      summary: "Creates a new Entity"
       consumes:
       - "application/json"
       produces:
@@ -244,7 +258,14 @@ paths:
       - in: "body"
         name: "body"
         schema:
-          $ref: "#/definitions/EntityRequest"
+          type: object
+          properties:
+            person_id:
+              type: string
+              example: "some_id"
+              description: "The ID of the person or partner for whom an entity will be created"
+          required:
+            - person_id
       responses:
         201:
           description: "Created"
@@ -273,31 +294,37 @@ paths:
         type: string
       responses:
         200:
-          description: "Returns a JSON containing a single entity."
+          description: "Returns a JSON containing a single entity"
           schema:
             $ref: "#/definitions/Entity"
         404:
           description: "Not found"
         500:
-          description: "Internal server error."
+          description: "Internal server error"
   /entities/{entity_id}/accounts:
     get:
       tags:
       - "Account"
-      summary: "Returns an array of accounts for an entity."
+      summary: "Returns an array of accounts for an entity"
       produces:
       - "application/json"
       parameters:
       - in: "path"
         name: "entity_id"
-        description: "ID of the entity the accounts belong to."
+        description: "ID of the entity the accounts belong to"
         required: true
         type: string
       responses:
         200:
           description: "OK"
           schema:
-            $ref: "#/definitions/Accounts"
+            type: object
+            properties:
+              items:
+                type: array
+                description: "An array containing all accounts of the entity"
+                items:
+                  $ref: "#/definitions/Account"
         403:
           description: "Forbidden"
         404:
@@ -307,7 +334,7 @@ paths:
     post:
       tags:
       - "Account"
-      summary: "Creates and returns a new account"
+      summary: "Creates a new Account"
       consumes:
       - "application/json"
       produces:
@@ -315,13 +342,21 @@ paths:
       parameters:
       - in: "path"
         name: "entity_id"
-        description: "ID of the entity the account belongs to."
+        description: "ID of the entity the account belongs to"
         required: true
         type: string
       - in: "body"
         name: "body"
         schema:
-          $ref: "#/definitions/AccountRequest"
+          type: object
+          properties:
+            wallet_id:
+              type: string
+              example: "some_id"
+              description: "The ID of the wallet for which an account will be created"
+          required:
+            - entity_id
+            - wallet_id
       responses:
         201:
           description: "Created"
@@ -330,7 +365,24 @@ paths:
         400:
           description: "Invalid request"
           schema:
-            $ref: "#/definitions/AccountInvalidRequestResponse"
+            type: object
+            properties:
+              message:
+                type: string
+                description: "Human readable error message"
+                example: "Invalid request"
+              params:
+                type: object
+                description: "Machine readable error message"
+                properties:
+                  wallet_id:
+                    type: string
+                    example: "not_found"
+                    description: "Only present when wallet could not be found"
+                  entity_id:
+                    type: string
+                    example: "not_found"
+                    description: "Only present when entity could not be found"
         403:
           description: "Forbidden"
         404:
@@ -341,18 +393,18 @@ paths:
     get:
       tags:
       - "Account"
-      summary: "Returns a single account."
+      summary: "Returns a single account"
       produces:
       - "application/json"
       parameters:
       - in: "path"
         name: "entity_id"
-        description: "ID of the entity the accounts belongs to."
+        description: "ID of the entity the accounts belongs to"
         required: true
         type: string
       - in: "path"
         name: "account_id"
-        description: "ID of the account to be shown."
+        description: "ID of the account to be shown"
         required: true
         type: string
       responses:
@@ -370,25 +422,31 @@ paths:
     get:
       tags:
       - "Address"
-      summary: "Returns an array of addresses for an account."
+      summary: "Returns an array of addresses for an account"
       produces:
       - "application/json"
       parameters:
       - in: "path"
         name: "entity_id"
-        description: "ID of the entity the accounts belongs to."
+        description: "ID of the entity the accounts belongs to"
         required: true
         type: string
       - in: "path"
         name: "account_id"
-        description: "ID of the account the addresses belongs to."
+        description: "ID of the account the addresses belongs to"
         required: true
         type: string
       responses:
         200:
           description: "OK"
           schema:
-            $ref: "#/definitions/Addresses"
+            type: object
+            properties:
+              items:
+                type: array
+                description: "An array containing addresses"
+                items:
+                  $ref: "#/definitions/Address"
         403:
           description: "Forbidden"
         404:
@@ -398,7 +456,7 @@ paths:
     post:
       tags:
       - "Address"
-      summary: "Creates and returns a new address."
+      summary: "Creates new Address"
       consumes:
       - "application/json"
       produces:
@@ -406,18 +464,14 @@ paths:
       parameters:
       - in: "path"
         name: "entity_id"
-        description: "ID of the entity the accounts belongs to."
+        description: "ID of the entity the accounts belongs to"
         required: true
         type: string
       - in: "path"
         name: "account_id"
-        description: "ID of the account the addresses belongs to."
+        description: "ID of the account the addresses belongs to"
         required: true
         type: string
-      - in: "body"
-        name: "body"
-        schema:
-          $ref: "#/definitions/AddressRequest"
       responses:
         201:
           description: "Created"
@@ -433,23 +487,23 @@ paths:
     get:
       tags:
       - "Address"
-      summary: "Returns a single address."
+      summary: "Returns a single address"
       produces:
       - "application/json"
       parameters:
       - in: "path"
         name: "entity_id"
-        description: "ID of the entity the accounts belongs to."
+        description: "ID of the entity the accounts belongs to"
         required: true
         type: string
       - in: "path"
         name: "account_id"
-        description: "ID of the account the addresses belongs to."
+        description: "ID of the account the addresses belongs to"
         required: true
         type: string
       - in: "path"
         name: "address_id"
-        description: "ID of the address to be shown."
+        description: "ID of the address to be shown"
         required: true
         type: string
       responses:
@@ -467,25 +521,30 @@ paths:
     get:
       tags:
       - "Transaction"
-      summary: "Returns an array of transactions for a account."
+      summary: "Returns an array of transactions for a account"
       produces:
       - "application/json"
       parameters:
       - in: "path"
         name: "entity_id"
-        description: "ID of the entity the accounts belongs to."
+        description: "ID of the entity the accounts belongs to"
         required: true
         type: string
       - in: "path"
         name: "account_id"
-        description: "ID of the account the transactions belongs to."
+        description: "ID of the account the transactions belongs to"
         required: true
         type: string
       responses:
         200:
           description: "OK"
           schema:
-            $ref: "#/definitions/Transactions"
+            type: object
+            properties:
+              items:
+                type: array
+                items:
+                  $ref: "#/definitions/Transaction"
         403:
           description: "Forbidden"
         404:
@@ -496,23 +555,23 @@ paths:
     get:
       tags:
       - "Transaction"
-      summary: "Returns a single transaction."
+      summary: "Returns a single transaction"
       produces:
       - "application/json"
       parameters:
       - in: "path"
         name: "entity_id"
-        description: "ID of the entity the accounts belongs to."
+        description: "ID of the entity the accounts belongs to"
         required: true
         type: string
       - in: "path"
         name: "account_id"
-        description: "ID of the account the transactions belongs to."
+        description: "ID of the account the transactions belongs to"
         required: true
         type: string
       - in: "path"
         name: "transaction_id"
-        description: "ID of the transaction to be shown."
+        description: "ID of the transaction to be shown"
         required: true
         type: string
       responses:
@@ -526,102 +585,11 @@ paths:
           description: "Not found"
         500:
           description: "Internal server error"
-  /entities/{entity_id}/accounts/{account_id}/deposits:
-    get:
-      tags:
-      - "Deposit"
-      summary: "Returns an array of deposits for a account."
-      produces:
-      - "application/json"
-      parameters:
-      - in: "path"
-        name: "entity_id"
-        description: "ID of the entity the accounts belongs to."
-        required: true
-        type: string
-      - in: "path"
-        name: "account_id"
-        description: "ID of the account the deposits belongs to."
-        required: true
-        type: string
-      responses:
-        200:
-          description: "OK"
-          schema:
-            $ref: "#/definitions/Deposits"
-        403:
-          description: "Forbidden"
-        404:
-          description: "Not found"
-        500:
-          description: "Internal server error"
-  /entities/{entity_id}/accounts/{account_id}/deposits/{deposit_id}:
-    get:
-      tags:
-      - "Deposit"
-      summary: "Returns a single deposit."
-      produces:
-      - "application/json"
-      parameters:
-      - in: "path"
-        name: "entity_id"
-        description: "ID of the entity the accounts belongs to."
-        required: true
-        type: string
-      - in: "path"
-        name: "account_id"
-        description: "ID of the account the deposits belongs to."
-        required: true
-        type: string
-      - in: "path"
-        name: "deposit_id"
-        description: "ID of the deposit to be shown."
-        required: true
-        type: string
-      responses:
-        200:
-          description: "OK"
-          schema:
-            $ref: "#/definitions/Deposit"
-        403:
-          description: "Forbidden"
-        404:
-          description: "Not found"
-        500:
-          description: "Internal server error"
-  /entities/{entity_id}/accounts/{account_id}/withdrawals:
-    get:
-      tags:
-      - "Withdrawal"
-      summary: "Returns an array of withdrawal requests for a account."
-      produces:
-      - "application/json"
-      parameters:
-      - in: "path"
-        name: "entity_id"
-        description: "ID of the entity the accounts belongs to."
-        required: true
-        type: string
-      - in: "path"
-        name: "account_id"
-        description: "ID of the account the withdrawal requests belongs to."
-        required: true
-        type: string
-      responses:
-        200:
-          description: "OK"
-          schema:
-            $ref: "#/definitions/Withdrawals"
-        403:
-          description: "Forbidden"
-        404:
-          description: "Not found"
-        500:
-          description: "Internal server error"
+  /entities/{entity_id}/accounts/{account_id}/transactions/withdrawal:
     post:
       tags:
       - "Withdrawal"
-      summary: "Creates and returns a new withdrawal request."
+      summary: "Creates a new Transaction of type WITHDRAWAL"
       consumes:
       - "application/json"
       produces:
@@ -629,96 +597,55 @@ paths:
       parameters:
       - in: "path"
         name: "entity_id"
-        description: "ID of the entity the accounts belongs to."
+        description: "ID of the entity the accounts belongs to"
         required: true
         type: string
       - in: "path"
         name: "account_id"
-        description: "ID of the account the withdrawal requests belongs to."
+        description: "ID of the account the withdraw requests belongs to"
         required: true
         type: string
       - in: "body"
         name: "body"
         schema:
-          $ref: "#/definitions/WithdrawalRequest"
+          type: object
+          properties:
+            amount:
+              type: string
+              description: "Transacted amount (*required if `total_amount` is not specified)"
+              example: "123.00010000"
+            total_amount:
+              type: string
+              description: "Debited amount (*required if `amount` is not specified)"
+            reference:
+              type: string
+              example: "some_partner_generated_string"
+              description: "A reference identifier provided by the partner"
+            address:
+              type: "string"
+              description: "A digital asset specific address, recipient of Withdrawal"
+              example: "1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX"
+          required:
+            - reference
+            - address
+            - amount
+            - total_amount
       responses:
         201:
           description: "Created"
           schema:
-            $ref: "#/definitions/Withdrawal"
+            $ref: "#/definitions/TransactionReference"
         403:
           description: "Forbidden"
         404:
           description: "Not found"
         500:
           description: "Internal server error"
-  /entities/{entity_id}/accounts/{account_id}/withdrawals/{withdrawal_id}:
-    get:
-      tags:
-      - "Withdrawal"
-      summary: "Returns a single withdrawal request."
-      produces:
-      - "application/json"
-      parameters:
-      - in: "path"
-        name: "entity_id"
-        description: "ID of the entity the accounts belongs to."
-        required: true
-        type: string
-      - in: "path"
-        name: "account_id"
-        description: "ID of the account the withdrawal requests belongs to."
-        required: true
-        type: string
-      - in: "path"
-        name: "withdrawal_id"
-        description: "ID of the withdrawal request to be shown."
-        required: true
-        type: string
-      responses:
-        200:
-          description: "OK"
-          schema:
-            $ref: "#/definitions/Withdrawal"
-        403:
-          description: "Forbidden"
-        404:
-          description: "Not found"
-        500:
-          description: "Internal server error"
-  /entities/{entity_id}/accounts/{account_id}/transfers:
-    get:
-      tags:
-      - "Transfer"
-      summary: "Returns an array of transfers for a account."
-      produces:
-      - "application/json"
-      parameters:
-      - in: "path"
-        name: "entity_id"
-        description: "ID of the entity the accounts belongs to."
-        required: true
-        type: string
-      - in: "path"
-        name: "account_id"
-        description: "ID of the account the transfers belongs to."
-        required: true
-        type: string
-      responses:
-        200:
-          description: "OK"
-          schema:
-            $ref: "#/definitions/Transfers"
-        403:
-          description: "Forbidden"
-        404:
-          description: "Not found"
-        500:
-          description: "Internal server error"
+  /entities/{entity_id}/accounts/{account_id}/transactions/transfer:
     post:
       tags:
       - "Transfer"
-      summary: "Creates and returns a new transfer."
+      summary: "Creates a new Transaction of type Transfer"
       consumes:
       - "application/json"
       produces:
@@ -726,57 +653,44 @@ paths:
       parameters:
       - in: "path"
         name: "entity_id"
-        description: "ID of the entity the accounts belongs to."
+        description: "ID of the entity the accounts belongs to"
         required: true
         type: string
       - in: "path"
         name: "account_id"
-        description: "ID of the account the transfers belongs to."
+        description: "ID of the account the transfers belongs to"
         required: true
         type: string
       - in: "body"
         name: "body"
         schema:
-          $ref: "#/definitions/TransferRequest"
+          type: object
+          properties:
+            amount:
+              type: string
+              description: "Transacted amount (*required if `total_amount` is not specified)"
+              example: "123.00010000"
+            total_amount:
+              type: string
+              description: "Debited amount (*required if `amount` is not specified)"
+            reference:
+              type: string
+              example: "some_partner_generated_string"
+              description: "A reference identifier provided by the partner"
+            receiver_account_id:
+              type: "string"
+              description: "ID of the receiver account"
+              example: "some_id"
+          required:
+            - reference
+            - amount
+            - total_amount
+            - receiver_account_id
       responses:
         201:
           description: "Created"
           schema:
-            $ref: "#/definitions/Transfer"
-        403:
-          description: "Forbidden"
-        404:
-          description: "Not found"
-        500:
-          description: "Internal server error"
-  /entities/{entity_id}/accounts/{account_id}/transfers/{transfer_id}:
-    get:
-      tags:
-      - "Transfer"
-      summary: "Returns a single transfer."
-      produces:
-      - "application/json"
-      parameters:
-      - in: "path"
-        name: "entity_id"
-        description: "ID of the entity the accounts belongs to."
-        required: true
-        type: string
-      - in: "path"
-        name: "account_id"
-        description: "ID of the account the transfers belongs to."
-        required: true
-        type: string
-      - in: "path"
-        name: "transfer_id"
-        description: "ID of the transfer to be shown."
-        required: true
-        type: string
-      responses:
-        200:
-          description: "OK"
-          schema:
-            $ref: "#/definitions/Transfer"
+            $ref: "#/definitions/TransactionReference"
         403:
           description: "Forbidden"
         404:
@@ -784,14 +698,6 @@ paths:
         500:
           description: "Internal server error"
 definitions:
-  Assets:
-    type: object
-    properties:
-      items:
-        type: array
-        description: "An array containing assets"
-        items:
-          $ref: "#/definitions/Asset"
   Asset:
     type: object
     properties:
@@ -801,7 +707,7 @@ definitions:
         example: "some_id"
       code:
         type: string
-        description: "A non-unique and non-permanent ISO code-like identifier of the digital asset."
+        description: "A non-unique and non-permanent ISO code-like identifier of the digital asset"
         example: "BTC"
       precision:
         type: integer
@@ -814,65 +720,49 @@ definitions:
       created_at:
         type: string
         format: "ISO8601"
-        description: "Time at which the asset was created."
+        description: "Time at which the asset was created"
         example: "2019-02-02T13:43:34Z"
       updated_at:
         type: string
         format: "ISO8601"
-        description: "Time at which the asset was updated."
+        description: "Time at which the asset was updated"
         example: "2019-02-02T13:43:34Z"
-  Wallets:
-    type: object
-    properties:
-      items:
-        type: array
-        description: "An array containing all wallets of the partner"
-        items:
-          $ref: "#/definitions/Wallet"
   Wallet:
     type: object
     properties:
       id:
         type: string
         example: "some_id"
-        description: "A unique identifier for this wallet provided by us."
+        description: "A unique identifier for this wallet provided by us"
       asset_id:
         type: string
         example: "some_id"
-        description: "ID of the asset this wallet is created for."
+        description: "ID of the asset this wallet is created for"
       balance:
         type: string
-        description: "Balance of the wallet."
+        description: "Balance of the wallet"
         example: "123.00001234"
       created_at:
         type: string
         format: "ISO8601"
-        description: "Time at which the wallet was created."
+        description: "Time at which the wallet was created"
         example: "2019-02-02T13:43:34Z"
       updated_at:
         type: string
         format: "ISO8601"
-        description: "Time at which the wallet was updated."
+        description: "Time at which the wallet was updated"
         example: "2019-02-02T13:43:34Z"
-  Entities:
-    type: object
-    properties:
-      items:
-        type: array
-        description: "An array containing all entities of the partner"
-        items:
-          $ref: "#/definitions/Entity"
   Entity:
     type: object
     properties:
       id:
         type: string
         example: "some_id"
-        description: "A unique identifier for this entity provided by us."
+        description: "A unique identifier for this entity provided by us"
       person_id:
         type: string
         example: "some_id"
-        description: "The ID of the person or partner for whom an entity will be created."
+        description: "The ID of the person or partner for whom an entity will be created"
       type:
         type: string
         example: "person"
@@ -883,147 +773,76 @@ definitions:
       created_at:
         type: string
         format: "ISO8601"
-        description: "Time at which the entity was created."
+        description: "Time at which the entity was created"
         example: "2019-02-02T13:43:34Z"
       updated_at:
         type: string
         format: "ISO8601"
-        description: "Time at which the entity was updated."
+        description: "Time at which the entity was updated"
         example: "2019-02-02T13:43:34Z"
-  EntityRequest:
-    type: object
-    properties:
-      person_id:
-        type: string
-        example: "some_id"
-        description: "The ID of the person or partner for whom an entity will be created."
-    required:
-      - person_id
-  Accounts:
-    type: object
-    properties:
-      items:
-        type: array
-        description: "An array containing all accounts of the entity"
-        items:
-          $ref: "#/definitions/Account"
   Account:
     type: object
     properties:
       id:
         type: string
         example: "some_id"
-        description: "A unique identifier for this account provided by us."
+        description: "A unique identifier for this account provided by us"
       entity_id:
         type: string
         example: "some_id"
-        description: "A unique identifier for this entity for whom an account will be created."
+        description: "A unique identifier for this entity for whom an account will be created"
       wallet_id:
         type: string
         example: "some_id"
-        description: "The ID of the wallet for whom an account will be created."
+        description: "The ID of the wallet for whom an account will be created"
       balance:
         type: string
-        description: "Balance of the account."
+        description: "Balance of the account"
         example: "123.00001234"
       created_at:
         type: string
         format: "ISO8601"
-        description: "Time at which the account was created."
+        description: "Time at which the account was created"
         example: "2019-02-02T13:43:34Z"
       updated_at:
         type: string
         format: "ISO8601"
-        description: "Time at which the account was updated."
+        description: "Time at which the account was updated"
         example: "2019-02-02T13:43:34Z"
-  AccountRequest:
-    type: object
-    properties:
-      entity_id:
-        type: string
-        example: "some_id"
-        description: "The ID of the entity for which an account will be created."
-      wallet_id:
-        type: string
-        example: "some_id"
-        description: "The ID of the wallet for which an account will be created."
-    required:
-      - entity_id
-      - wallet_id
-  AccountInvalidRequestResponse:
-    type: object
-    properties:
-      message:
-        type: string
-        description: "Human readable error message"
-        example: "Invalid request"
-      params:
-        type: object
-        description: "Machine readable error message"
-        properties:
-          wallet_id:
-            type: string
-            example: "not_found"
-            description: "Only present when wallet could not be found"
-          entity_id:
-            type: string
-            example: "not_found"
-            description: "Only present when wallet could not be found"
-  Addresses:
-    type: object
-    properties:
-      items:
-        type: array
-        description: "An array containing addresses"
-        items:
-          $ref: "#/definitions/Address"
   Address:
     type: object
     properties:
       id:
         type: string
         example: "some_id"
-        description: "The ID of the address."
+        description: "The ID of the address"
       address:
         type: "string"
-        description: "A digital asset specific address."
+        description: "A digital asset specific address"
         example: "1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX"
       account_id:
         type: "string"
-        description: "ID of the account the address belongs to."
+        description: "ID of the account the address belongs to"
         example: "some_id"
       created_at:
         type: string
         format: "ISO8601"
-        description: "Time at which the address was created."
+        description: "Time at which the address was created"
         example: "2019-02-02T13:43:34Z"
       updated_at:
         type: string
         format: "ISO8601"
-        description: "Time at which the address was updated."
+        description: "Time at which the address was updated"
         example: "2019-02-02T13:43:34Z"
-  AddressRequest:
+  TransactionReference:
     type: object
     properties:
-      entity_id:
+      transaction_id:
         type: string
         example: "some_id"
-        description: "The ID of the entity for whom an address will be created."
-      account_id:
-        type: string
-        example: "some_id"
-        description: "The ID of the account for whom an address will be created."
-    required:
-      - entity_id
-      - account_id
-  Transactions:
-    type: object
-    properties:
-      items:
-        type: array
-        items:
-          $ref: "#/definitions/Transaction"
+        description: "ID of the transaction created by request"
   Transaction:
+    discriminator: type
     type: object
     properties:
       id:
@@ -1032,253 +851,96 @@ definitions:
         description: "Transaction ID generated by our system"
       account_id:
         type: "string"
-        description: "ID of the account the account belongs to."
+        description: "ID of the account the transaction belongs to"
         example: "some_id"
       type:
         type: string
         example: "deposit"
         description: "The type of a transaction"
         enum:
-        - "DEPOSIT"
-        - "WITHDRAWAL"
-        - "WITHDRAWAL_FEE"
-        - "WITHDRAWAL_PROCESSING_FEE"
-        - "TRANSFER"
+          - "DEPOSIT"
+          - "WITHDRAWAL"
+          - "TRANSFER"
+      state:
+        type: string
+        example: "pending"
+        description: "The state of a transaction"
+        enum:
+          - "PENDING"
+          - "FAILED"
+          - "CONFIRMED"
       amount:
         type: string
-        description: "The amount of the transaction."
+        description: "Transacted amount, positive or negative"
         example: "123.00010000"
-      operation_id:
+      fee_amount:
         type: string
-        example: "some_id"
-        description: "ID of relayed operation (DEPOSIT / WITHDRAWAL / TRANSFER)"
+        description: "Charged fee, always positive or 0"
+        example: "0.00123000"
+      total_amount:
+        type: string
+        description: "Credited/debited amount, positive or negative"
       created_at:
         type: string
         format: "ISO8601"
-        description: "Time at which a transaction was created."
+        description: "Time at which a transaction was created"
         example: "2019-02-01T13:42:59Z"
       updated_at:
         type: string
         format: "ISO8601"
-        description: "Time at which a transaction was updated."
+        description: "Time at which a transaction was updated"
         example: "2019-02-01T13:42:59Z"
-  Deposits:
-    type: object
-    properties:
-      items:
-        type: array
-        description: "An array containing all deposits of the account"
-        items:
-          $ref: "#/definitions/Deposit"
   Deposit:
-    type: object
-    properties:
-      id:
-        type: string
-        example: "some_id"
-        description: "An ID generated by our system"
-      account_id:
-        type: "string"
-        description: "ID of the account the deposit belongs to."
-        example: "some_id"
-      amount:
-        type: string
-        description: "The amount of the deposit."
-        example: "123.00010000"
-      address:
-        type: "string"
-        description: "A digital asset specific address."
-        example: "1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX"
-      state:
-        type: string
-        example: "confirmed"
-        description: "The state of the deposit."
-        enum:
-        - "PENDING"
-        - "FAILED"
-        - "CONFIRMED"
-      created_at:
-        type: string
-        format: "ISO8601"
-        description: "Time at which the deposit was created."
-        example: "2019-02-02T13:43:34Z"
-      updated_at:
-        type: string
-        format: "ISO8601"
-        description: "Time at which the deposit was updated."
-        example: "2019-02-02T13:43:34Z"
-  Withdrawals:
-    type: object
-    properties:
-      items:
-        type: array
-        description: "An array containing all withdrawals of the account"
-        items:
-          $ref: "#/definitions/Withdrawal"
+    allOf:
+      - $ref: '#/definitions/Transaction'
+      - type: object
+        properties:
+          type:
+            type: string
+            description: "The type of a transaction"
+            enum:
+              - "DEPOSIT"
+          address:
+            type: "string"
+            description: "A digital asset specific address used for deposit"
+            example: "1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX"
   Withdrawal:
-    type: object
-    properties:
-      id:
-        type: string
-        example: "some_id"
-        description: "An ID generated by our system"
-      account_id:
-        type: "string"
-        description: "ID of the account the deposit belongs to."
-        example: "some_id"
-      state:
-        type: string
-        example: "confirmed"
-        description: "The state of the withdrawal."
-        enum:
-        - "PENDING"
-        - "FAILED"
-        - "CONFIRMED"
-      reference:
-        type: string
-        example: "some_partner_generated_string"
-        description: "A reference identifier provided by the partner."
-      sender:
-        $ref: "#/definitions/WithdrawalSender"
-      receiver:
-        $ref: "#/definitions/WithdrawalReceiver"
-      created_at:
-        type: string
-        format: "ISO8601"
-        description: "Time at which the deposit was created."
-        example: "2019-02-02T13:43:34Z"
-      updated_at:
-        type: string
-        format: "ISO8601"
-        description: "Time at which the deposit was updated."
-        example: "2019-02-02T13:43:34Z"
-  WithdrawalRequest:
-    type: object
-    properties:
-      entity_id:
-        type: "string"
-        description: "ID of the entity the withdrawal belongs to."
-        example: "some_id"
-      account_id:
-        type: "string"
-        description: "ID of the account the withdrawal belongs to."
-        example: "some_id"
-      reference:
-        type: string
-        example: "some_partner_generated_string"
-        description: "A reference identifier provided by the partner."
-      sender:
-        $ref: "#/definitions/WithdrawalSender"
-      receiver:
-        $ref: "#/definitions/WithdrawalReceiver"
-    required:
-    - entity_id
-    - account_id
-    - reference
-    - receiver
-  WithdrawalSender:
-    type: object
-    properties:
-      amount:
-        type: string
-        example: "1.00000000"
-        description: "The amount that has been sent."
-  WithdrawalReceiver:
-    type: object
-    properties:
-      amount:
-        type: string
-        example: "0.99990000"
-        description: "The amount that has been received."
-      address:
-        type: string
-        example: "1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX"
-        description: "The receiver's address."
-  Transfers:
-    type: object
-    properties:
-      items:
-        type: array
-        description: "An array containing all transfers of the account"
-        items:
-          $ref: "#/definitions/Transfer"
+    allOf:
+      - $ref: '#/definitions/Transaction'
+      - type: object
+        properties:
+          type:
+            type: string
+            description: "The type of a transaction"
+            enum:
+              - "WITHDRAWAL"
+          address:
+            type: "string"
+            description: "A digital asset specific address used for withdrawal"
+            example: "1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX"
+          reference:
+            type: string
+            example: "some_partner_generated_string"
+            description: "A reference identifier provided by the partner"
   Transfer:
-    type: object
-    properties:
-      id:
-        type: string
-        example: "some_id"
-        description: "An ID generated by our system"
-      account_id:
-        type: "string"
-        description: "ID of the account the deposit belongs to."
-        example: "some_id"
-      state:
-        type: string
-        example: "confirmed"
-        description: "The state of the transfer."
-        enum:
-        - "PENDING"
-        - "FAILED"
-        - "CONFIRMED"
-      reference:
-        type: string
-        example: "some_partner_generated_string"
-        description: "A reference identifier provided by the partner."
-      sender:
-        $ref: "#/definitions/TransferSender"
-      receiver:
-        $ref: "#/definitions/TransferReceiver"
-      created_at:
-        type: string
-        format: "ISO8601"
-        description: "Time at which the deposit was created."
-        example: "2019-02-02T13:43:34Z"
-      updated_at:
-        type: string
-        format: "ISO8601"
-        description: "Time at which the deposit was updated."
-        example: "2019-02-02T13:43:34Z"
-  TransferRequest:
-    type: object
-    properties:
-      entity_id:
-        type: "string"
-        description: "ID of the entity the transfer belongs to."
-        example: "some_id"
-      account_id:
-        type: "string"
-        description: "ID of the account the transfer belongs to."
-        example: "some_id"
-      reference:
-        type: string
-        example: "some_partner_generated_string"
-        description: "A reference identifier provided by the partner."
-      sender:
-        $ref: "#/definitions/TransferSender"
-      receiver:
-        $ref: "#/definitions/TransferReceiver"
-    required:
-    - entity_id
-    - account_id
-    - reference
-    - receiver
-  TransferSender:
-    type: object
-    properties:
-      amount:
-        type: string
-        example: "1.00000000"
-        description: "The amount that has been sent."
-  TransferReceiver:
-    type: object
-    properties:
-      account_id:
-        type: "string"
-        description: "ID of the account of the receiver."
-        example: "some_id"
-      amount:
-        type: string
-        example: "0.99990000"
-        description: "The amount that has been received."
-
+    allOf:
+      - $ref: '#/definitions/Transaction'
+      - type: object
+        properties:
+          type:
+            type: string
+            description: "The type of a transaction"
+            enum:
+              - "TRANSFER"
+          reference:
+            type: string
+            example: "some_partner_generated_string"
+            description: "A reference identifier provided by the partner"
+          sender_account_id:
+            type: "string"
+            description: "ID of the sender account"
+            example: "some_id"
+          receiver_account_id:
+            type: "string"
+            description: "ID of the receiver account"
+            example: "some_id"

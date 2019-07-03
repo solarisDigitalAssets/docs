@@ -1,4 +1,4 @@
 api_url: https://api.sb-cryptocustody-sandbox.aws.solarisbank.io
 api_key:
-  id: <API_KEY_ID>
-  seed: <API_KEY_SEED_HEX>
+  id: <your API key ID goes here>
+  seed: <your API key seed as hexadecimal string goes here>
