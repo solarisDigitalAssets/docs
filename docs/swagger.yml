@@ -117,7 +117,7 @@ info:
 
     * HTTP Signatures, <https://tools.ietf.org/html/draft-cavage-http-signatures-11>
     * Ed25519, <https://ed25519.cr.yp.to/>
-  version: "0.4.0"
+  version: "0.5.0"
   title: "solarisBank Digital Assets Platform API"
   contact:
     email: "Alexis.Hamel@solarisbank.de"
@@ -133,7 +133,9 @@ tags:
 - name: "Account"
   description: "Everything related to creating and viewing accounts"
 - name: "Address"
-  description: "Everything related to creating and viewing adresses"
+  description: "Everything related to creating and viewing addresses"
+- name: "LedgerEntry"
+  description: "Everything related to viewing ledger entries"
 - name: "Transaction"
   description: "Everything related to viewing transactions"
 - name: "Withdrawal"
@@ -342,7 +344,7 @@ paths:
       parameters:
       - in: "path"
         name: "entity_id"
-        description: "ID of the entity the account belongs to"
+        description: "ID of the entity the account belong to"
         required: true
         type: string
       - in: "body"
@@ -399,7 +401,7 @@ paths:
       parameters:
       - in: "path"
         name: "entity_id"
-        description: "ID of the entity the accounts belongs to"
+        description: "ID of the entity the accounts belong to"
         required: true
         type: string
       - in: "path"
@@ -428,12 +430,12 @@ paths:
       parameters:
       - in: "path"
         name: "entity_id"
-        description: "ID of the entity the accounts belongs to"
+        description: "ID of the entity the accounts belong to"
         required: true
         type: string
       - in: "path"
         name: "account_id"
-        description: "ID of the account the addresses belongs to"
+        description: "ID of the account the addresses belong to"
         required: true
         type: string
       responses:
@@ -464,12 +466,12 @@ paths:
       parameters:
       - in: "path"
         name: "entity_id"
-        description: "ID of the entity the accounts belongs to"
+        description: "ID of the entity the accounts belong to"
         required: true
         type: string
       - in: "path"
         name: "account_id"
-        description: "ID of the account the addresses belongs to"
+        description: "ID of the account the addresses belong to"
         required: true
         type: string
       responses:
@@ -493,12 +495,12 @@ paths:
       parameters:
       - in: "path"
         name: "entity_id"
-        description: "ID of the entity the accounts belongs to"
+        description: "ID of the entity the accounts belong to"
         required: true
         type: string
       - in: "path"
         name: "account_id"
-        description: "ID of the account the addresses belongs to"
+        description: "ID of the account the addresses belong to"
         required: true
         type: string
       - in: "path"
@@ -517,22 +519,90 @@ paths:
           description: "Not found"
         500:
           description: "Internal server error"
-  /entities/{entity_id}/accounts/{account_id}/transactions:
+  /entities/{entity_id}/accounts/{account_id}/ledger_entries:
     get:
       tags:
-      - "Transaction"
-      summary: "Returns an array of transactions for a account"
+      - "LedgerEntry"
+      summary: "Returns an array of ledger entries for a account"
       produces:
       - "application/json"
       parameters:
       - in: "path"
         name: "entity_id"
-        description: "ID of the entity the accounts belongs to"
+        description: "ID of the entity the accounts belong to"
         required: true
         type: string
       - in: "path"
         name: "account_id"
-        description: "ID of the account the transactions belongs to"
+        description: "ID of the account the ledger entries belong to"
+        required: true
+        type: string
+      responses:
+        200:
+          description: "OK"
+          schema:
+            type: object
+            properties:
+              items:
+                type: array
+                items:
+                  $ref: "#/definitions/LedgerEntry"
+        403:
+          description: "Forbidden"
+        404:
+          description: "Not found"
+        500:
+          description: "Internal server error"
+  /entities/{entity_id}/accounts/{account_id}/ledger_entries/{ledger_entry_id}:
+    get:
+      tags:
+      - "LedgerEntry"
+      summary: "Returns a single ledger entry"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "path"
+        name: "entity_id"
+        description: "ID of the entity the accounts belong to"
+        required: true
+        type: string
+      - in: "path"
+        name: "account_id"
+        description: "ID of the account the ledger entry belongs to"
+        required: true
+        type: string
+      - in: "path"
+        name: "ledger_entry_id"
+        description: "ID of the ledger entry to be shown"
+        required: true
+        type: string
+      responses:
+        200:
+          description: "OK"
+          schema:
+            $ref: "#/definitions/LedgerEntry"
+        403:
+          description: "Forbidden"
+        404:
+          description: "Not found"
+        500:
+          description: "Internal server error"
+  /entities/{entity_id}/accounts/{account_id}/transactions:
+    get:
+      tags:
+      - "Transaction"
+      summary: "Returns an array of transactions for an account"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "path"
+        name: "entity_id"
+        description: "ID of the entity the accounts belong to"
+        required: true
+        type: string
+      - in: "path"
+        name: "account_id"
+        description: "ID of the account the transactions belong to"
         required: true
         type: string
       responses:
@@ -561,12 +631,12 @@ paths:
       parameters:
       - in: "path"
         name: "entity_id"
-        description: "ID of the entity the accounts belongs to"
+        description: "ID of the entity the accounts belong to"
         required: true
         type: string
       - in: "path"
         name: "account_id"
-        description: "ID of the account the transactions belongs to"
+        description: "ID of the account the transactions belong to"
         required: true
         type: string
       - in: "path"
@@ -597,12 +667,12 @@ paths:
       parameters:
       - in: "path"
         name: "entity_id"
-        description: "ID of the entity the accounts belongs to"
+        description: "ID of the entity the accounts belong to"
         required: true
         type: string
       - in: "path"
         name: "account_id"
-        description: "ID of the account the withdraw requests belongs to"
+        description: "ID of the account the withdraw requests belong to"
         required: true
         type: string
       - in: "body"
@@ -653,12 +723,12 @@ paths:
       parameters:
       - in: "path"
         name: "entity_id"
-        description: "ID of the entity the accounts belongs to"
+        description: "ID of the entity the accounts belong to"
         required: true
         type: string
       - in: "path"
         name: "account_id"
-        description: "ID of the account the transfers belongs to"
+        description: "ID of the account the transfers belong to"
         required: true
         type: string
       - in: "body"
@@ -822,7 +892,7 @@ definitions:
         example: "1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX"
       account_id:
         type: "string"
-        description: "ID of the account the address belongs to"
+        description: "ID of the account the address belong to"
         example: "some_id"
       created_at:
         type: string
@@ -834,6 +904,47 @@ definitions:
         format: "ISO8601"
         description: "Time at which the address was updated"
         example: "2019-02-02T13:43:34Z"
+  LedgerEntry:
+    discriminator: type
+    type: object
+    properties:
+      id:
+        type: string
+        example: "some_id"
+        description: "Ledger entry ID generated by our system"
+      account_id:
+        type: "string"
+        description: "ID of the account the ledger entry belongs to"
+        example: "some_id"
+      transaction_id:
+        type: "string"
+        description: "ID of the transaction the ledger entry belongs to"
+        example: "some_id"
+      type:
+        type: string
+        example: "DEPOSIT_AMOUNT"
+        description: "The type of a ledger entry"
+        enum:
+          - "DEPOSIT_AMOUNT"
+          - "DEPOSIT_FEE"
+          - "WITHDRAWAL_AMOUNT"
+          - "WITHDRAWAL_FEE"
+          - "TRANSFER_AMOUNT"
+          - "TRANSFER_FEE"
+      amount:
+        type: string
+        description: "Ledger entry amount, positive or negative"
+        example: "123.00010000"
+      created_at:
+        type: string
+        format: "ISO8601"
+        description: "Time at which a ledger entry was created"
+        example: "2019-02-01T13:42:59Z"
+      updated_at:
+        type: string
+        format: "ISO8601"
+        description: "Time at which a ledger entry was updated"
+        example: "2019-02-01T13:42:59Z"
   TransactionReference:
     type: object
     properties:

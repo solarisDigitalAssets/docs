@@ -2,8 +2,8 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-* Version: [0.4.0]
-* Updated: [2019-07-02]
+* Version: [0.5.0]
+* Updated: [2019-07-08]
 
 ## Introduction
 
@@ -286,6 +286,13 @@ To create an Account, the partner MUST provide a reference to an existing Entity
 
 ![account_creation](./img/account_creation.png)
 
+### Account Balance
+
+The Account resource provided by the API contains the `balance` attribute, which represents the Account Balance. Accounts start with having a balance of 0.
+
+Every successfully processed Transaction increases or decreases the Account Balance
+by creating corresponding Ledger Entries. As such the Account Balance equals to the sum of all Ledger Entries of this Account.
+
 See:
 
 ```
@@ -415,7 +422,7 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
       "updated_at": "2019-04-02T13:18:51Z"
     },
     {
-      "id": "4368fe9ac68c3215b2432a6acffddee8atrx",
+      "id": "27341700f516438c28632e8d973a6c59atrx",
       "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
       "type": "TRANSFER",
       "state": "COMPLETED",
@@ -546,6 +553,59 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b5
 
 {
   "transaction_id": "fd213476ad3a1f2df48c7cbca394f3edatrx",
+}
+```
+
+## Ledger Entries
+
+A Ledger Entry is an accounting entry that describes a change to the Account balance.
+
+Ledger Entries are created as a result of Transaction processing, and they are immutable. A Ledger Entry always describes the change that has happened already.
+
+
+
+Ledger Entries have a `type` attribute, which describes the operation:
+
+* DEPOSIT_AMOUNT
+* DEPOSIT_FEE
+* WITHDRAWAL_AMOUNT
+* WITHDRAWAL_FEE
+* TRANSFER_AMOUNT
+* TRANSFER_FEE
+
+Ledger Entries have an `amount` attribute, that can be:
+
+* positive – increasing the balance of the Account
+* negative – decreasing the balance of the Account
+
+See:
+
+```
+GET /v1/entities/{entity_id}/accounts/{account_id}/ledger_entries
+GET /v1/entities/{entity_id}/accounts/{account_id}/ledger_entries/{ledger_entry_id}
+```
+
+### Example
+
+```
+GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57cb5078ae0a8b569acct/ledger_entries
+```
+
+```
+200 OK
+
+{
+  "items": [
+    {
+      "id": "723d3752ae17e0cff7ecbdad1e0be151lent",
+      "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
+      "transaction_id": "bf20c716075ea82a4b1f3f0b49657161atrx",
+      "type": "DEPOSIT_AMOUNT",
+      "amount": "1.12340000",
+      "created_at": "2019-04-02T13:15:47Z",
+      "updated_at": "2019-04-02T13:15:47Z"
+    }
+  ]
 }
 ```
 
