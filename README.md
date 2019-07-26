@@ -10,5 +10,10 @@ solarisBank Digital Assets Platform.
 ## Documents
 
 * API guide: [API_Guide.md](docs/API_Guide.md)
-* API specification: [swagger.yml](docs/swagger.yml)
+* API specification: [openapi.yml](docs/openapi.yml)
 
+## Changelog
+
+See the latest changes in [Changelog](CHANGELOG.md).
+
+--
