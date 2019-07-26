@@ -1,0 +1,1677 @@
+openapi: 3.0.1
+info:
+  title: solarisBank Digital Assets Platform API
+  contact:
+    email: Alexis.Hamel@solarisbank.de
+  version: 0.6.0
+
+  description: |
+    This is a draft for solarisBank Digital Assets Platform API
+
+    ## Authentication
+
+    We require our partners to generate a pair of private & public keys.
+    Partners MUST register the public key with the Platform and sign every request to our API
+    using their private key.
+
+    We are using *HTTP Signatures* IETF draft as the base for our authentication mechanism.
+    As the digital signature algorithm in HTTP Signatures we are using *Ed25519*.
+
+    Every HTTP request to the API MUST have following headers in addition to
+    standard ones:
+
+    * Digest
+    * X-Nonce
+    * Signature
+
+    ### Digest Header
+
+    The `Digest` header ensures integrity of the HTTP request body. It MUST be constructed
+    following the HTTP Instance Digests RFC using SHA-256 algorithm.
+
+    In case of GET request, the `Digest` header still must be constructed, assuming the request
+    body is an empty string.
+
+    See:
+
+    * Instance Digests in HTTP <https://tools.ietf.org/html/rfc3230>
+    * Additional Hash Algorithms for HTTP Instance Digests <https://tools.ietf.org/html/rfc5843>
+
+    Example:
+    ```
+    Digest: SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=
+    ```
+
+    ### X-Nonce Header
+
+    The `X-Nonce` header is supposed to uniquely identify the HTTP request
+    and serves to protect against replay/playback attacks.
+    The `X-Nonce` header value MUST be a string of up to 32 characters,
+    which MUST be  unique across all the requests generated using the same
+    API key.
+
+    As an example, `X-Nonce` header value may be generated as 16-bytes
+    random integer in hexadecimal representation.
+
+    Example:
+    ```
+    X-Nonce: 514bdd41b15f6b1a0443f8c673adc9db
+    ```
+
+    ### Signature Header
+
+    Signature Header string is used to provide authentication and integrity assurances
+    without the need for shared secrets. It also does not require an additional round-trip
+    in order to authenticate the client and allows the integrity of a message to be verified
+    independently of the transport.
+
+    Signature Parameters:
+
+    * **keyId**
+
+      Unique ID which is assigned to the Partner's API key.
+
+    * **algorithm**
+
+      The value for the `algorithm` parameter MUST be `"hs2019"`.
+
+    * **created**
+
+      The value of the `created` parameter MUST be the time at which
+      the HTTP request was constructed as an integer Unix timestamp.
+
+    * **headers**
+
+      The `headers` parameter identifies how the canonical Signature String is constructed.
+      Its value consists of a list of actual and pseudo- HTTP headers which will form
+      the Signature String according to the HTTP Signatures draft v11.
+
+      The `headers` parameter MUST include following
+      headers: `(request-target)`, `(created)`, `digest`, `x-nonce`.
+
+      The recommended value of the `headers` parameter is:
+      `(request-target) (created) digest x-nonce`.
+
+      See:
+
+      * Signature String Construction
+        <https://tools.ietf.org/html/draft-cavage-http-signatures-11#section-2.3>
+
+      Example of Signature String for `headers="(request-target) (created) digest x-nonce"`:
+
+      ```
+
+      (request-target): get /foo?bar=123\n
+      (created): 1557855475\n
+      digest: SHA-256=47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=\n
+      x-nonce: 7c44d38b63f5e398af62d603b1155f5c
+
+      ```
+
+      Here `\n` indicate the ASCII newline character. Note the absence of it on the last line.
+
+    * **signature**
+
+      The value of the `signature` parameter is the digital signature of the HTTP request produced
+      by the partner's private key.
+
+      In order to create the `signature` parameter:
+
+      * Construct the canonical Signature String according to the value of the `headers` parameter
+      * Using the private key that corresponds to the provided `keyId` generate an Ed25519
+        signature of the Signature String obtained on a previous step
+      * Base64-encode the signature
+
+    ### Examples
+
+    ```
+    POST /foo/bar
+    Digest: SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=
+    X-Nonce: 514bdd41b15f6b1a0443f8c673adc9db
+    Signature: keyId="foobar",algorithm="hs2019",created=1557855475,headers="(request-target) (created) digest x-nonce",signature="IKGyxGiUFm3luudWGkTzf0TYQD2Fnkb6ed6BTfuXuDq/U9q6gQk6KxBSPx33ME1O2RLlH5HKG2WZnO8PgRGiDA=="
+
+    {"hello": "world"}
+    ```
+
+    ```
+    GET /foo?bar=123
+    Digest: SHA-256=47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=
+    X-Nonce: 7c44d38b63f5e398af62d603b1155f5c
+    Signature: keyId="foobar",algorithm="hs2019",created=1557855475,headers="(request-target) (created) digest x-nonce",signature="d0Wzjlpt2Y++DJtxKnD1ipkkwF5eU43jwtybqsy3tFqa5P3kYYIJa4TTQyMUZ62i58jwN7gK6q2MVJBDGQ6tDg=="
+    ```
+
+    See:
+
+    * HTTP Signatures, <https://tools.ietf.org/html/draft-cavage-http-signatures-11>
+    * Ed25519, <https://ed25519.cr.yp.to/>
+
+    --
+
+servers:
+- url: https://api.sb-cryptocustody-sandbox.aws.solarisbank.io/v1
+
+tags:
+- name: Asset
+  description: Digital Assets supported by the platform
+- name: Wallet
+  description: List of Wallets owned by the Partner
+- name: Entity
+  description: Entities registered and controlled by the Partner
+- name: Account
+  description: Accounts controlled by the Partner
+- name: Address
+  description: Digital Asset Addresses linked with the Accounts
+- name: Transaction
+  description: Transactions of an Account
+- name: Withdrawal
+  description: Creating a Withdrawal
+- name: Transfer
+  description: Creating a Transfer
+- name: LedgerEntry
+  description: Ledger Entries of an Account
+
+paths:
+  #
+  # Assets
+  #
+  /assets:
+    get:
+      tags:
+      - Asset
+      summary: List all Assets
+      description: |
+        Returns a list of all Digital Assets supported by the platform.
+      responses:
+        "200":
+          description: A list of Assets
+          content:
+            application/json:
+              schema:
+                required:
+                - items
+                type: object
+                properties:
+                  items:
+                    type: array
+                    description: An array containing Assets
+                    items:
+                      $ref: "#/components/schemas/Asset"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /assets/{asset_id}:
+    get:
+      tags:
+      - Asset
+      summary: Get a single Asset
+      description: |
+        Returns a single Asset found by its ID
+      parameters:
+      - name: asset_id
+        in: path
+        description: Asset ID
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: A single Asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  #
+  # Wallets
+  #
+  /wallets:
+    get:
+      tags:
+      - Wallet
+      summary: List all Wallets
+      description: |
+        Returns a list of all Wallets of this partner
+      responses:
+        "200":
+          description: A list of Wallets
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Wallet"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /wallets/{wallet_id}:
+    get:
+      tags:
+      - Wallet
+      summary: Get a single Wallet
+      description: |
+        Returns a single Wallet found by its ID
+      parameters:
+      - name: wallet_id
+        in: path
+        description: Wallet ID
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: A single Wallet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Wallet"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  #
+  # Entities
+  #
+  /entities:
+    get:
+      tags:
+      - Entity
+      summary: List all Entities
+      description: |
+        Returns a list of all Entities of this partner
+      responses:
+        "200":
+          description: A list of Entities
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Entity"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      tags:
+      - Entity
+      summary: Create an Entity
+      description: |
+        Creates a new Entity of type PERSON owned by the partner.
+      requestBody:
+        required: true
+        description: |
+          A `person_id` attribute must be specified, when creating an Entity of type PERSON.
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - person_id
+              properties:
+                person_id:
+                  type: string
+                  description: The ID of the person, provided by solarsBank KYC product
+                  example: "b27a2b1c7b2ac61e3f0e7a1221ce816ecper"
+            example:
+              person_id: "f0af0d2164f3f8bcc44bf68d7beecce3cper"
+      responses:
+        "201":
+          description: Successfully created Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Entity"
+              example:
+                id: "7d57be2d17a328150abd28daaae76d47enty"
+                type: "PERSON"
+                person_id: "e3c4bc7bdfeaed3c0a3cebd2addcd5accper"
+                created_at: "2019-03-01T22:31:06Z"
+                updated_at: "2019-03-01T22:31:06Z"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /entities/{entity_id}:
+    get:
+      tags:
+      - Entity
+      summary: Get a single Entity
+      description: |
+        Returns a single Entity found by its ID
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: A single Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Entity"
+              example:
+                id: "7d57be2d17a328150abd28daaae76d47enty"
+                type: "PERSON"
+                person_id: "e3c4bc7bdfeaed3c0a3cebd2addcd5accper"
+                created_at: "2019-03-01T22:31:06Z"
+                updated_at: "2019-03-01T22:31:06Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  #
+  # Accounts
+  #
+  /entities/{entity_id}/accounts:
+    get:
+      tags:
+      - Account
+      summary: List all Accounts of an Entity
+      description: |
+        Returns a list of all Accounts owned by the given Entity
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: A list of Accounts
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Account"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      tags:
+      - Account
+      summary: Create an Account
+      description: |
+        Creates a new Account owned by the given Entity.
+
+        When creating an Account, the reference to an existing Wallet must be provided.
+      parameters:
+      - name: entity_id
+        in: path
+        description: ID of the Entity the new Account belongs to
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        description: |
+          A `wallet_id` attribute must be specified, linking the new Account with an existing Wallet.
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - wallet_id
+              properties:
+                wallet_id:
+                  type: string
+                  description: The ID of an existing Wallet
+                  example: "d38c4d1dfcf01a4df50230409bbbd6d8wall"
+            example:
+              wallet_id: "ba8dbafcac13a1cafb05ab17f4689eaawall"
+      responses:
+        "201":
+          description: Successfully created Account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /entities/{entity_id}/accounts/{account_id}:
+    get:
+      tags:
+      - Account
+      summary: Get a single Account
+      description: |
+        Returns an Account identified by its ID, owned by the given Entity
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: A single Account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  #
+  # Addresses
+  #
+  /entities/{entity_id}/accounts/{account_id}/addresses:
+    get:
+      tags:
+      - Address
+      summary: List all Addresses of an Account
+      description: |
+        Returns a list of all Addresses linked with the given Account, owned by the given Entity
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: A list of Addresses
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Address"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      tags:
+      - Address
+      summary: Create an Address
+      description: |
+        Creates a new Address linked with the given Account, owned by the given Entity.
+
+        As the Account is associated with a single Wallet and therefore the single Asset,
+        the new Address is created for this particular Asset.
+
+        No additional parameters are required to create a new Address. This Address
+        can immediately be used to receive funds on the blockchain.
+
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      responses:
+        "201":
+          description: Successfully created Address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Address"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /entities/{entity_id}/accounts/{account_id}/addresses/{address_id}:
+    get:
+      tags:
+      - Address
+      summary: Get a single Address
+      description: |
+        Returns a single Address identified by its ID, linked with the given Account,
+        owned by the given Entity.
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      - name: address_id
+        in: path
+        description: Address ID
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: A single Address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Address"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  #
+  # Transactions
+  #
+  /entities/{entity_id}/accounts/{account_id}/transactions:
+    get:
+      tags:
+      - Transaction
+      summary: List all Transactions of an Account
+      description: |
+        Returns a list of all Transactions of the given Account, owned by the given Entity.
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: A list of Transactions
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Transaction"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}:
+    get:
+      tags:
+      - Transaction
+      summary: Get a single Transaction
+      description: |
+        Returns a single Transaction identified by its ID of the given Account,
+        owned by the given Entity.
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      - name: transaction_id
+        in: path
+        description: Transaction ID
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: A single Transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+              example:
+                id: "f59e8c8188500efce5be51eb71e9db08tran"
+                account_id: "ff6dc60c4f76dcea784bdc2ffed66e6facct"
+                type: "WITHDRAWAL"
+                state: "PENDING"
+                amount: "-1.23450000"
+                fee_amount: "0.001000000"
+                total_amount: "-1.23550000"
+                reference: "someting-fe8cbeecef486fe6edf9c3690e4f6b0a-unique"
+                address: "1HesYJSP1QqcyPEjnQ9vzBL1wujruNGe7R"
+                created_at: "2019-03-01T20:48:38Z"
+                updated_at: "2019-03-01T20:49:07Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  #
+  # Withdrawals
+  #
+  /entities/{entity_id}/accounts/{account_id}/transactions/withdrawal:
+    post:
+      tags:
+      - Withdrawal
+      summary: Create a Withdrawal
+      description: |
+        Issues a request to create a new Withdrawal Transaction from the given Account, owned
+        by the given Entity.
+
+        The required `reference` attribute serves as idempotency key, and MUST be unique
+        across all Transactions initiated by the partner.
+
+        If a request is issued twice with the same attributes,
+        including the value of the `reference` attribute, the second response will be the same
+        as the first one, and only one Withdrawal Transaction will be created as the effect.
+
+        In the request to issue a Withdrawal either the `amount` or the `total_amount`
+        MUST be specified. If the `amount` is specified, it indicates the "transacted amount",
+        i.e. the exact amount that will be sent to the given address on the blockchain.
+        If the `total_amount` is specified, it indicates the amount that will be deducted from
+        the Account Balance, the amount that will be sent to the recipient on the blockchain
+        is determined after the fees are calculated and applied. Specifying the `total_amount`
+        is useful in case it is desired to withdraw the whole Balance of the Account.
+
+        The successful response of the Withdrawal request contains a reference to a Transaction,
+        which will *eventually* be created. If right after the partner tries to get this single
+        Transaction by its ID and receives a `"404 Not found"` response, it is advised to
+        repeat the attempt after some (rather short) period of time.
+
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - reference
+                - address
+                # see the notes for the amounts below
+              type: object
+              properties:
+                amount:
+                  type: string
+                  description: |
+                    Transacted amount *(required if `total_amount` is not specified)*
+                total_amount:
+                  type: string
+                  description: |
+                    Total amount deducted from the Account *(required if `amount` is not specified)*
+                reference:
+                  type: string
+                  description: A unique reference identifier provided by the partner
+                address:
+                  type: string
+                  description: A digital asset specific address, recipient of Withdrawal
+            example:
+              reference: "something-daada07e2bcd43ccc443750568effbe2-unique"
+              address: "1MbH8VxfH74VLcv8q3BjBQizcnV2c7Tmre"
+              amount: "1.15000000"
+      responses:
+        "201":
+          description: Successfully processed Withdrawal request response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionRequestResponse"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  #
+  # Transfers
+  #
+  /entities/{entity_id}/accounts/{account_id}/transactions/transfer:
+    post:
+      tags:
+      - Transfer
+      summary: Create a Transfer
+      description: |
+        Issues a request to create a new Transfer Transaction from the given Account, owned
+        by the given Entity. The Transfer Transaction represents a transfer of funds to
+        another Account on the same Wallet.
+
+        The required `reference` attribute serves as idempotency key, and MUST be unique
+        across all Transactions initiated by the partner.
+
+        If a request is issued twice with the same attributes,
+        including the value of the `reference` attribute, the second response will be the same
+        as the first one, and only one Transfer Transaction will be created as the effect.
+
+        In the request to issue a Transfer either the `amount` or the `total_amount`
+        MUST be specified. If the `amount` is specified, it indicates the "transacted amount",
+        i.e. the exact amount that will be sent to the recipient Account.
+        If the `total_amount` is specified, it indicates the amount that will be deducted from
+        the Account Balance, the amount that will be sent to the recipient
+        is determined after the fees are calculated and applied. Specifying the `total_amount`
+        is useful in case it is desired to transfer the whole Balance of the Account.
+
+        The successful response of the Transfer request contains a reference to a Transaction,
+        which will *eventually* be created. If right after the partner tries to get this single
+        Transaction by its ID and receives a `"404 Not found"` response, it is advised to
+        repeat the attempt after some (rather short) period of time.
+
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - reference
+                - receiver_account_id
+              type: object
+              properties:
+                amount:
+                  type: string
+                  description: |
+                    Transacted amount *(required if `total_amount` is not specified)*
+                total_amount:
+                  type: string
+                  description: |
+                    Total amount deducted from the Account *(required if `amount` is not specified)*
+                reference:
+                  type: string
+                  description: A unique reference identifier provided by the partner
+                receiver_account_id:
+                  type: string
+                  description: An ID of the recipient Account, on the same Wallet
+            example:
+              reference: "something-d4cbde56778cc85c2baf4d1b24c4097f-unique"
+              receiver_account_id: "8edc66729b14bf1921292ad7ee0fbce8acct"
+              total_amount: "10.00000000"
+      responses:
+        "201":
+          description: Successfully processed Transfer request response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionRequestResponse"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  #
+  # Ledger Entries
+  #
+  /entities/{entity_id}/accounts/{account_id}/ledger_entries:
+    get:
+      tags:
+      - LedgerEntry
+      summary: List all Ledger Entries of an Account
+      description: |
+        Returns a list of all Ledger Entries of a given Account, owned by the given Entity
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: A list of Ledger Entries
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LedgerEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /entities/{entity_id}/accounts/{account_id}/ledger_entries/{ledger_entry_id}:
+    get:
+      tags:
+      - LedgerEntry
+      summary: Get a single Ledger Entry
+      description: |
+        Returns a single Ledger Entry identified by its ID of the given Account,
+        owned by the given Entity.
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      - name: ledger_entry_id
+        in: path
+        description: Ledger Entry ID
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: A single Ledger Entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LedgerEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  schemas:
+    #
+    # Asset schema
+    #
+    Asset:
+      type: object
+      required:
+        - id
+        - code
+        - description
+        - precision
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Asset
+        code:
+          type: string
+          description: |
+            A non-unique and non-permanent ISO code-like identifier of
+            the digital asset
+        description:
+          type: string
+          description: |
+            A human readable description of an Asset
+        precision:
+          type: integer
+          description: |
+            Precision of monetary amounts in this asset (i.e. number of decimal places)
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      example:
+        id: "00000000000000000000000000000001asst"
+        code: "BTC"
+        description: "Bitcoin"
+        precision: 8
+        created_at: "2019-03-01T22:46:38Z"
+        updated_at: "2019-03-01T22:46:38Z"
+
+    #
+    # Wallet schema
+    #
+    Wallet:
+      type: object
+      required:
+        - id
+        - asset_id
+        - balance
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Wallet
+        asset_id:
+          type: string
+          description: ID of the underlying Asset
+        balance:
+          type: string
+          description: Balance of the wallet
+        created_at:
+          type: string
+          description: Time at which the Wallet was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the Wallet was last updated
+          format: date-time
+      example:
+        id: "bfd75f4cd2e3ec5f3bbfad600dbe79e7walt"
+        asset_id: "00000000000000000000000000000001asst"
+        balance: "123.45670000"
+        created_at: "2019-03-01T22:46:38Z"
+        updated_at: "2019-03-01T22:46:38Z"
+
+    #
+    # Entity schema
+    #
+    Entity:
+      oneOf:
+        - $ref: "#/components/schemas/EntityPartner"
+        - $ref: "#/components/schemas/EntityPerson"
+    EntityPartner:
+      type: object
+      required:
+        - id
+        - type
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Entity
+        type:
+          type: string
+          description: Type of Entity
+          example: PARTNER
+          enum:
+          - PARTNER
+        created_at:
+          type: string
+          description: Time at which the Entity was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the Entity was last updated
+          format: date-time
+      example:
+        id: "1cbce42a62fc0cdeb1cf17df3ecd6fd6enty"
+        type: "PARTNER"
+        created_at: "2019-03-01T22:31:06Z"
+        updated_at: "2019-03-01T22:31:06Z"
+    EntityPerson:
+      type: object
+      required:
+        - id
+        - type
+        - person_id
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Entity
+        type:
+          type: string
+          description: Type of Entity
+          example: PERSON
+          enum:
+          - PERSON
+        person_id:
+          type: string
+          description: The ID of the person, provided by solarsBank KYC product
+        created_at:
+          type: string
+          description: Time at which the Entity was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the Entity was last updated
+          format: date-time
+      example:
+        id: "7d57be2d17a328150abd28daaae76d47enty"
+        type: "PERSON"
+        person_id: "e3c4bc7bdfeaed3c0a3cebd2addcd5accper"
+        created_at: "2019-03-01T22:31:06Z"
+        updated_at: "2019-03-01T22:31:06Z"
+
+    #
+    # Account schema
+    #
+    Account:
+      type: object
+      required:
+        - id
+        - entity_id
+        - wallet_id
+        - balance
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Account
+        entity_id:
+          type: string
+          description: ID of the Entity owning the Account
+        wallet_id:
+          type: string
+          description: ID of the Wallet the Account is linked with
+        balance:
+          type: string
+          description: Balance of the Account
+        created_at:
+          type: string
+          description: Time at which the Account was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the Account was last updated
+          format: date-time
+      example:
+        id: "09934947ffdd4bef50ba88ddc5eab0bfacct"
+        entity_id: "359fe08986bbc6b62ea406f864b1ab90enty"
+        wallet_id: "bfce4cef815cb3b6f4e4c60d046c0ccbwall"
+        balance: "123.45670000"
+        created_at: "2019-03-01T22:31:06Z"
+        updated_at: "2019-03-01T22:31:06Z"
+
+    #
+    # Address schema
+    #
+    Address:
+      type: object
+      required:
+        - id
+        - account_id
+        - address
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unqiue ID of the Address
+        account_id:
+          type: string
+          description: ID of the Account the Address belongs to
+        address:
+          type: string
+          description: A digital asset specific address
+          example: 1NgiUwkhYVYMy3eoMC9dHcvdHejGxcuaWm
+        created_at:
+          type: string
+          description: Time at which the Address was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the Address was last updated
+          format: date-time
+      example:
+        id: "dfddb6ba632e3ee65e49f37b059763cdaddr"
+        account_id: "df10de8c583c8b2ca85ca169df349bffacct"
+        address: "1NgiUwkhYVYMy3eoMC9dHcvdHejGxcuaWm"
+        created_at: "2019-03-01T21:47:06Z"
+        updated_at: "2019-03-01T21:47:06Z"
+
+    #
+    # Transaction schema
+    #
+    Transaction:
+      description: |
+        A Transaction can be of type: DEPOSIT, WITHDRAWAL or TRANSFER
+      oneOf:
+        - $ref: "#/components/schemas/TransactionDeposit"
+        - $ref: "#/components/schemas/TransactionWithdrawal"
+        - $ref: "#/components/schemas/TransactionTransfer"
+    TransactionCommonAttributes:
+      description: |
+        This schema represents a set of common attributes of a Transaction
+      type: object
+      required:
+        - id
+        - account_id
+        - type
+        - state
+        - amount
+        - fee_amount
+        - total_amount
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of a Transaction
+        account_id:
+          type: string
+          description: ID of an Account the Transaction belongs to
+        type:
+          type: string
+          description: Type of Transaction
+          enum:
+            - DEPOSIT
+            - WITHDRAWAL
+            - TRANSFER
+        state:
+          type: string
+          description: Current state of the Transaction
+          enum:
+            - PENDING
+            - COMPLETED
+            - FAILED
+        amount:
+          type: string
+          description: Transacted amount, positive or negative
+          example: "123.00010000"
+        fee_amount:
+          type: string
+          description: Charged fee, always positive or 0
+          example: "0.00123000"
+        total_amount:
+          type: string
+          description: Credited/debited amount, positive or negative
+        created_at:
+          type: string
+          description: Time at which a transaction was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which a transaction was updated
+          format: date-time
+    TransactionDeposit:
+      description: |
+        A Deposit is a Transaction, which represents a transfer of funds on blockchain
+        to some  digital asset Address linked with some Account
+      type: object
+      required:
+        - id
+        - account_id
+        - type
+        - state
+        - amount
+        - fee_amount
+        - total_amount
+        - address
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of a Transaction
+        account_id:
+          type: string
+          description: ID of an Account the Transaction belongs to
+        type:
+          type: string
+          description: The type of a transaction
+          enum:
+          - DEPOSIT
+        state:
+          type: string
+          description: Current state of the Transaction
+          enum:
+            - PENDING
+            - COMPLETED
+            - FAILED
+        amount:
+          type: string
+          description: Transacted amount, positive
+          example: "123.00010000"
+        fee_amount:
+          type: string
+          description: Charged fee, always positive or 0
+          example: "0.00123000"
+        total_amount:
+          type: string
+          description: Credited amount, positive
+        address:
+          type: string
+          description: A digital asset specific address used for deposit
+          example: 1CU5YgjquupDw6UeXEyA9VEBH34R7fZ19b
+        created_at:
+          type: string
+          description: Time at which a transaction was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which a transaction was updated
+          format: date-time
+      example:
+        id: "f59e8c8188500efce5be51eb71e9db08tran"
+        account_id: "ff6dc60c4f76dcea784bdc2ffed66e6facct"
+        type: "DEPOSIT"
+        state: "PENDING"
+        amount: "1.23450000"
+        fee_amount: "0.00000000"
+        total_amount: "1.23450000"
+        address: "1PC9aZC4hNX2rmmrt7uHTfYAS3hRbph4UN"
+        created_at: "2019-03-01T20:31:38Z"
+        updated_at: "2019-03-01T20:46:07Z"
+    TransactionWithdrawal:
+      description: |
+        A Withdrawal is a Transaction, which represents a transfer of funds on blockchain
+        from some Account to an external digital asset address
+      type: object
+      required:
+        - id
+        - account_id
+        - type
+        - state
+        - amount
+        - fee_amount
+        - total_amount
+        - reference
+        - address
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of a Transaction
+        account_id:
+          type: string
+          description: ID of an Account the Transaction belongs to
+        type:
+          type: string
+          description: The type of a transaction
+          enum:
+          - WITHDRAWAL
+        state:
+          type: string
+          description: Current state of the Transaction
+          enum:
+            - PENDING
+            - COMPLETED
+            - FAILED
+        amount:
+          type: string
+          description: Transacted amount, negative
+          example: "-123.00000000"
+        fee_amount:
+          type: string
+          description: Charged fee, always positive or 0
+          example: "0.00123000"
+        total_amount:
+          type: string
+          description: Debited amount, negative
+          example: "-123.00123000"
+        reference:
+          type: string
+          description: |
+            A reference identifier supplied with the Withdrawal request by the partner
+        address:
+          type: string
+          description: A digital asset specific address where funds are sent to
+          example: 1MaXZE92yjuy4NYjTspmdWHMRT3jQUcTf4
+        created_at:
+          type: string
+          description: Time at which a transaction was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which a transaction was updated
+          format: date-time
+      example:
+        id: "f59e8c8188500efce5be51eb71e9db08tran"
+        account_id: "ff6dc60c4f76dcea784bdc2ffed66e6facct"
+        type: "WITHDRAWAL"
+        state: "PENDING"
+        amount: "-1.23450000"
+        fee_amount: "0.001000000"
+        total_amount: "-1.23550000"
+        reference: "someting-fe8cbeecef486fe6edf9c3690e4f6b0a-unique"
+        address: "1HesYJSP1QqcyPEjnQ9vzBL1wujruNGe7R"
+        created_at: "2019-03-01T20:48:38Z"
+        updated_at: "2019-03-01T20:49:07Z"
+    TransactionTransfer:
+      description: |
+        A Transfer is a Transaction, which represents a transfer of funds from one
+        Account to another Account within the same Wallet.
+
+        A Transfer transaction can be incoming or outgoing, which is indicated by the
+        transacted amount being positive or negative.
+      type: object
+      required:
+        - id
+        - account_id
+        - type
+        - state
+        - amount
+        - fee_amount
+        - total_amount
+        - reference
+        - sender_account_id
+        - receiver_account_id
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of a Transaction
+        account_id:
+          type: string
+          description: ID of an Account the Transaction belongs to
+        type:
+          type: string
+          description: The type of a transaction
+          enum:
+          - TRANSFER
+        state:
+          type: string
+          description: Current state of the Transaction
+          enum:
+            - PENDING
+            - COMPLETED
+            - FAILED
+        amount:
+          type: string
+          description: Transacted amount, positive or negative
+          example: "123.00000000"
+        fee_amount:
+          type: string
+          description: Charged fee, always positive or 0
+          example: "0.00100000"
+        total_amount:
+          type: string
+          description: Credited/debited amount, positive or negative
+          example: "122.99900000"
+        reference:
+          type: string
+          description: |
+            A reference identifier supplied with the Transfer request by the partner
+        sender_account_id:
+          type: string
+          description: ID of the sender Account
+        receiver_account_id:
+          type: string
+          description: ID of the receiver Account
+        created_at:
+          type: string
+          description: Time at which a transaction was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which a transaction was updated
+          format: date-time
+      example:
+        id: "f59e8c8188500efce5be51eb71e9db08tran"
+        account_id: "ff6dc60c4f76dcea784bdc2ffed66e6facct"
+        type: "TRANSFER"
+        state: "COMPLETED"
+        amount: "-0.98760000"
+        fee_amount: "0.000000000"
+        total_amount: "-0.98760000"
+        reference: "something-fc522958ced6c1b5c2c57d6dddecfa0a-unique"
+        sender_account_id: "ff6dc60c4f76dcea784bdc2ffed66e6facct"
+        receiver_account_id: "4aeeac12d4b92c967cb826ac5dee5a8eacct"
+        created_at: "2019-03-01T21:03:43Z"
+        updated_at: "2019-03-01T21:03:51Z"
+
+    #
+    # TransactionRequestResponse schema
+    #
+    TransactionRequestResponse:
+      description: |
+        A successul response to a Transaction initiation request (e.g. Withdrawal or Transfer).
+      type: object
+      required:
+        - transaction_id
+      properties:
+        transaction_id:
+          type: string
+          description: ID of the Transaction that will be eventually created for this request
+      example:
+        transaction_id: "afa4bcc92adaad64fdaad3c48b8cb840tran"
+
+    #
+    # LedgerEntry schema
+    #
+    LedgerEntry:
+      description: |
+        A Ledger Entry is an account entry which indicates by which amount the Account
+        balance was changed. The amount of a Ledger Entry can be either positive or negative,
+        where positive amounts represent an increase of the Account balance and negative
+        amounts represent a decrease.
+      type: object
+      required:
+        - id
+        - account_id
+        - transaction_id
+        - type
+        - amount
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Ledger Entry
+        account_id:
+          type: string
+          description: ID of the Account the Ledger Entry belongs to
+        transaction_id:
+          type: string
+          description: ID of the Transaction that produced this Ledger Entry
+        type:
+          type: string
+          description: Type of the Ledger Entry
+          example: "DEPOSIT_AMOUNT"
+          enum:
+          - DEPOSIT_AMOUNT
+          - DEPOSIT_FEE
+          - WITHDRAWAL_AMOUNT
+          - WITHDRAWAL_FEE
+          - TRANSFER_AMOUNT
+          - TRANSFER_FEE
+        amount:
+          type: string
+          description: Amount of the Ledger Entry, positive or negative
+          example: "0.15000000"
+        created_at:
+          type: string
+          description: Time at which the Ledger Entry was created
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      example:
+        id: "1c0fb8dbafa519adba070bba252b1263lent"
+        account_id: "1570f8eba8a6cffebf6354b718c138e7acct"
+        transaction_id: "ce9e6e3d62d7d0811a3f8c8aabbac466tran"
+        type: "WITHDRAWAL_AMOUNT"
+        amount: "-1.00000000"
+        created_at: "2019-03-01T22:31:06Z"
+        updated_at: "2019-03-01T22:31:06Z"
+
+  #
+  # Error responses
+  #
+  responses:
+    # 400, Bad request
+    InvalidRequest:
+      description: Request contains invalid parameters
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - message
+              - params
+            properties:
+              message:
+                type: string
+                description: Human readable error message
+              params:
+                type: object
+                description: A map of attributes and machine readable error codes
+                additionalProperties:
+                  type: string
+                  enum:
+                    - invalid
+                    - not_found
+                    - taken
+            example:
+              message: Invalid request
+              params:
+                wallet_id: not_found
+    # 401, Unauthorized
+    Unauthorized:
+      description: |
+        Authentication error, either because the authentication scheme is invalid
+        (e.g. missing nonce), or the produced signature is invalid
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - message
+            properties:
+              message:
+                type: string
+            example:
+              message: Unauthorized
+    # 404, Not found
+    NotFound:
+      description: Requested resource was not found
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - message
+            properties:
+              message:
+                type: string
+            example:
+              message: Not found
+    # 500, Internal server error
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - message
+            properties:
+              message:
+                type: string
+            example:
+              message: Internal server error
+

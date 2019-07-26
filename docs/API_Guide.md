@@ -2,8 +2,8 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-* Version: [0.5.0]
-* Updated: [2019-07-08]
+* Version: [0.6.0]
+* Updated: [2019-07-23]
 
 ## Introduction
 
@@ -52,9 +52,15 @@ Finally we register the public key received from the partner, after which the pa
 
 ## Authentication
 
-We are using *HTTP Signatures* IETF draft as the base for our authentication mechanism. As the digital signature algorithm in HTTP Signatures we are using *Ed25519*.
+We require our partners to generate a pair of private & public keys.
+Partners MUST register the public key with the Platform and sign every request to our API
+using their private key.
 
-Every request is required to have additional headers:
+We are using *HTTP Signatures* IETF draft as the base for our authentication mechanism.
+As the digital signature algorithm in HTTP Signatures we are using *Ed25519*.
+
+Every HTTP request to the API MUST have following headers in addition to
+standard ones:
 
 * Digest
 * X-Nonce
@@ -62,83 +68,101 @@ Every request is required to have additional headers:
 
 ### Digest Header
 
-The `Digest` header ensures integrity of the HTTP request body. It MUST be constructed following the HTTP Instance Digests RFC using SHA-256 algorithm.
+The `Digest` header ensures integrity of the HTTP request body. It MUST be constructed
+following the HTTP Instance Digests RFC using SHA-256 algorithm.
 
-In case of GET request, the `Digest` header still must be constructed, assuming the request body is an empty string.
+In case of GET request, the `Digest` header still must be constructed, assuming the request
+body is an empty string.
 
 See:
 
 * Instance Digests in HTTP <https://tools.ietf.org/html/rfc3230>
 * Additional Hash Algorithms for HTTP Instance Digests <https://tools.ietf.org/html/rfc5843>
 
+Example:
 ```
 Digest: SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=
 ```
 
 ### X-Nonce Header
 
-The `X-Nonce` header is supposed to uniquely identify the HTTP request and serves to protect against the replay/playback attacks.
+The `X-Nonce` header is supposed to uniquely identify the HTTP request
+and serves to protect against replay/playback attacks.
+The `X-Nonce` header value MUST be a string of up to 32 characters,
+which MUST be  unique across all the requests generated using the same
+API key.
 
-The `X-Nonce` value MUST be a string of up to 32 characters, which MUST unique across all the requests generated using the same API key.
+As an example, `X-Nonce` header value may be generated as 16-bytes
+random integer in hexadecimal representation.
 
-As an example, `X-Nonce` value may be generated as 16-bytes random integer in hexadecimal representation.
-
+Example:
 ```
 X-Nonce: 514bdd41b15f6b1a0443f8c673adc9db
 ```
 
 ### Signature Header
 
-Signature Header string is used to provide authentication and integrity assurances without the need for shared secrets. It also does not require an additional round-trip in order to authenticate the client and allows the integrity of a message to be verified independently of the transport.
+Signature Header string is used to provide authentication and integrity assurances
+without the need for shared secrets. It also does not require an additional round-trip
+in order to authenticate the client and allows the integrity of a message to be verified
+independently of the transport.
 
 Signature Parameters:
 
 * **keyId**
 
-  *Unique ID which is associated with Partner Public Key.*
+  Unique ID which is assigned to the Partner's API key.
 
 * **algorithm**
 
-  *The value for the `algorithm` parameter MUST be `"hs2019"`.*
+  The value for the `algorithm` parameter MUST be `"hs2019"`.
 
 * **created**
 
-  *The value of the `created` parameter MUST be the time at which the HTTP request was constructed as an integer Unix timestamp.*
+  The value of the `created` parameter MUST be the time at which
+  the HTTP request was constructed as an integer Unix timestamp.
 
 * **headers**
 
-  *The `headers` parameter identifies how the canonical Signature String is constructed. Its value consists of a list of actual and pseudo- HTTP headers which will form the Signature String according to the HTTP Signatures draft v11.*
+  The `headers` parameter identifies how the canonical Signature String is constructed.
+  Its value consists of a list of actual and pseudo- HTTP headers which will form
+  the Signature String according to the HTTP Signatures draft v11.
 
-  *The `headers` parameter MUST include following headers: `(request-target)`, `(created)`, `digest`, `x-nonce`.*
+  The `headers` parameter MUST include following
+  headers: `(request-target)`, `(created)`, `digest`, `x-nonce`.
 
-  *The recommended value of the `headers` parameter is: `(request-target) (created) digest x-nonce`.*
+  The recommended value of the `headers` parameter is:
+  `(request-target) (created) digest x-nonce`.
 
-  *See:*
+  See:
 
-  * *Signature String Construction <https://tools.ietf.org/html/draft-cavage-http-signatures-11#section-2.3>*
+  * Signature String Construction
+    <https://tools.ietf.org/html/draft-cavage-http-signatures-11#section-2.3>
 
-  *Example of Signature String for headers="(request-target) (created) digest x-nonce":*
+  Example of Signature String for `headers="(request-target) (created) digest x-nonce"`:
 
   ```
+
   (request-target): get /foo?bar=123\n
   (created): 1557855475\n
   digest: SHA-256=47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=\n
   x-nonce: 7c44d38b63f5e398af62d603b1155f5c
+
   ```
 
-  *Here `\n` indicate the ASCII newline character. Note the absence of it on the last line.*
+  Here `\n` indicate the ASCII newline character. Note the absence of it on the last line.
 
 * **signature**
 
-  *The value of the `signature` parameter is the digital signature of the HTTP request produced by the partner's private key.*
+  The value of the `signature` parameter is the digital signature of the HTTP request produced
+  by the partner's private key.
 
-  *In order to create the `signature` parameter:*
+  In order to create the `signature` parameter:
 
-  * *Construct the canonical Signature String according to the value of the `headers` parameter*
-
-  * *Using the private key that corresponds to the provided `keyId` generate an Ed25519 signature of the Signature String obtained on a previous step*
-
-  * *Base64-encode the signature*
+  * Construct the canonical Signature String according to the value of the `headers` parameter
+  * Using the private key that corresponds to the provided `keyId` generate an Ed25519
+    signature of the Signature String obtained on a previous step
+  * Base64-encode the signature
 
 ### Examples
 
@@ -162,6 +186,7 @@ See:
 
 * HTTP Signatures, <https://tools.ietf.org/html/draft-cavage-http-signatures-11>
 * Ed25519, <https://ed25519.cr.yp.to/>
+
 
 ## IDs
 
