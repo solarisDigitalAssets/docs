@@ -2,8 +2,8 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-* Version: [0.6.0]
-* Updated: [2019-07-23]
+* Version: [0.8.0]
+* Updated: [2019-09-05]
 
 ## Introduction
 
@@ -313,10 +313,31 @@ To create an Account, the partner MUST provide a reference to an existing Entity
 
 ### Account Balance
 
-The Account resource provided by the API contains the `balance` attribute, which represents the Account Balance. Accounts start with having a balance of 0.
+The Account resource provided by the API contains the `balance` attribute, which represents
+the Account Balance. Accounts start with having a balance of 0.
 
 Every successfully processed Transaction increases or decreases the Account Balance
-by creating corresponding Ledger Entries. As such the Account Balance equals to the sum of all Ledger Entries of this Account.
+by creating corresponding Ledger Entries.
+As such the Account Balance equals to the sum of all Ledger Entries of this Account.
+
+
+### Account Available Balance
+
+Whenever a Transaction that transfers funds out of the Account is requested,
+for example Withdrawal or Transfer, the Account Balance is not immediately reduced.
+It is only when the Transaction is approved by the Customer or the Partner,
+and then processed by the platform, the corresponding Account Balance is updated.
+
+At the same time, even though after requesting a Transaction the Account Balance
+didn't change, it does not mean that all of it can be spent, as there is a pending
+Transaction in the processing pipeline.
+
+To mitigate that and improve user experience, every Account also exposes
+the `available_balance` attribute, which represents
+the current Account Available Balance.
+
+The Account Available Balance displays how much can be spent by the next requested
+Transaction.
 
 See:
 
@@ -344,6 +365,7 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts
   "wallet_id": "82b46f5310d8a35fb4755cc13fddd681walt",
   "entity_id": "10ef67dc895d6c19c273b1ffba0c1692enty",
   "balance": "0.00000000",
+  "available_balance": "0.00000000",
   "created_at": "2019-02-02T13:41:34Z",
   "updated_at": "2019-02-02T13:41:34Z"
 }
@@ -391,6 +413,7 @@ Transactions have a `type` attribute, which describes the operation:
 
 * DEPOSIT
 * WITHDRAWAL
+* WITHDRAWAL_PROCESSING
 * TRANSFER
 
 In addition Transaction have following attributes:
@@ -459,6 +482,18 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
       "receiver_account_id": "f0cfb103e6c3d4a37c2750a1256862a3acct",
       "created_at": "2019-04-02T13:18:51Z",
       "updated_at": "2019-04-02T13:18:51Z"
+    },
+    {
+      "id": "kajsdhfkjh241k43aslkdjf1h5kjh9atrx",
+      "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
+      "type": "WITHDRAWAL_PROCESSING",
+      "state": "COMPLETED",
+      "amount": "-0.50000000",
+      "fee_amount": "0.00000000",
+      "total_amount": "-0.50000000",
+      "blockchain_txid": "648a0e4262c0edf6485ac8628bbb5411250ca057448a3125f2e36ce96e09bc28",
+      "created_at": "2019-04-02T13:18:51Z",
+      "updated_at": "2019-04-02T13:18:51Z"
     }
   ]
 }
@@ -511,7 +546,8 @@ Depending on the underlying blockchain, the platform can batch multiple Withdraw
 
 To issue a Withdrawal on behalf of the customer, the partner creates a new Withdrawal object and provides a `reference` value, which MUST be unique across all Withdrawals of this partner and serves as idempotency key.
 
-The Withdrawal is then registered on the platform and validated, triggering an out-of-band MFA process.
+The Withdrawal is then registered on the platform and validated, after which the customer
+(as an Account holder) MUST approve the Withdrawal. See [Transaction Approvals].
 
 Once Withdrawal is validated and approved, the platform proceeds to creating corresponding Account Transactions, and then queues the Withdrawal for processing.
 
@@ -545,6 +581,42 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b5
 }
 ```
 
+## WithdrawalProcessing Transacions
+
+A WithdrawalProcessing is a Transaction of type WITHDRAWAL_PROCESSING.
+The Digital Assets Platform processes Withdrawal Transactions in batches to include as many Withdrawals as possible in one single network transaction.
+When the batch of Withdrawals is processed and a network transaction has been broadcasted to the network, then a Transaction of type WITHDRAWAL_PROCESSING is created by the Digital Assets Platform.
+This WithdrawalProcessing Transaction represents a single transfer of funds from the Partner Entity’s Account and is used to pay the actual network fees for the network transaction. The WithdrawalProcessing Transaction has an attribute `amount` that represents the amount that is moved on the Partner Entity’s fee paying Account.
+The `amount` can be negative or positive. The `amount` is calculated as follows: `(SUM of the `fee_amounts` of all Withdrawals included in a network transaction) MINUS the actual network transaction fee`.
+As the `fee_amounts` of the Withdrawals are only an estimate they can be less or more than the actual fee that needs to be payed to the network thus leading to a positive or negative amount that will be taken from or credited to the Partner Entity’s fee paying Account.
+
+See:
+
+```
+GET /v1/entities/{entity_id}/accounts/{account_id}/transactions
+```
+
+### Example
+
+```
+GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57cb5078ae0a8b569acct/transactions/9c41ec8a82fb99b57cb5078ae0a8b569atrx
+
+200 Okay
+
+{
+  "id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
+  "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
+  "type": "WITHDRAWAL_PROCESSING",
+  "state": "COMPLETED",
+  "amount": "-0.50000000",
+  "fee_amount": "0.00000000",
+  "total_amount": "-0.50000000",
+  "blockchain_txid": "648a0e4262c0edf6485ac8628bbb5411250ca057448a3125f2e36ce96e09bc28",
+  "created_at": "2019-04-02T13:18:51Z",
+  "updated_at": "2019-04-02T13:18:51Z"
+}
+```
+
 ## Transfers
 
 A Transfer is a Transaction of type TRANSFER. A Transfer is a transfer of funds from one Account to another within the same Wallet. This operation is not reflected externally as a blockchain transaction or any other observable event.
@@ -552,6 +624,9 @@ A Transfer is a Transaction of type TRANSFER. A Transfer is a transfer of funds 
 It can be a Transfer between an end customer and a partner Accounts, or a Transfer between two end customer Accounts.
 
 To issue a Transfer on behalf of the Account holder, the partner creates a new Transaction of type TRANSFER and provides a `reference` value, which MUST be unique across all Transfers of this partner and serves as idempotency key.
+
+After the Transfer is validated and created by the platform, the transaction MUST be approved
+by the customer (as an Account holder). See [Transaction Approvals].
 
 A Transaction of type TRANSFER is created under the originating Account debiting the funds, and another Transaction of type TRANSFER is created in the receiving Account crediting the funds.
 
@@ -580,6 +655,248 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b5
   "transaction_id": "fd213476ad3a1f2df48c7cbca394f3edatrx",
 }
 ```
+
+## Transaction Approvals
+
+Any Transaction initiated by an API request (i.e. Withdrawal or Transfer) MUST be approved
+by the corresponding Account holder (an Entity owning the Transaction's Account),
+before it will be processed and executed by the Platform.
+
+Transaction Approval process consists of two steps:
+
+* retrieving an Approval challenge
+* computing and submitting an Approval response
+
+There are different approval methods supported, which determine how exactly an Approval challenge
+can be transformed into the response. Different approval methods are targeted at different types
+of Account holders:
+
+* Entity of type PERSON -- an approval method of type `MFA`
+* Entity of type PARTNER -- an approval method of type `DSA_ED25519`
+
+Currently, the Entity type directly identifies which approval method is going to be used
+for approving any Transaction of this Entity.
+
+
+### Approval method: MFA
+
+This approval method is aimed at customers (individual people) as Account holders.
+
+The specifics of the method are TBD.
+
+#### Setup
+
+The Entity of type `PERSON` contains `person_id`, which MUST be a reference
+to a solarisBank KYC'ed person.
+
+#### Challenge
+
+Currently, the challenge produced by this method does not contain any meaningful data.
+
+```
+GET /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval
+```
+```
+200 OK
+
+{
+  "type": "MFA",
+  "challenge": {}
+}
+```
+
+#### Response
+
+Currently, the response expected by this method can be any string value, e.g. empty string.
+
+```
+POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval
+
+{
+  "type": "MFA",
+  "challenge": {},
+  "response": ""
+}
+```
+```
+201 Created
+
+{}
+```
+
+### Approval method: DSA_ED25519
+
+This approval method is designed for automated systems or custom integrations
+(e.g. custom mobile apps). Currently this approval method is only available
+for Entity of type `PARTNER`.
+
+Approving a Transaction using this method works in the following way:
+
+* a challenge is constructed in some deterministic way from the Transaction attributes
+* the challenge is signed by the Approval key (private) held by Account holder (Entity)
+* the signature is sent as a challenge response to the Platform
+* platform verifies the response, using previously registered Approval key (public)
+  of the Account holder (Entity)
+
+#### Setup
+
+To utilize this method, the Partner MUST register an *Approval key*'s public key with the platform.
+
+**Approval key** -- an Ed25519 key pair which Partner is going to use for approving Transactions.
+This key SHOULD be different from Partner's API key.
+
+
+#### Challenge
+
+The challenge for the DSA_ED25519 method is represented by a *Challenge message*,
+that the holder of Approval key should sign and send the signature as the response.
+
+```
+GET /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval
+```
+```
+200 OK
+
+{
+  "type": "DSA_ED25519",
+  "challenge": {
+    "attrs": ["id","account_id","type",...] # list of Transaction attribute names
+  }
+}
+```
+
+The *Challenge message* is constructed from Transaction attributes and a list of
+attribute names returned in `challenge.attrs` in the following way:
+
+1. For each *attribute_name* from the `challenge.attrs` list, construct the *attribute_string*
+  in the following way: concatenate the *attribute_name*, ASCII colon `:`, ASCII space ` `
+  and the value of corresponding Transaction attribute
+1. Construct the *Challenge message* by concatenating *attribute_string*'s in the same
+  order as the corresponding attributes in `challenge.attrs`,
+  using ASCII newline `\n` as the delimiter.
+  NOTE: the resulting string does NOT end with `\n`.
+
+##### Example
+
+Suppose there is a Withdrawal Transaction:
+```
+{
+  "id": "f4342c75f714405d89007ef13ce68688atrx",
+  "account_id": "f52b22a8256cd2b0ad21f3c2cc2c5875acct",
+  "type": "WITHDRAWAL",
+  "state": "PENDING",
+  "amount": "-0.00000001",
+  "fee_amount": "1.00000000",
+  "total_amount": "-1.00000001",
+  "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+  "reference": "some-reference-ea1ee054",
+  "created_at": "2019-08-21T10:47:34Z",
+  "updated_at": "2019-08-21T10:47:34Z"
+}
+```
+
+And the request for approval challenge is:
+```
+GET /v1/.../f4342c75f714405d89007ef13ce68688atrx/approval
+```
+```
+200 OK
+
+{
+  "type": "DSA_ED25519",
+  "challenge": {
+    "attrs": ["id","account_id","type,amount","fee_amount","total_amount","address","reference"]
+  }
+}
+```
+
+Then the computed *Challenge message* is:
+```
+id: f4342c75f714405d89007ef13ce68688atrx\n
+account_id: f52b22a8256cd2b0ad21f3c2cc2c5875acct\n
+type: WITHDRAWAL\n
+amount: -0.00000001\n
+fee_amount: 1.00000000\n
+total_amount: -1.00000001\n
+address: 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa\n
+reference: some-reference-ea1ee054
+```
+
+> NOTE: the `\n` above represent the ASCII newline characters, note the absence of it on the last line.
+
+The SHA-256 digest of this *Challenge message* is:
+```
+d5779cee74f98ef140c2c62ae452a9dcd4a94a9959e70a5ad69472ae714d9f49
+```
+
+#### Response
+
+For the approval method DSA_ED25519, the response is a hexadecimal representation
+of the Ed25519 signature of the *Challenge message* constructed above, produced using
+private key part of *Approval key*.
+
+```
+POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval
+
+{
+  "type": "DSA_ED25519",
+  "challenge": {
+    "sha256": "d5779cee..." # (optional) SHA-256 digest of the Challenge message
+  },
+  "response": "4c989d1d..." # hexadecimal signature of the Challenge message
+}
+```
+
+The Partner MAY provide the optional `challenge.sha256` value with the request,
+which then will be validated in addition to `response` -- the signature of the *Challenge message*.
+
+
+##### Example
+
+Provided *Approval key* is the following:
+```
+{
+  "type": "ed25519",
+  "prv_key": "9d7d82e1a21d87abc328630f7844d8a7054edad004210043e6f2aa7674dbd93c",
+  "pub_key": "d7be9b9a905185869bf063d36587722646b44e15d6c577e7523187614f79cca9"
+}
+```
+
+And the computed *Challenge message* is:
+```
+id: f4342c75f714405d89007ef13ce68688atrx\n
+account_id: f52b22a8256cd2b0ad21f3c2cc2c5875acct\n
+type: WITHDRAWAL\n
+amount: -0.00000001\n
+fee_amount: 1.00000000\n
+total_amount: -1.00000001\n
+address: 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa\n
+reference: some-reference-ea1ee054
+```
+
+The signature is:
+```
+4c989d1dd671f6092fe835e39170521e59ead4b85d2fa7cf68322f9b27e064ee3765680fa8dca0e48c572f65d7ca25666a32389890474041fbcfc11b46b74d0a
+```
+
+Then the request to approve the Transaction is:
+```
+POST /v1/.../f4342c75f714405d89007ef13ce68688atrx/approval
+
+{
+  "type": "DSA_ED25519",
+  "challenge": {
+    "sha256": "d5779cee74f98ef140c2c62ae452a9dcd4a94a9959e70a5ad69472ae714d9f49"
+  },
+  "response": "4c989d1dd671f6092fe835e39170521e59ead4b85d2fa7cf68322f9b27e064ee3765680fa8dca0e48c572f65d7ca25666a32389890474041fbcfc11b46b74d0a"
+}
+```
+```
+201 Created
+
+{}
+```
+
 
 ## Ledger Entries
 

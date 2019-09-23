@@ -3,7 +3,7 @@ info:
   title: solarisBank Digital Assets Platform API
   contact:
     email: Alexis.Hamel@solarisbank.de
-  version: 0.6.0
+  version: 0.8.0
 
   description: |
     This is a draft for solarisBank Digital Assets Platform API
@@ -721,10 +721,12 @@ paths:
                 type: "WITHDRAWAL"
                 state: "PENDING"
                 amount: "-1.23450000"
-                fee_amount: "0.001000000"
+                fee_amount: "0.00100000"
                 total_amount: "-1.23550000"
                 reference: "someting-fe8cbeecef486fe6edf9c3690e4f6b0a-unique"
                 address: "1HesYJSP1QqcyPEjnQ9vzBL1wujruNGe7R"
+                blockchain_txid: "0d0baf05852a856366a302ce9c9a9bbd36f95685a1e3d3bc9ef7715424ed577b"
+                blockchain_output_n: 4
                 created_at: "2019-03-01T20:48:38Z"
                 updated_at: "2019-03-01T20:49:07Z"
         "401":
@@ -914,6 +916,131 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  #
+  # Transaction Approvals
+  #
+  /entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval:
+    get:
+      tags:
+      - Transaction
+      summary: Request a Transaction Approval challenge
+      description: |
+        Retrieves an Approval challenge for given Transaction.
+
+        To approve the Transaction, the Account holder (an Entity owning the Account),
+        MUST compute a response based on retrieved challenge.
+
+        The approval challenge depends on the approval method and the type of Transaction.
+
+        Currently, approval method depends directly on the type of the Entity, which
+        owns the Transaction's Account:
+
+        * for Entity of type PERSON -- the approval method is `MFA`
+        * for Entity of type PARTNER -- the approval method is `DSA_ED25519`
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      - name: transaction_id
+        in: path
+        description: Transaction ID
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: A Transaction approval challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionApprovalChallenge"
+              example:
+                type: "DSA_ED25519"
+                challenge:
+                  attrs:
+                    - id
+                    - account_id
+                    - type
+                    - reference
+                    - amount
+                    - fee_amount
+                    - total_amount
+                    - address
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+      - Transaction
+      summary: Approve a Transaction
+      description: |
+        Issues a request to approve a Transaction from the given Account
+        and owned by the given Entity.
+
+        To approve a Transaction, the Account holder (an Entity owning the Account),
+        MUST compute a response based on previously retrieved challenge. The response
+        is posted with this request.
+
+        See Transaction Approvals description [API Guide](API_Guide.md)
+        on how to compute the response for a particular approval method.
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      - name: transaction_id
+        in: path
+        description: Transaction ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionApprovalResponse"
+            example:
+              type: "MFA"
+              response: ""
+
+      responses:
+        "201":
+          description: Transaction is successfully approved
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   #
   # Ledger Entries
   #
@@ -1163,6 +1290,7 @@ components:
         - entity_id
         - wallet_id
         - balance
+        - available_balance
         - created_at
         - updated_at
       properties:
@@ -1178,6 +1306,9 @@ components:
         balance:
           type: string
           description: Balance of the Account
+        available_balance:
+          type: string
+          description: Available Balance of the Account
         created_at:
           type: string
           description: Time at which the Account was created
@@ -1191,6 +1322,7 @@ components:
         entity_id: "359fe08986bbc6b62ea406f864b1ab90enty"
         wallet_id: "bfce4cef815cb3b6f4e4c60d046c0ccbwall"
         balance: "123.45670000"
+        available_balance: "123.45600000"
         created_at: "2019-03-01T22:31:06Z"
         updated_at: "2019-03-01T22:31:06Z"
 
@@ -1236,10 +1368,11 @@ components:
     #
     Transaction:
       description: |
-        A Transaction can be of type: DEPOSIT, WITHDRAWAL or TRANSFER
+        A Transaction can be of type: DEPOSIT, WITHDRAWAL, WITHDRAWAL_PROCESSING or TRANSFER
       oneOf:
         - $ref: "#/components/schemas/TransactionDeposit"
         - $ref: "#/components/schemas/TransactionWithdrawal"
+        - $ref: "#/components/schemas/TransactionWithdrawalProcessing"
         - $ref: "#/components/schemas/TransactionTransfer"
     TransactionCommonAttributes:
       description: |
@@ -1309,6 +1442,8 @@ components:
         - fee_amount
         - total_amount
         - address
+        - blockchain_txid
+        - blockchain_output_n
         - created_at
         - updated_at
       properties:
@@ -1345,6 +1480,16 @@ components:
           type: string
           description: A digital asset specific address used for deposit
           example: 1CU5YgjquupDw6UeXEyA9VEBH34R7fZ19b
+        blockchain_txid:
+          # type: string
+          nullable: true
+          description: (string) If specified, contains a blockchain transaction reference (txid, hash etc)
+          example: "b2715bcc492ccfa30beaa7cf0d64bee751d5247a459966ce5b9d190eb1c2f185"
+        blockchain_output_n:
+          # type: integer
+          nullable: true
+          description: (integer) If specified, references an index of blockchain transaction output (starts with 0)
+          example: 0
         created_at:
           type: string
           description: Time at which a transaction was created
@@ -1362,6 +1507,8 @@ components:
         fee_amount: "0.00000000"
         total_amount: "1.23450000"
         address: "1PC9aZC4hNX2rmmrt7uHTfYAS3hRbph4UN"
+        blockchain_txid: "b2715bcc492ccfa30beaa7cf0d64bee751d5247a459966ce5b9d190eb1c2f185"
+        blockchain_output_n: 0
         created_at: "2019-03-01T20:31:38Z"
         updated_at: "2019-03-01T20:46:07Z"
     TransactionWithdrawal:
@@ -1379,6 +1526,8 @@ components:
         - total_amount
         - reference
         - address
+        - blockchain_txid
+        - blockchain_output_n
         - created_at
         - updated_at
       properties:
@@ -1420,6 +1569,16 @@ components:
           type: string
           description: A digital asset specific address where funds are sent to
           example: 1MaXZE92yjuy4NYjTspmdWHMRT3jQUcTf4
+        blockchain_txid:
+          # type: string
+          nullable: true
+          description: (string) If specified, contains a blockchain transaction reference (txid, hash etc)
+          example: "0d0baf05852a856366a302ce9c9a9bbd36f95685a1e3d3bc9ef7715424ed577b"
+        blockchain_output_n:
+          # type: integer
+          nullable: true
+          description: (integer) If specified, references an index of blockchain transaction output (starts with 0)
+          example: 4
         created_at:
           type: string
           description: Time at which a transaction was created
@@ -1434,10 +1593,86 @@ components:
         type: "WITHDRAWAL"
         state: "PENDING"
         amount: "-1.23450000"
-        fee_amount: "0.001000000"
+        fee_amount: "0.00100000"
         total_amount: "-1.23550000"
         reference: "someting-fe8cbeecef486fe6edf9c3690e4f6b0a-unique"
         address: "1HesYJSP1QqcyPEjnQ9vzBL1wujruNGe7R"
+        blockchain_txid: "0d0baf05852a856366a302ce9c9a9bbd36f95685a1e3d3bc9ef7715424ed577b"
+        blockchain_output_n: 4
+        created_at: "2019-03-01T20:48:38Z"
+        updated_at: "2019-03-01T20:49:07Z"
+    TransactionWithdrawalProcessing:
+      description: |
+        A Withdrawal Processing is a Transaction created in Partner's fee paying Account,
+        and it represents the summary of fees collected and network fees charged for
+        processing a set of Withdrawals and producing a single blockchain transaction.
+      type: object
+      required:
+        - id
+        - account_id
+        - type
+        - state
+        - amount
+        - fee_amount
+        - total_amount
+        - blockchain_txid
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of a Transaction
+        account_id:
+          type: string
+          description: ID of an Account the Transaction belongs to
+        type:
+          type: string
+          description: The type of a transaction
+          enum:
+          - WITHDRAWAL_PROCESSING
+        state:
+          type: string
+          description: Current state of the Transaction
+          enum:
+            - PENDING
+            - COMPLETED
+            - FAILED
+        amount:
+          type: string
+          description: Transacted amount, positive or negative
+          example: "-0.01500000"
+        fee_amount:
+          type: string
+          description: Charged fee, always positive or 0
+          example: "0.00000000"
+        total_amount:
+          type: string
+          description: Total amount charged or credited to the account, positive or negative
+          example: "-0.01500000"
+        blockchain_txid:
+          # type: string
+          nullable: true
+          description: |
+            If specified, contains a reference to a blockchain transaction, produced
+            as a result of Withdrawals processing (txid, hash etc)
+          example: "abba0c28a5f26694934b740f57fd934ed3865f86218fef81224517917fe45e0d"
+        created_at:
+          type: string
+          description: Time at which a transaction was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which a transaction was updated
+          format: date-time
+      example:
+        id: "b0dafece97fce27b1deae57d3ebcdea5tran"
+        account_id: "8e2eb6caedb3ec0a4aadc702c7a70c70acct"
+        type: "WITHDRAWAL_PROCESSING"
+        state: "COMPLETED"
+        amount: "-0.01500000"
+        fee_amount: "0.00000000"
+        total_amount: "-0.01500000"
+        blockchain_txid: "abba0c28a5f26694934b740f57fd934ed3865f86218fef81224517917fe45e0d"
         created_at: "2019-03-01T20:48:38Z"
         updated_at: "2019-03-01T20:49:07Z"
     TransactionTransfer:
@@ -1541,6 +1776,157 @@ components:
         transaction_id: "afa4bcc92adaad64fdaad3c48b8cb840tran"
 
     #
+    # TransactionApprovalChallenge
+    #
+    TransactionApprovalChallenge:
+      description: |
+        A Transaction Approval challenge can be of type: MFA, DSA_ED25519
+      oneOf:
+        - $ref: "#/components/schemas/TransactionApprovalChallengeMFA"
+        - $ref: "#/components/schemas/TransactionApprovalChallengeDSA_ED25519"
+    TransactionApprovalChallengeMFA:
+      description: |
+        An Approval challenge for `MFA` method.
+
+        This method is provided for Customers of the Partner, as Account holders.
+
+        Currently this method does not generate any meaningful challenge,
+        and does not expect any specially constructed response.
+      type: object
+      required:
+        - type
+        - challenge
+      properties:
+        type:
+          type: string
+          description: Approval method
+          enum:
+            - MFA
+        challenge:
+          type: object
+      example:
+        type: "MFA"
+        challenge: {}
+    TransactionApprovalChallengeDSA_ED25519:
+      description: |
+        An Approval challenge for `DSA_ED25519` method.
+
+        This method is provided for the Partners, as Account holders.
+
+        The generated challenge depends on the type of Transaction.
+      type: object
+      required:
+        - type
+        - challenge
+      properties:
+        type:
+          type: string
+          description: Approval method
+          enum:
+            - DSA_ED25519
+        challenge:
+          type: object
+          description: |
+            Contains the Approval challenge parameters
+          required:
+            - attrs
+          properties:
+            attrs:
+              type: array
+              description: |
+                A list of Transaction attribute names, from which the Challenge message
+                is to be constructed.
+              items:
+                type: string
+      example:
+        type: "DSA_ED25519"
+        challenge:
+          attrs:
+            - id
+            - account_id
+            - type
+            - reference
+            - amount
+            - fee_amount
+            - total_amount
+            - address
+
+    #
+    # TransactionApprovalResponse
+    #
+    TransactionApprovalResponse:
+      description: |
+        A Transaction Approval response request, issued to approve Transaction.
+
+        An Approval method MUST be specified as `type` attribute, which can be
+        `MFA`, `DSA_ED25519`.
+      oneOf:
+        - $ref: "#/components/schemas/TransactionApprovalResponseMFA"
+        - $ref: "#/components/schemas/TransactionApprovalResponseDSA_ED25519"
+    TransactionApprovalResponseMFA:
+      description: |
+        An Approval response for `MFA` method.
+
+        Currently this method does NOT expect any specially constructed response.
+        Any (string) value will be accepted as valid response.
+      type: object
+      required:
+        - type
+        - response
+      properties:
+        type:
+          type: string
+          description: Approval method
+          enum:
+            - MFA
+        challenge:
+          type: object
+        response:
+          type: string
+      example:
+        type: "MFA"
+        response: ""
+    TransactionApprovalResponseDSA_ED25519:
+      description: |
+        An Approval response for `DSA_ED25519` method.
+
+        See Transaction Approvals description [API Guide](API_Guide.md)
+        on how to construct a correct response for this method.
+      type: object
+      required:
+        - type
+        - response
+      properties:
+        type:
+          type: string
+          description: Approval method
+          enum:
+            - DSA_ED25519
+        challenge:
+          type: object
+          description: An optional reference to previously fetched challenge
+          properties:
+            sha256:
+              type: string
+              description: |
+                An optional attribute which is expected to contain the hexadecimal representation
+                of SHA256 digest of the Challenge message.
+
+                If provided, this attribute will be validated along with the response.
+
+                For troubleshooting purposes, it is recommended to provide this attribute.
+        response:
+          type: string
+          description: |
+            A Transaction Approval response, which is a hexadecimal representation of the
+            signature of the Challenge message, produced by the Entity's Approval key.
+      example:
+        type: "DSA_ED25519"
+        challenge:
+          sha256: "f6deeecec4aa0cb77e7f2c6f3f44c28ec5ab3ab22d43441f56cbf0bf1ef80c81"
+        response: "c5d5fac9e6fb6b7d27b141625f1c2c991aefc8b9f6e8a6eedb9cdbe9dd691ec310cbdc1bdd9fbd5fb4cfad72ee8fd51cc5f6e7198fecc92d5c465a61ef2c09a1"
+
+    #
     # LedgerEntry schema
     #
     LedgerEntry:
@@ -1579,6 +1965,7 @@ components:
           - WITHDRAWAL_FEE
           - TRANSFER_AMOUNT
           - TRANSFER_FEE
+          - WITHDRAWAL_BATCH_FEE
         amount:
           type: string
           description: Amount of the Ledger Entry, positive or negative

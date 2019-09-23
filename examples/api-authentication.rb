@@ -131,7 +131,7 @@ module API
     # @return [String] a base64 encoded signature
     #
     def self.construct_signature_param(signature_string, key_seed)
-      key = Ed25519::SigningKey.new(h2b(key_seed))
+      key = signing_key_from_seed(key_seed)
       signature = key.sign(signature_string)
       Base64.strict_encode64(signature)
     end
@@ -154,8 +154,17 @@ module API
     # @return [String] a hexadecimal representation of the pub key
     #
     def self.pub_key_from_seed(seed)
-      key = Ed25519::SigningKey.new(h2b(seed))
+      key = signing_key_from_seed(seed)
       b2h(key.verify_key.to_bytes)
+    end
+
+    # Generates a signing key (private key) from a seed
+    #
+    # @param seed [String] a hexadecimal representation of the seed
+    # @return [Ed25519::SigningKey] a signing key
+    #
+    def self.signing_key_from_seed(seed)
+      Ed25519::SigningKey.new(h2b(seed))
     end
 
     # Constructs a random nonce

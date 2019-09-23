@@ -22,11 +22,16 @@ Upon completion, you will have a working `api-client`, which you can test by run
 ./api-client help
 
 Commands:
-  api-client config            # Display currently used configuration
-  api-client generate_key      # Generate a new API key pair
-  api-client get PATH          # Send a GET request
-  api-client help [COMMAND]    # Describe available commands or one specific command
-  api-client post PATH [BODY]  # Send a POST request
+  api-client approval CHALLENGE_FILENAME TX_FILENAME  # Generate a DSA_ED25519 approval response
+  api-client config                                   # Display currently used configuration
+  api-client generate_key                             # Generate a new API key pair
+  api-client get PATH                                 # Send a GET request
+  api-client help [COMMAND]                           # Describe available commands or one specific command
+  api-client post PATH [BODY]                         # Send a POST request
+  api-client sign FILENAME                            # Sign contents of given file using currently configured key
+
+Options:
+  -c, [--config=CONFIG]  # Use configuration from given file
 
 ```
 
@@ -115,5 +120,36 @@ client calculates. It is possible to display them using `-v,--verbose` option of
 {
   "status": "OK"
 }
+```
+
+
+## Transaction Approvals
+
+The `api-client` is capable of generating an approval response for the `DSA_ED25519` approval method.
+
+In order to produce an approval response for a Transaction, you have to have the following:
+
+1. A transaction JSON representation stored in a file. Can be obtained by running:
+```
+./api-client get /v1/entities/<ENTITY_ID>/accounts/<ACCOUNT_ID>/transactions/<TRANSACTION_ID> > tx.json
+```
+
+2. An approval challenge stored in a file. Can be obtained by running:
+```
+./api-client get /v1/entities/<ENTITY_ID>/accounts/<ACCOUNT_ID>/transactions/<TRANSACTION_ID>/approval > challenge.json
+```
+
+3. An Approval key of the Account owner (Entity), which is registered on the platform.
+This SHOULD be a key different from your API key. Store it in a `approval-key.yml` file,
+which has the same format as the `api-client.yml`.
+
+Then, to produce an approval response:
+```
+./api-client approval -c approval-key.yml challenge.json tx.json > approval-data.json
+```
+
+You can use the resulting `approval-data.json` in a POST request to the API:
+```
+./api-client post /v1/entities/<ENTITY_ID>/accounts/<ACCOUNT_ID>/transactions/<TRANSACTION_ID>/approval -f approval-data.json
 ```
 ---
