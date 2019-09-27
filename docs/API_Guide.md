@@ -2,8 +2,8 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-* Version: [0.8.0]
-* Updated: [2019-09-05]
+* Version: [0.9.0]
+* Updated: [2019-09-25]
 
 ## Introduction
 
@@ -414,7 +414,8 @@ Transactions have a `type` attribute, which describes the operation:
 * DEPOSIT
 * WITHDRAWAL
 * WITHDRAWAL_PROCESSING
-* TRANSFER
+* TRANSFER_OUTGOING
+* TRANSFER_INCOMING
 
 In addition Transaction have following attributes:
 
@@ -426,7 +427,9 @@ In addition Transaction have following attributes:
 | fee_amount          | Decimal | Charged fee, always positive or 0             |
 | total_amount        | Decimal | Credited/debited amount, positive or negative |
 
-`total_amount` indicates by how much the account balance have changed. It always equals `amount - fee_amount`.
+`total_amount` indicates by how much the account balance have changed. It always equals to `amount - fee_amount`.
+
+Other attributes may be present, depending on the type of Transaction.
 
 See:
 
@@ -472,7 +475,7 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
     {
       "id": "27341700f516438c28632e8d973a6c59atrx",
       "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
-      "type": "TRANSFER",
+      "type": "TRANSFER_OUTGOING",
       "state": "COMPLETED",
       "amount": "-0.50000000",
       "fee_amount": "0.00000000",
@@ -544,16 +547,21 @@ Depending on the underlying blockchain, the platform can batch multiple Withdraw
 
 ### Processing a Withdrawal
 
-To issue a Withdrawal on behalf of the customer, the partner creates a new Withdrawal object and provides a `reference` value, which MUST be unique across all Withdrawals of this partner and serves as idempotency key.
+To issue a Withdrawal on behalf of the customer, the partner creates a new Withdrawal object and provides a `reference` value, which MUST be unique across all Transactions of this partner and serves as idempotency key.
 
 The Withdrawal is then registered on the platform and validated, after which the customer
 (as an Account holder) MUST approve the Withdrawal. See [Transaction Approvals].
 
-Once Withdrawal is validated and approved, the platform proceeds to creating corresponding Account Transactions, and then queues the Withdrawal for processing.
+Once Withdrawal is validated and approved, the platform proceeds to queueing the Withdrawal for processing.
 
-Periodically multiple Withdrawals from the same Wallet are grouped together in a single blockchain-level transaction, which is signed and eventually broadcasted. At this moment the platform creates a corresponding Transaction that charges the processing fee, which  matches the network fees, on the partner Entity Account.
+Periodically multiple Withdrawals from the same Wallet are grouped together in a single blockchain-level transaction, which is signed and eventually broadcasted. At this moment the platform creates a corresponding
+Withdrawal Processing Transaction that charges the processing fee, which  matches the network fees,
+on the partner Entity Account.
 
 Withdrawals are NOT going to be processed if the partner Entity Account cannot pay the processing fees.
+
+After a corresponding blockchain-level transaction is broadcasted on the network,
+all included Withdrawals are completed and their blockchain reference attributes are updated.
 
 See:
 
@@ -584,11 +592,22 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b5
 ## WithdrawalProcessing Transacions
 
 A WithdrawalProcessing is a Transaction of type WITHDRAWAL_PROCESSING.
-The Digital Assets Platform processes Withdrawal Transactions in batches to include as many Withdrawals as possible in one single network transaction.
-When the batch of Withdrawals is processed and a network transaction has been broadcasted to the network, then a Transaction of type WITHDRAWAL_PROCESSING is created by the Digital Assets Platform.
-This WithdrawalProcessing Transaction represents a single transfer of funds from the Partner Entity’s Account and is used to pay the actual network fees for the network transaction. The WithdrawalProcessing Transaction has an attribute `amount` that represents the amount that is moved on the Partner Entity’s fee paying Account.
-The `amount` can be negative or positive. The `amount` is calculated as follows: `(SUM of the `fee_amounts` of all Withdrawals included in a network transaction) MINUS the actual network transaction fee`.
-As the `fee_amounts` of the Withdrawals are only an estimate they can be less or more than the actual fee that needs to be payed to the network thus leading to a positive or negative amount that will be taken from or credited to the Partner Entity’s fee paying Account.
+The Digital Assets Platform processes Withdrawal Transactions in batches to include as many
+Withdrawals as possible in one single network transaction.
+When the batch of Withdrawals is processed and a network transaction has been broadcasted to the network,
+then a Transaction of type WITHDRAWAL_PROCESSING is created by the Digital Assets Platform.
+This WithdrawalProcessing Transaction represents a single transfer of funds
+from the Partner Entity’s Account and is used to pay the actual network fees for
+the network transaction.
+
+The WithdrawalProcessing Transaction has an attribute `amount` that represents the amount
+that is moved on the Partner Entity’s fee paying Account. The `amount` can be negative or positive.
+The `amount` is calculated as follows:
+`(SUM of the `fee_amounts` of all Withdrawals included in a network transaction) MINUS the actual network transaction fee`.
+
+As the `fee_amounts` of the Withdrawals are only an estimate they can be less or more than
+the actual fee that needs to be paid to the network thus leading to a positive or negative
+amount that will be taken from or credited to the Partner Entity’s fee paying Account.
 
 See:
 
@@ -601,7 +620,7 @@ GET /v1/entities/{entity_id}/accounts/{account_id}/transactions
 ```
 GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57cb5078ae0a8b569acct/transactions/9c41ec8a82fb99b57cb5078ae0a8b569atrx
 
-200 Okay
+200 OK
 
 {
   "id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
@@ -619,16 +638,32 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
 
 ## Transfers
 
-A Transfer is a Transaction of type TRANSFER. A Transfer is a transfer of funds from one Account to another within the same Wallet. This operation is not reflected externally as a blockchain transaction or any other observable event.
-
+A Transfer represents a transfer of funds from one Account to another within the same Wallet.
+This operation is not reflected externally as a blockchain transaction or any other observable event.
 It can be a Transfer between an end customer and a partner Accounts, or a Transfer between two end customer Accounts.
 
-To issue a Transfer on behalf of the Account holder, the partner creates a new Transaction of type TRANSFER and provides a `reference` value, which MUST be unique across all Transfers of this partner and serves as idempotency key.
+On the API level a Transfer is represented as two Transactions, one in the sender Account, having
+the type TRANSFER_OUTGOING, and one in the receiver Account, having the type TRANSFER_INCOMING.
 
-After the Transfer is validated and created by the platform, the transaction MUST be approved
-by the customer (as an Account holder). See [Transaction Approvals].
 
-A Transaction of type TRANSFER is created under the originating Account debiting the funds, and another Transaction of type TRANSFER is created in the receiving Account crediting the funds.
+### Processing a Transfer
+
+To issue a Transfer on behalf of the Account holder, the partner issues a request to create a Transfer
+on the sender Account and provides a `reference` value, which MUST be unique across all Transactions
+of this partner and serves as idempotency key.
+
+To reference a receiver Account of the Transfer, the partner MUST provide an ID of that Account.
+
+After the Transfer request is validated and a Transfer (Outgoing) Transaction is created
+by the platform, the Transaction MUST be approved by the customer (as an Account holder).
+See [Transaction Approvals].
+
+A Transaction of type TRANSFER_OUTGOING is created under the originating (sender) Account
+debiting the funds, and another Transaction of type TRANSFER_INCOMING crediting the funds
+is created in the receiving (receiver) Account, once the corresponding TRANSFER_OUTGOING
+Transaction has been completed.
+
+![transfer_flow_partner](./img/transfer_flow_partner.png)
 
 See:
 
@@ -952,3 +987,4 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
 ```
 
 ---
+

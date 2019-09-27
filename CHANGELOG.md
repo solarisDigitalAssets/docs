@@ -1,5 +1,13 @@
 # Changelog
 
+## 27-09-2019
+
+API updated to v0.9.0:
+- Introduced Transfers between Accounts
+- Introduced Transfer approval process, implemented approval methods are: MFA, DSA_ED25519
+- Introduced Transfer Outgoing Transaction type
+- Introduced Transfer Incoming Transaction type
+
 ## 20-09-2019
 
 API updated to v0.8.0:

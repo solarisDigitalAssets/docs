@@ -3,7 +3,7 @@ info:
   title: solarisBank Digital Assets Platform API
   contact:
     email: Alexis.Hamel@solarisbank.de
-  version: 0.8.0
+  version: 0.9.0
 
   description: |
     This is a draft for solarisBank Digital Assets Platform API
@@ -166,7 +166,7 @@ tags:
 - name: Withdrawal
   description: Creating a Withdrawal
 - name: Transfer
-  description: Creating a Transfer
+  description: Transfers between Accounts
 - name: LedgerEntry
   description: Ledger Entries of an Account
 
@@ -835,9 +835,15 @@ paths:
       - Transfer
       summary: Create a Transfer
       description: |
-        Issues a request to create a new Transfer Transaction from the given Account, owned
-        by the given Entity. The Transfer Transaction represents a transfer of funds to
-        another Account on the same Wallet.
+        Issues a request to create a new Transfer
+        from the given Account, owned by the given Entity, to another Account
+        in the same Wallet.
+
+        Two Transactions are created in the course of processing a Transfer:
+        one Transaction of type TRANSFER_OUTGOING in the sender Account,
+        and a corresponding Transaction of type TRANSFER_INCOMING in the receiver Account.
+        The second, Transfer (Incoming) Transaction, is only created if and when the
+        first one, Transfer (Outgoing), is successfully completed.
 
         The required `reference` attribute serves as idempotency key, and MUST be unique
         across all Transactions initiated by the partner.
@@ -1368,12 +1374,14 @@ components:
     #
     Transaction:
       description: |
-        A Transaction can be of type: DEPOSIT, WITHDRAWAL, WITHDRAWAL_PROCESSING or TRANSFER
+        A Transaction can be of type: DEPOSIT, WITHDRAWAL, WITHDRAWAL_PROCESSING,
+        TRANSFER_OUTGOING or TRANSFER_INCOMING
       oneOf:
         - $ref: "#/components/schemas/TransactionDeposit"
         - $ref: "#/components/schemas/TransactionWithdrawal"
         - $ref: "#/components/schemas/TransactionWithdrawalProcessing"
-        - $ref: "#/components/schemas/TransactionTransfer"
+        - $ref: "#/components/schemas/TransactionTransferOutgoing"
+        - $ref: "#/components/schemas/TransactionTransferIncoming"
     TransactionCommonAttributes:
       description: |
         This schema represents a set of common attributes of a Transaction
@@ -1401,7 +1409,9 @@ components:
           enum:
             - DEPOSIT
             - WITHDRAWAL
-            - TRANSFER
+            - TRANSFER_OUTGOING
+            - TRANSFER_INCOMING
+            - WITHDRAWAL_PROCESSING
         state:
           type: string
           description: Current state of the Transaction
@@ -1675,13 +1685,10 @@ components:
         blockchain_txid: "abba0c28a5f26694934b740f57fd934ed3865f86218fef81224517917fe45e0d"
         created_at: "2019-03-01T20:48:38Z"
         updated_at: "2019-03-01T20:49:07Z"
-    TransactionTransfer:
+    TransactionTransferOutgoing:
       description: |
-        A Transfer is a Transaction, which represents a transfer of funds from one
-        Account to another Account within the same Wallet.
-
-        A Transfer transaction can be incoming or outgoing, which is indicated by the
-        transacted amount being positive or negative.
+        A Transfer (Outgoing) is a Transaction, which represents a transfer of funds from
+        a current Account to another (receiver) Account within the same Wallet.
       type: object
       required:
         - id
@@ -1707,7 +1714,7 @@ components:
           type: string
           description: The type of a transaction
           enum:
-          - TRANSFER
+          - TRANSFER_OUTGOING
         state:
           type: string
           description: Current state of the Transaction
@@ -1717,16 +1724,16 @@ components:
             - FAILED
         amount:
           type: string
-          description: Transacted amount, positive or negative
-          example: "123.00000000"
+          description: Transacted amount, negative
+          example: "-1.23000000"
         fee_amount:
           type: string
           description: Charged fee, always positive or 0
           example: "0.00100000"
         total_amount:
           type: string
-          description: Credited/debited amount, positive or negative
-          example: "122.99900000"
+          description: Debited amount, negative
+          example: "-1.231000000"
         reference:
           type: string
           description: |
@@ -1748,11 +1755,86 @@ components:
       example:
         id: "f59e8c8188500efce5be51eb71e9db08tran"
         account_id: "ff6dc60c4f76dcea784bdc2ffed66e6facct"
-        type: "TRANSFER"
+        type: "TRANSFER_OUTGOING"
         state: "COMPLETED"
         amount: "-0.98760000"
         fee_amount: "0.000000000"
         total_amount: "-0.98760000"
+        reference: "something-fc522958ced6c1b5c2c57d6dddecfa0a-unique"
+        sender_account_id: "ff6dc60c4f76dcea784bdc2ffed66e6facct"
+        receiver_account_id: "4aeeac12d4b92c967cb826ac5dee5a8eacct"
+        created_at: "2019-03-01T21:03:43Z"
+        updated_at: "2019-03-01T21:03:51Z"
+    TransactionTransferIncoming:
+      description: |
+        A Transfer (Incoming) is a Transaction, which represents a transfer of funds from
+        another (sender) Account to the current Account
+      type: object
+      required:
+        - id
+        - account_id
+        - type
+        - state
+        - amount
+        - fee_amount
+        - total_amount
+        - sender_account_id
+        - receiver_account_id
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of a Transaction
+        account_id:
+          type: string
+          description: ID of an Account the Transaction belongs to
+        type:
+          type: string
+          description: The type of a transaction
+          enum:
+          - TRANSFER_INCOMING
+        state:
+          type: string
+          description: Current state of the Transaction
+          enum:
+            - PENDING
+            - COMPLETED
+            - FAILED
+        amount:
+          type: string
+          description: Transacted amount, positive
+          example: "123.00000000"
+        fee_amount:
+          type: string
+          description: Charged fee, always positive or 0
+          example: "0.00100000"
+        total_amount:
+          type: string
+          description: Credited amount, positive
+          example: "122.99900000"
+        sender_account_id:
+          type: string
+          description: ID of the sender Account
+        receiver_account_id:
+          type: string
+          description: ID of the receiver Account
+        created_at:
+          type: string
+          description: Time at which a transaction was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which a transaction was updated
+          format: date-time
+      example:
+        id: "f59e8c8188500efce5be51eb71e9db08tran"
+        account_id: "ff6dc60c4f76dcea784bdc2ffed66e6facct"
+        type: "TRANSFER_INCOMING"
+        state: "COMPLETED"
+        amount: "1.23450000"
+        fee_amount: "0.000100000"
+        total_amount: "1.23440000"
         reference: "something-fc522958ced6c1b5c2c57d6dddecfa0a-unique"
         sender_account_id: "ff6dc60c4f76dcea784bdc2ffed66e6facct"
         receiver_account_id: "4aeeac12d4b92c967cb826ac5dee5a8eacct"
@@ -2061,4 +2143,5 @@ components:
                 type: string
             example:
               message: Internal server error
+
 
