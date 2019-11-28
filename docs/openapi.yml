@@ -3,7 +3,7 @@ info:
   title: solarisBank Digital Assets Platform API
   contact:
     email: Alexis.Hamel@solarisbank.de
-  version: 0.9.0
+  version: 0.11.0
 
   description: |
     This is a draft for solarisBank Digital Assets Platform API
@@ -167,6 +167,10 @@ tags:
   description: Creating a Withdrawal
 - name: Transfer
   description: Transfers between Accounts
+- name: Approval Method
+  description: Approval Methods registered for Entities
+- name: Approval Request
+  description: Approval Requests for approving an outgoing Transaction via a second factor
 - name: LedgerEntry
   description: Ledger Entries of an Account
 
@@ -923,26 +927,260 @@ paths:
           $ref: "#/components/responses/InternalServerError"
 
   #
-  # Transaction Approvals
+  # Approval Methodss
   #
-  /entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval:
+  /entities/{entity_id}/approval_methods:
     get:
       tags:
-      - Transaction
-      summary: Request a Transaction Approval challenge
+      - Approval Method
+      summary: List Approval Methods registered for this Entity
       description: |
-        Retrieves an Approval challenge for given Transaction.
+        Retrieves a list of Approval Methods that were registered for
+        an Entity with a given ID.
 
-        To approve the Transaction, the Account holder (an Entity owning the Account),
-        MUST compute a response based on retrieved challenge.
+        Approval Methods in `ACTIVATED` state can be used to
+        approve Transactions initiated by this Entity.
 
-        The approval challenge depends on the approval method and the type of Transaction.
+        There are different types of Approval Methods that can be used:
 
-        Currently, approval method depends directly on the type of the Entity, which
+        * AUTHY_PUSH
+        * DSA_ED25519
+
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: A list of Approval Methods registered for this Entity
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ApprovalMethod"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+      - Approval Method
+      summary: Register a new Approval Method for this Entity
+      description: |
+        Registers a new Approval Method for an Entity with a given ID.
+
+        There are different Approval Method types available:
+
+        * AUTHY_PUSH -- Authy push notifications based MFA method,
+          it can only be registered for Entities of type PERSON
+        * DSA_ED25519 -- an ECDSA based MFA method,
+          it can only be registered for Entities of type PARTNER
+
+        There can be no more that one Approval Method of each type
+        registered for one particular Entity.
+
+        After being registered, the Approval Method is in `PENDING` state
+        until it is activated by the platform operator, or by an external
+        service, e.g. Authy.
+
+        Approval Method in `ACTIVATED` state can be used to approve
+        Transactions initiated by this Entity.
+
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - type
+              type: object
+              properties:
+                type:
+                  type: string
+                  description: Type of Approval Method
+                  example: AUTHY_PUSH
+                  enum:
+                  - AUTHY_PUSH
+                  - DSA_ED25519
+                pub_key:
+                  type: string
+                  description: |
+                    Public key part of Entity's Approval key *(required if `type` is `DSA_ED25519`)*.
+
+                    A 32-byte Ed25519 public key in a hexadecimal representation.
+            example:
+              type: "DSA_ED25519"
+              pub_key: "f7bdb63a96ecee424a821d1a5e1f7d582eaabac453ba0560d4e05ff67ece2f20"
+      responses:
+        "201":
+          description: Approval Method is successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalMethod"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /entities/{entity_id}/approval_methods/{approval_method_id}:
+    get:
+      tags:
+      - Approval Method
+      summary: Get a single Approval Method
+      description: |
+        Returns an Approval Method identified by its ID, owned by the given Entity
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: approval_method_id
+        in: path
+        description: Approval Method ID
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: A single Approval Method
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalMethod"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  #
+  # Approval Requests
+  #
+  /entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request:
+    post:
+      tags:
+        - Approval Request
+      summary: Requests an ApprovalRequest for a Transaction
+      description: |
+        Requests the creation of an AppprovalRequest for the given Transaction.
+
+        To approve a Transaction, the Account holder (the Entity owning the Account)
+        MUST provide a second factor approval before the Transaction is processed.
+
+        The second factor approval depends on the ApprovalMethod and the type of
+        the Transaction.
+
+        The ApprovalMethod depends directly on the type of the Entity which
         owns the Transaction's Account:
 
-        * for Entity of type PERSON -- the approval method is `MFA`
+        * for Entity of type PERSON  -- the approval method is `AUTHY_PUSH`
         * for Entity of type PARTNER -- the approval method is `DSA_ED25519`
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      - name: transaction_id
+        in: path
+        description: Transaction ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        description: |
+          A `type` MUST be specified when creating a new ApprovalRequest.
+          * WHEN Account holding Entity is of type `PERSON` THEN type is `AUTHY_PUSH`
+          * WHEN Account holding Entity is of type `PARTNER` THEN type is `DSA_ED25519`
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+              properties:
+                type:
+                  type: string
+                  description: The type of the to be created ApprovalRequest
+                  enum:
+                    - AUTHY_PUSH
+                    - DSA_ED25519
+            example:
+              type: "DSA_ED25519"
+      responses:
+        "201":
+          description: An ApprovalRequest
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalRequest"
+              example:
+                id: "2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq"
+                type: "DSA_ED25519"
+                state: "PENDING"
+                transaction_id: "f59e8c8188500efce5be51eb71e9db08tran"
+                challenge:
+                  attrs:
+                    - id
+                    - account_id
+                    - type
+                    - reference
+                    - amount
+                    - fee_amount
+                    - total_amount
+                    - address
+                created_at: "2019-11-23T22:46:38Z"
+                updated_at: "2019-11-23T22:46:38Z"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    get:
+      tags:
+        - Approval Request
+      summary: Retrieves the ApprovalRequest for the given Transaction
+      description: |
+        Fetches the ApprovalRequest for an outgoing Transaction identified by given
+        `transaction_id`.
       parameters:
       - name: entity_id
         in: path
@@ -964,13 +1202,16 @@ paths:
           type: string
       responses:
         "200":
-          description: A Transaction approval challenge
+          description: An ApprovalRequest
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TransactionApprovalChallenge"
+                $ref: "#/components/schemas/ApprovalRequest"
               example:
+                id: "2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq"
                 type: "DSA_ED25519"
+                state: "PENDING"
+                transaction_id: "f59e8c8188500efce5be51eb71e9db08tran"
                 challenge:
                   attrs:
                     - id
@@ -981,6 +1222,8 @@ paths:
                     - fee_amount
                     - total_amount
                     - address
+                created_at: "2019-11-23T22:46:38Z"
+                updated_at: "2019-11-23T22:46:38Z"
         "400":
           $ref: "#/components/responses/InvalidRequest"
         "401":
@@ -989,17 +1232,16 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
+
+  /entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request/approve:
     post:
       tags:
-      - Transaction
-      summary: Approve a Transaction
+        - Approval Request
+      summary: Approve an ApprovalRequest of type `DSA_ED25519`
       description: |
-        Issues a request to approve a Transaction from the given Account
-        and owned by the given Entity.
-
-        To approve a Transaction, the Account holder (an Entity owning the Account),
-        MUST compute a response based on previously retrieved challenge. The response
-        is posted with this request.
+        To approve a Transaction – using an ApprovalRequest of type `DSA_ED25519` –
+        the Account holder (an Entity owning the Account), MUST compute a response
+        based on the previously retrieved challenge. The response is posted with this request.
 
         See Transaction Approvals description [API Guide](API_Guide.md)
         on how to compute the response for a particular approval method.
@@ -1024,21 +1266,61 @@ paths:
           type: string
       requestBody:
         required: true
+        description: |
+          A response to the ApprovalRequest's challenge when type is `DSA_ED25519`
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TransactionApprovalResponse"
-            example:
-              type: "MFA"
-              response: ""
+              description: |
+                The Payload that contains the response to the challenge of the
+                ApprovalRequest
+              type: object
+              required:
+                - response
+              properties:
+                challenge:
+                  type: object
+                  description: |
+                    Optional, an object containing a SHA-256 hash of the challenge message that will be considered for validation
+                  properties:
+                    sha256:
+                      type: string
+                      description: A SHA-256 hash of the challenge message
+                      example: "f6deeecec4aa0cb77e7f2c6f3f44c28ec5ab3ab22d43441f56cbf0bf1ef80c81"
+                response:
+                  type: string
+                  description: The response to the challenge. Here a DSA_ED25519 signature
+                  example: "c5d5fac9e6fb6b7d27b141625f1c2c991aefc8b9f6e8a6eedb9cdbe9dd691ec310cbdc1bdd9fbd5fb4cfad72ee8fd51cc5f6e7198fecc92d5c465a61ef2c09a1"
 
+            example:
+              type: "DSA_ED25519"
+              challenge:
+                sha256: "f6deeecec4aa0cb77e7f2c6f3f44c28ec5ab3ab22d43441f56cbf0bf1ef80c81"
+              response: "c5d5fac9e6fb6b7d27b141625f1c2c991aefc8b9f6e8a6eedb9cdbe9dd691ec310cbdc1bdd9fbd5fb4cfad72ee8fd51cc5f6e7198fecc92d5c465a61ef2c09a1"
       responses:
         "201":
           description: Transaction is successfully approved
           content:
             application/json:
               schema:
-                type: object
+                $ref: "#/components/schemas/ApprovalRequest"
+              example:
+                id: "2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq"
+                type: "DSA_ED25519"
+                state: "APPROVED"
+                transaction_id: "f59e8c8188500efce5be51eb71e9db08tran"
+                challenge:
+                  attrs:
+                    - id
+                    - account_id
+                    - type
+                    - reference
+                    - amount
+                    - fee_amount
+                    - total_amount
+                    - address
+                created_at: "2019-11-23T22:46:38Z"
+                updated_at: "2019-11-23T22:46:38Z"
         "400":
           $ref: "#/components/responses/InvalidRequest"
         "401":
@@ -1047,6 +1329,7 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
+
   #
   # Ledger Entries
   #
@@ -1417,6 +1700,7 @@ components:
           description: Current state of the Transaction
           enum:
             - PENDING
+            - APPROVED
             - COMPLETED
             - FAILED
         amount:
@@ -1473,6 +1757,7 @@ components:
           description: Current state of the Transaction
           enum:
             - PENDING
+            - APPROVED
             - COMPLETED
             - FAILED
         amount:
@@ -1557,6 +1842,7 @@ components:
           description: Current state of the Transaction
           enum:
             - PENDING
+            - APPROVED
             - COMPLETED
             - FAILED
         amount:
@@ -1645,6 +1931,7 @@ components:
           description: Current state of the Transaction
           enum:
             - PENDING
+            - APPROVED
             - COMPLETED
             - FAILED
         amount:
@@ -1720,6 +2007,7 @@ components:
           description: Current state of the Transaction
           enum:
             - PENDING
+            - APPROVED
             - COMPLETED
             - FAILED
         amount:
@@ -1799,6 +2087,7 @@ components:
           description: Current state of the Transaction
           enum:
             - PENDING
+            - APPROVED
             - COMPLETED
             - FAILED
         amount:
@@ -1858,69 +2147,255 @@ components:
         transaction_id: "afa4bcc92adaad64fdaad3c48b8cb840tran"
 
     #
-    # TransactionApprovalChallenge
+    # ApprovalMethod
     #
-    TransactionApprovalChallenge:
+    ApprovalMethod:
       description: |
-        A Transaction Approval challenge can be of type: MFA, DSA_ED25519
+        An Approval Method registered for some Entity
       oneOf:
-        - $ref: "#/components/schemas/TransactionApprovalChallengeMFA"
-        - $ref: "#/components/schemas/TransactionApprovalChallengeDSA_ED25519"
-    TransactionApprovalChallengeMFA:
+        - $ref: "#/components/schemas/ApprovalMethodAUTHY_PUSH"
+        - $ref: "#/components/schemas/ApprovalMethodDSA_ED25519"
+    ApprovalMethodAUTHY_PUSH:
       description: |
-        An Approval challenge for `MFA` method.
+        An Approval Method of type `AUTHY_PUSH`.
 
-        This method is provided for Customers of the Partner, as Account holders.
+        It represents an MFA method which uses Authy push notifications
+        for approving Transactions.
 
-        Currently this method does not generate any meaningful challenge,
-        and does not expect any specially constructed response.
+        In case of AUTHY_PUSH type of Approval Method, an ACTIVATED state
+        means that the person is succesfully enrolled in Authy service,
+        installed and configured the Authy app on their (mobile) device.
       type: object
       required:
+        - id
+        - entity_id
         - type
-        - challenge
+        - state
+        - created_at
+        - updated_at
       properties:
+        id:
+          type: string
+          description: A unique ID of this Approval Method
+        entity_id:
+          type: string
+          description: ID of the Entity this Approval Method is registered for
         type:
           type: string
-          description: Approval method
+          description: Type of the Approval Method
           enum:
-            - MFA
-        challenge:
-          type: object
+            - AUTHY_PUSH
+        state:
+          type: string
+          description: Current state of the Approval Method
+          enum:
+            - PENDING
+            - ACTIVATED
+            - DEACTIVATED
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was updated
+          format: date-time
       example:
-        type: "MFA"
-        challenge: {}
-    TransactionApprovalChallengeDSA_ED25519:
+        id: "6ec2fbc16ccb8238cbc89b3bf7ea7f39apmt"
+        entity_id: "31adbcbbcede1a7a8cffb4a0e598ad5centy"
+        type: "AUTHY_PUSH"
+        state: "ACTIVATED"
+        created_at: "2019-11-03T12:21:16Z"
+        updated_at: "2019-11-03T12:46:10Z"
+    ApprovalMethodDSA_ED25519:
       description: |
-        An Approval challenge for `DSA_ED25519` method.
+        An Approval Method of type `DSA_ED25519`.
 
-        This method is provided for the Partners, as Account holders.
+        It represents an MFA method which uses an ECDSA algorithm to produce
+        digitally signed proofs for approving Transactions.
 
-        The generated challenge depends on the type of Transaction.
+        In case of DSA_ED25519 type of Approval Method, an ACTIVATED state
+        means that the platform operator has successfully validated the sumbitted
+        public key and activated the Approval Method.
       type: object
       required:
+        - id
+        - entity_id
         - type
-        - challenge
+        - state
+        - pub_key
+        - created_at
+        - updated_at
       properties:
+        id:
+          type: string
+          description: A unique ID of this Approval Method
+        entity_id:
+          type: string
+          description: ID of the Entity this Approval Method is registered for
         type:
           type: string
-          description: Approval method
+          description: Type of the Approval Method
           enum:
             - DSA_ED25519
+        state:
+          type: string
+          description: Current state of the Approval Method
+          enum:
+            - PENDING
+            - ACTIVATED
+            - DEACTIVATED
+        pub_key:
+          type: string
+          description: |
+            A public key part of the Entity's Approval key.
+
+            A 32-byte Ed25519 public key in a hexadecimal representation.
+          example: "aba6103aef8c3f6e3c38f0d38bee5ebaf6b6f6427aec641d6253155c97f4ed2e"
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was updated
+          format: date-time
+      example:
+        id: "2f1beeaf79a1d7ce8afaeaf54bfc9efaapmt"
+        entity_id: "0ec4a04df2fcd18416fef957b32cc7b7enty"
+        type: "DSA_ED25519"
+        state: "PENDING"
+        pub_key: "6db8efd521dd049eb6da49cdd67ef4ec31ca66ca2ac5d219dd9dfef36d2dccb8"
+        created_at: "2019-11-03T13:05:51Z"
+        updated_at: "2019-11-03T13:05:51Z"
+
+    #
+    # ApprovalRequest
+    #
+    ApprovalRequest:
+      description: |
+        An ApprovalRequest can be of type: `AUTHY_PUSH`, `DSA_ED25519`
+      oneOf:
+        - $ref: "#/components/schemas/ApprovalRequestAUTHY_PUSH"
+        - $ref: "#/components/schemas/ApprovalRequestDSA_ED25519"
+
+    #
+    # ApprovalRequestAUTHY_PUSH
+    #
+    ApprovalRequestAUTHY_PUSH:
+      description: |
+        An ApprovalRequest for ApprovalMethod of type `AUTHY_PUSH`.
+
+        This method is provided for Entities of type `PERSON` as Account holder.
+
+        When requested, this ApprovalRequest will initiate a push notification
+        which is then sent to the Customers mobile phone and MUST be confirmed
+        using the Authy app.
+      type: object
+      required:
+        - id
+        - state
+        - transaction_id
+        - type
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: The ID of the ApprovalRequest
+        state:
+          type: string
+          description: The state of the ApprovalRequest
+          enum:
+            - "PENDING"
+            - "APPROVED"
+            - "CANCELLED"
+            - "FAILED"
+        transaction_id:
+          type: string
+          description: A reference to the corresponding Transaction
+        type:
+          type: string
+          description: Approval method
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was last updated
+          format: date-time
+      example:
+        id: "2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq"
+        state: "PENDING"
+        transaction_id: "afa4bcc92adaad64fdaad3c48b8cb840tran"
+        type: "AUTHY_PUSH"
+        created_at: "2019-11-03T13:05:51Z"
+        updated_at: "2019-11-03T13:05:51Z"
+
+    #
+    # ApprovalRequestDSA_ED25519
+    #
+    ApprovalRequestDSA_ED25519:
+      description: |
+        An ApprovalRequest for ApprovalMethod of type `DSA_ED25519`.
+
+        This method is provided for Entities of type `PARTNER`, as Account holder.
+
+        When requested, the ApprovalRequest will contain a challenge that MUST be
+        solved by the Account holder in order for the Transaction to be processed.
+      type: object
+      required:
+        - id
+        - state
+        - transaction_id
+        - type
+        - challenge
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: The ID of the ApprovalRequest
+        state:
+          type: string
+          description: The state of the ApprovalRequest
+          enum:
+            - "CREATING"
+            - "PENDING"
+            - "APPROVED"
+            - "CANCELLED"
+            - "FAILED"
+        transaction_id:
+          type: string
+          description: A reference to the corresponding Transaction
+        type:
+          type: string
+          description: Approval method
         challenge:
           type: object
           description: |
-            Contains the Approval challenge parameters
-          required:
-            - attrs
+            An array containing a list of attributes that are used to construct a
+            signature as a solution to the challenge message
           properties:
             attrs:
               type: array
               description: |
-                A list of Transaction attribute names, from which the Challenge message
-                is to be constructed.
+                An array containing the keys used to construct the challenge message
               items:
                 type: string
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was last updated
+          format: date-time
       example:
+        id: "2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq"
+        state: "PENDING"
+        transaction_id: "afa4bcc92adaad64fdaad3c48b8cb840tran"
         type: "DSA_ED25519"
         challenge:
           attrs:
@@ -1932,81 +2407,8 @@ components:
             - fee_amount
             - total_amount
             - address
-
-    #
-    # TransactionApprovalResponse
-    #
-    TransactionApprovalResponse:
-      description: |
-        A Transaction Approval response request, issued to approve Transaction.
-
-        An Approval method MUST be specified as `type` attribute, which can be
-        `MFA`, `DSA_ED25519`.
-      oneOf:
-        - $ref: "#/components/schemas/TransactionApprovalResponseMFA"
-        - $ref: "#/components/schemas/TransactionApprovalResponseDSA_ED25519"
-    TransactionApprovalResponseMFA:
-      description: |
-        An Approval response for `MFA` method.
-
-        Currently this method does NOT expect any specially constructed response.
-        Any (string) value will be accepted as valid response.
-      type: object
-      required:
-        - type
-        - response
-      properties:
-        type:
-          type: string
-          description: Approval method
-          enum:
-            - MFA
-        challenge:
-          type: object
-        response:
-          type: string
-      example:
-        type: "MFA"
-        response: ""
-    TransactionApprovalResponseDSA_ED25519:
-      description: |
-        An Approval response for `DSA_ED25519` method.
-
-        See Transaction Approvals description [API Guide](API_Guide.md)
-        on how to construct a correct response for this method.
-      type: object
-      required:
-        - type
-        - response
-      properties:
-        type:
-          type: string
-          description: Approval method
-          enum:
-            - DSA_ED25519
-        challenge:
-          type: object
-          description: An optional reference to previously fetched challenge
-          properties:
-            sha256:
-              type: string
-              description: |
-                An optional attribute which is expected to contain the hexadecimal representation
-                of SHA256 digest of the Challenge message.
-
-                If provided, this attribute will be validated along with the response.
-
-                For troubleshooting purposes, it is recommended to provide this attribute.
-        response:
-          type: string
-          description: |
-            A Transaction Approval response, which is a hexadecimal representation of the
-            signature of the Challenge message, produced by the Entity's Approval key.
-      example:
-        type: "DSA_ED25519"
-        challenge:
-          sha256: "f6deeecec4aa0cb77e7f2c6f3f44c28ec5ab3ab22d43441f56cbf0bf1ef80c81"
-        response: "c5d5fac9e6fb6b7d27b141625f1c2c991aefc8b9f6e8a6eedb9cdbe9dd691ec310cbdc1bdd9fbd5fb4cfad72ee8fd51cc5f6e7198fecc92d5c465a61ef2c09a1"
+        created_at: "2019-11-03T13:05:51Z"
+        updated_at: "2019-11-03T13:05:51Z"
 
     #
     # LedgerEntry schema
@@ -2143,5 +2545,4 @@ components:
                 type: string
             example:
               message: Internal server error
-
 

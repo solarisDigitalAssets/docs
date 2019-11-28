@@ -2,8 +2,8 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-* Version: [0.9.0]
-* Updated: [2019-09-25]
+* Version: [0.11.0]
+* Updated: [2019-11-26]
 
 ## Introduction
 
@@ -502,6 +502,48 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
 }
 ```
 
+### Transaction Processing Workflow
+
+Each Transaction has a "state" attribute, that can take any value of:
+
+* PENDING
+* APPROVED
+* COMPLETED
+* FAILED
+
+Whenever a Transaction is created, it starts in a PENDING state.
+
+Before the Transaction can be processed by the Platform, the initiator of Transaction
+MUST approve it. For the Transactions requested by the partner, i.e. a Withdrawal or a Transfer,
+it should be the corresponding Account holder. Other Transaction types are automatically created
+and approved by the Platform, in response to some external events, e.g. a Deposit is created
+whenever a blockchain transaction it spotted on the network, and it is approved
+whenever the blockchain transaction is sufficiently confirmed.
+
+A Transaction in APPROVED state means that the initiator of the Transaction has approved it,
+and the Transaction is accepted for processing by the Platform. Depending on the type of
+Transaction, it can stay in this state for a significant amount of time, for example:
+* processing of the Transaction can be naturally delayed, as in the case of batching
+  of multiple Withdrawals
+* performing Compliance checks can delay a Transaction
+
+COMPLETED state means that the Transaction has been successfully processed, and the Account
+balance has been updated. This state is final.
+
+> NOTE: It's up to partner how to present the Transaction states to the end customer. An important
+> distinction would be that both PENDING and APPROVED states mean that the Transaction
+> is still being processed, and only COMPLETED state means the Transaction is finalized.
+
+In case of a failure that prevents the Transaction from being successfully processed,
+a Transaction can transition to FAILED state. Any amount which was locked
+by such Transaction will be released, and the Account Available balance will be updated.
+This state is final.
+
+Whenever a Transaction is requested by the partner, the platform runs validation checks on this
+Transaction. If any of these checks fail, the Transaction will be created and immediately
+set to FAILED state. This can happen, for example, when the corresponding Account
+does not have sufficient balance to process this Transaction.
+
 ## Deposits
 
 A Deposit is a Transaction of type DEPOSIT. A Deposit represents a single incoming blockchain-level transfer to some Account Address.
@@ -589,7 +631,7 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b5
 }
 ```
 
-## WithdrawalProcessing Transacions
+## WithdrawalProcessing Transactions
 
 A WithdrawalProcessing is a Transaction of type WITHDRAWAL_PROCESSING.
 The Digital Assets Platform processes Withdrawal Transactions in batches to include as many
@@ -691,78 +733,115 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b5
 }
 ```
 
-## Transaction Approvals
+## Approval Methods
 
-Any Transaction initiated by an API request (i.e. Withdrawal or Transfer) MUST be approved
-by the corresponding Account holder (an Entity owning the Transaction's Account),
-before it will be processed and executed by the Platform.
+Approval Method defines the particular MFA mechanism that the Account holder (Entity) can use
+to approve their Transactions.
 
-Transaction Approval process consists of two steps:
+Currently there are following Approval Method types supported by the platform:
 
-* retrieving an Approval challenge
-* computing and submitting an Approval response
+* `AUTHY_PUSH` -- represents a Authy push notifications based MFA
+* `DSA_ED25519` -- represents an ECDSA based MFA mechanism
 
-There are different approval methods supported, which determine how exactly an Approval challenge
-can be transformed into the response. Different approval methods are targeted at different types
-of Account holders:
+In order to be able to approve Transactions by the corresponding Account holder (an Entity
+of type `PERSON` or `PARTNER`), there MUST be a registered and activated Approval Method
+for this Entity.
 
-* Entity of type PERSON -- an approval method of type `MFA`
-* Entity of type PARTNER -- an approval method of type `DSA_ED25519`
+When first registered, an Approval Method is in a `PENDING` state. Then, depending on
+Approval Method type, it can be activated by the platform operator or by the customer.
 
-Currently, the Entity type directly identifies which approval method is going to be used
-for approving any Transaction of this Entity.
+Only the Approval Method in `ACTIVATED` state can be used to approve Transactions.
 
+Currently there can be only one Approval Method of each type registered for an Entity.
 
-### Approval method: MFA
+See:
+```
+POST /v1/entities/{entity_id}/approval_methods
+GET /v1/entities/{entity_id}/approval_methods
+GET /v1/entities/{entity_id}/approval_methods/{approval_method_id}
+```
 
-This approval method is aimed at customers (individual people) as Account holders.
+### Authy push notifications
 
-The specifics of the method are TBD.
+This Approval Method is aimed at customers (individual people) as Account holders,
+and can only be registered for Entities of type `PERSON`.
+
 
 #### Setup
 
-The Entity of type `PERSON` contains `person_id`, which MUST be a reference
-to a solarisBank KYC'ed person.
+The corresponding Entity of type `PERSON` MUST be registered.
 
-#### Challenge
+#### Register this Approval Method for an Entity
 
-Currently, the challenge produced by this method does not contain any meaningful data.
+To register this Approval Method for an Entity, only `type` attribute is required.
 
+Example:
 ```
-GET /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval
-```
-```
-200 OK
+POST /v1/entities/df8bd407b3dfbd37f8ff3e5efbd4e8acenty/approval_methods
 
 {
-  "type": "MFA",
-  "challenge": {}
-}
-```
-
-#### Response
-
-Currently, the response expected by this method can be any string value, e.g. empty string.
-
-```
-POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval
-
-{
-  "type": "MFA",
-  "challenge": {},
-  "response": ""
+  "type": "AUTHY_PUSH"
 }
 ```
 ```
 201 Created
 
-{}
+{
+  "id": "b2046aec77bdd03dc0db46e57e0a722bapmt",
+  "entity_id": "df8bd407b3dfbd37f8ff3e5efbd4e8acenty",
+  "type": "AUTHY_PUSH",
+  "state": "PENDING",
+  "created_at": "2019-11-03T12:21:16Z",
+  "updated_at": "2019-11-03T12:21:16Z"
+}
 ```
 
-### Approval method: DSA_ED25519
+#### Activation
 
-This approval method is designed for automated systems or custom integrations
-(e.g. custom mobile apps). Currently this approval method is only available
+Registering an Approval Method of type `AUTHY_PUSH` for an Entity will automatically trigger
+this customer's enrollment at Authy service, provided they have successfully completed their KYC
+process. If the KYC process for this customer is not complete, the automatic enrollment
+at Authy will be delayed until it is.
+
+The activation of this Approval Method is controlled by the customer and may or may not
+require additional setup on their part, depending on whether they have already registered
+at Authy with the phone number they provided during the KYC process or not.
+
+1. **Customer is already registered at Authy**:
+  In case the customer is already registered at Authy with the same phone number they provided
+  during the KYC process, there will be a push notification sent to the customer in their Authy app,
+  asking/notifying them to add another application.
+
+2. **Customer is not registered at Authy**:
+  In case the customer is not registered at Authy, or registered with a different phone number,
+  they MUST install an Authy app on their (mobile) device and
+  bind it to the same phone number they have provided during the KYC process.
+
+This Approval Method is automatically activated as soon as the customer successfully registers
+at Authy, installs and configures the Authy app on their (mobile) device.
+
+
+Example:
+```
+GET /v1/entities/df8bd407b3dfbd37f8ff3e5efbd4e8acenty/approval_methods/b2046aec77bdd03dc0db46e57e0a722bapmt
+
+200 OK
+
+{
+  "id": "b2046aec77bdd03dc0db46e57e0a722bapmt",
+  "entity_id": "df8bd407b3dfbd37f8ff3e5efbd4e8acenty",
+  "type": "AUTHY_PUSH",
+  "state": "ACTIVATED",
+  "created_at": "2019-11-03T12:21:16Z",
+  "updated_at": "2019-11-03T12:46:10Z"
+}
+```
+
+
+### DSA_ED25519
+
+This Approval Method is designed for automated systems or custom integrations
+(e.g. custom mobile apps). Currently this Approval Method is only available
 for Entity of type `PARTNER`.
 
 Approving a Transaction using this method works in the following way:
@@ -773,12 +852,177 @@ Approving a Transaction using this method works in the following way:
 * platform verifies the response, using previously registered Approval key (public)
   of the Account holder (Entity)
 
+
 #### Setup
 
-To utilize this method, the Partner MUST register an *Approval key*'s public key with the platform.
+The corresponding Entity of type `PARTNER` MUST be registered.
+
+To utilize this method, the partner MUST generate an *Approval key* and store it.
+
+The public part of this key is to be submitted to the platform with the Approval Method
+registration request.
 
 **Approval key** -- an Ed25519 key pair which Partner is going to use for approving Transactions.
 This key SHOULD be different from Partner's API key.
+
+
+#### Register this Approval Method for an Entity
+
+To register this Approval Method, partner submits a request with `type` and `pub_key` attributes,
+where `pub_key` is the public key part of the *Approval key* as a 32-byte hexadecimal string.
+
+
+Example:
+```
+POST /v1/entities/bda8720b93a2daf3ffac5a6fefaa87aaenty/approval_methods
+
+{
+  "type": "DSA_ED25519",
+  "pub_key": "eeb4ff2aa97bdead6df6b4bc44cde6e41d257cc05dd4f803dbeb8d30c908beeb"
+}
+```
+```
+201 Created
+
+{
+  "id": "6d4e8abbaab25847a01908c6f02f8bb0apmt",
+  "entity_id": "bda8720b93a2daf3ffac5a6fefaa87aaenty",
+  "type": "DSA_ED25519",
+  "state": "PENDING",
+  "pub_key": "eeb4ff2aa97bdead6df6b4bc44cde6e41d257cc05dd4f803dbeb8d30c908beeb"
+  "created_at": "2019-11-03T13:05:51Z",
+  "updated_at": "2019-11-03T13:05:51Z"
+}
+```
+
+#### Activation
+
+This Approval Method is activated by a manual process, controlled by the platform operator.
+
+During this process the platform operator MAY contact the partner representatives
+using other communication channels to confirm the validity of the public key.
+
+Example:
+```
+GET /v1/entities/bda8720b93a2daf3ffac5a6fefaa87aaenty/approval_methods/6d4e8abbaab25847a01908c6f02f8bb0apmt
+
+200 OK
+
+{
+  "id": "6d4e8abbaab25847a01908c6f02f8bb0apmt",
+  "entity_id": "bda8720b93a2daf3ffac5a6fefaa87aaenty",
+  "type": "DSA_ED25519",
+  "state": "ACTIVATED",
+  "pub_key": "eeb4ff2aa97bdead6df6b4bc44cde6e41d257cc05dd4f803dbeb8d30c908beeb"
+  "created_at": "2019-11-03T13:05:51Z",
+  "updated_at": "2019-11-03T13:05:51Z"
+}
+```
+
+## Approval Requests
+
+Any Transaction initiated by an API request (i.e. Withdrawal or Transfer) MUST be approved
+by the corresponding Account holder (an Entity owning the Transaction's Account),
+before it will be processed and executed by the Platform.
+
+Transaction Approval process consists of two steps:
+
+* Creating a new ApprovalRequest for a Transaction
+* Approving the ApprovalRequest
+
+There are different Approval Methods supported which determine how an ApprovalRequest will
+be used to approve a Transaction. Different Approval Methods are available for different types
+of Account holders:
+
+
+* Entity of type PERSON -- an ApprovalRequest of type `AUTHY_PUSH`
+* Entity of type PARTNER -- an ApprovalRequest of type `DSA_ED25519`
+
+
+The method of approval for an ApprovalRequest depends on the type of the ApprovalMethod
+which is associated with the ApprovalRequest.
+
+### Approval Method: AUTHY_PUSH
+
+This appproval method is aimed at customers (individual people) as Account holders.
+In order to approve an ApprovalRequest of type `AUTHY_PUSH` a customer must have the Authy app installed and activated on their smartphone.
+
+* Partner initiates a request to the Platform's API requesting the creation of an ApprovalRequest
+* A challenge is sent to the Customer's smartphone using a secure channel
+* The Customer approves or denies the ApprovalRequest
+* The Platform retrieves the response for the challenge
+* When the ApprovalRequest was approved the Platform processes the Transaction
+* When the ApprovalRequest was denied the Platform cancels the Transaction
+* When the Customer takes no action, the ApprovalRequest will fail after a configurable period. This will also fail the Transaction.
+
+#### Setup
+
+see Approval Method `AUTHY_PUSH` to see how this Approval Method is set up.
+
+#### Challenge
+
+The Challenge for an ApprovalMethod of type `AUTHY_PUSH` will be sent to the customer's smartphone via a secure channel and thus will bypass the Partner for added security.
+
+```
+POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request
+{
+  "type": "AUTHY_PUSH"
+}
+```
+```
+201 Created
+
+{
+  "id": "bd4c882738787267cdf849fcb799b45eaprq",
+  "transaction_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
+  "type": "AUTHY_PUSH",
+  "state": "PENDING",
+  "created_at": "2019-11-23T13:05:51Z",
+  "updated_at": "2019-11-23T13:05:52Z"
+}
+```
+
+#### Fetching the state of the ApprovalRequest
+
+To see the state of an ApprovalRequest the Partner can use the following endpoint:
+
+```
+GET /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request
+
+```
+```
+200 Ok
+
+{
+  "id": "bd4c882738787267cdf849fcb799b45eaprq",
+  "transaction_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
+  "type": "AUTHY_PUSH",
+  "state": "APPROVED",
+  "created_at": "2019-11-23T13:05:51Z",
+  "updated_at": "2019-11-23T13:06:28Z"
+}
+```
+
+### Approval method: DSA_ED25519
+
+This approval method is designed for automated systems or custom integrations
+(e.g. custom mobile apps). Currently this approval method is only available
+for Entity of type `PARTNER`.
+
+Provided the Approval method is registered for the Entity and it is activated
+by the platform operator, approving a Transaction using this method works in the following way:
+
+* an Approval request of type `DSA_ED25519` is created for the Transaction,
+  which contains a Transaction specific challenge
+* a challenge message is constructed in some deterministic way from the Transaction attributes
+* the challenge message is signed by the Approval key (private) held by Account holder (Entity)
+* the signature is sent as a challenge response to the Platform
+* platform verifies the response, using an Approval key (public)
+  previously registered for the `DSA_ED25519` Approval method of the Account holder (Entity)
+
+#### Setup
+
+see Approval Method `DSA_ED25519` to see how this Approval Method is set up.
 
 
 #### Challenge
@@ -787,16 +1031,25 @@ The challenge for the DSA_ED25519 method is represented by a *Challenge message*
 that the holder of Approval key should sign and send the signature as the response.
 
 ```
-GET /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval
-```
-```
-200 OK
+POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request
 
 {
+  "type": "DSA_ED25519"
+}
+```
+```
+201 Created
+
+{
+  "id": "ba9e224ba82ea200114803e5ce3ee839aprq",
+  "transaction_id": "fc069dcbb6649ad7b5afb7210ef4d9d2atrx",
   "type": "DSA_ED25519",
+  "state": "PENDING",
   "challenge": {
-    "attrs": ["id","account_id","type",...] # list of Transaction attribute names
-  }
+    "attrs": ["id", "account_id", "type", ...] # Transaction attribute names
+  },
+  "created_at": "2019-11-26T17:17:17Z",
+  "updated_at": "2019-11-26T17:17:17Z"
 }
 ```
 
@@ -830,18 +1083,23 @@ Suppose there is a Withdrawal Transaction:
 }
 ```
 
-And the request for approval challenge is:
+And the Approval request contains the following challenge:
 ```
-GET /v1/.../f4342c75f714405d89007ef13ce68688atrx/approval
+GET /v1/.../f4342c75f714405d89007ef13ce68688atrx/approval_request
 ```
 ```
 200 OK
 
 {
+  "id": "ba9e224ba82ea200114803e5ce3ee839aprq",
+  "transaction_id": "f4342c75f714405d89007ef13ce68688atrx",
   "type": "DSA_ED25519",
+  "state": "PENDING",
   "challenge": {
     "attrs": ["id","account_id","type,amount","fee_amount","total_amount","address","reference"]
-  }
+  },
+  "created_at": "2019-08-21T10:47:34Z",
+  "updated_at": "2019-08-21T10:47:34Z"
 }
 ```
 
@@ -871,10 +1129,9 @@ of the Ed25519 signature of the *Challenge message* constructed above, produced 
 private key part of *Approval key*.
 
 ```
-POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval
+POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request/approve
 
 {
-  "type": "DSA_ED25519",
   "challenge": {
     "sha256": "d5779cee..." # (optional) SHA-256 digest of the Challenge message
   },
@@ -916,10 +1173,9 @@ The signature is:
 
 Then the request to approve the Transaction is:
 ```
-POST /v1/.../f4342c75f714405d89007ef13ce68688atrx/approval
+POST /v1/.../f4342c75f714405d89007ef13ce68688atrx/approval_request/approve
 
 {
-  "type": "DSA_ED25519",
   "challenge": {
     "sha256": "d5779cee74f98ef140c2c62ae452a9dcd4a94a9959e70a5ad69472ae714d9f49"
   },
@@ -931,7 +1187,6 @@ POST /v1/.../f4342c75f714405d89007ef13ce68688atrx/approval
 
 {}
 ```
-
 
 ## Ledger Entries
 
@@ -987,4 +1242,5 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
 ```
 
 ---
+
 

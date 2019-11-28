@@ -1,5 +1,12 @@
 # Changelog
 
+## 28-11-2019
+API updated to v0.11.0:
+- Introduced APPROVED state in Transactions
+- Introduced Approval Methods; implemented methods are: AUTHY_PUSH, DSA_ED25519
+- Introduced Approval Requests for Approval Methods
+- Breaking Change: Removed Transaction Approval endpoints
+
 ## 27-09-2019
 
 API updated to v0.9.0:
