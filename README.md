@@ -1,4 +1,4 @@
-# solarisBank Digital Assets Platform
+# solaris Digital Assets Platform
 
 In this project you will find code examples, tools and documentation related to the
 solarisBank Digital Assets Platform.
