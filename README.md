@@ -1,7 +1,7 @@
 # solaris Digital Assets Platform
 
 In this project you will find code examples, tools and documentation related to the
-solaris Digital Assets Platform.
+*solaris Digital Assets* Platform.
 
 ## Examples
 
