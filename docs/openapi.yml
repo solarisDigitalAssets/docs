@@ -1,12 +1,12 @@
 openapi: 3.0.1
 info:
-  title: solarisBank Digital Assets Platform API
+  title: solaris Digital Assets Platform API
   contact:
     email: Alexis.Hamel@solarisbank.de
   version: 0.11.0
 
   description: |
-    This is a draft for solarisBank Digital Assets Platform API
+    This is a draft for solaris Digital Assets Platform API
 
     ## Authentication
 
@@ -2545,4 +2545,3 @@ components:
                 type: string
             example:
               message: Internal server error
-
