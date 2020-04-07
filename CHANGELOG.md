@@ -1,5 +1,9 @@
 # Changelog
 
+## 07-04-2020
+API updated to v0.12.0:
+- Include a section about the recommended Entity onboarding flow
+
 ## 28-11-2019
 API updated to v0.11.0:
 - Introduced APPROVED state in Transactions
