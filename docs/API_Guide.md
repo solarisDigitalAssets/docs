@@ -1,13 +1,13 @@
-# solaris Digital Assets Platform API Guide
+# solarisBank Digital Assets Platform API Guide
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-* Version: [0.11.0]
-* Updated: [2019-11-26]
+* Version: [0.12.0]
+* Updated: [2020-04-07]
 
 ## Introduction
 
-The solaris Digital Assets Platform API is designed to allow partners to store digital asset funds on the platform, accept deposits, process withdrawals and keep track of balances in digital assets.
+The solarisBank Digital Assets Platform API is designed to allow partners to store digital asset funds on the platform, accept deposits, process withdrawals and keep track of balances in digital assets.
 
 The partner can own a collection of Wallets on our platform, where each Wallet holds the funds owned by the partner for some specific digital asset. There are two types of Wallets:
 
@@ -40,13 +40,13 @@ The partner can initiate Withdrawals to an external address or Transfers to a di
 
 ## Setup
 
-Before a partner can use the solaris Digital Assets Platform API we register them in our system. This happens completely on our side and is not exposed by API endpoints.
+Before a partner can use the solarisBank Digital Assets Platform API we register them in our system. This happens completely on our side and is not exposed by API endpoints.
 
 During this process we are going to create a Wallet for the partner, a partner Entity, and an Account owned by the partner Entity in the created Wallet.
 
-The next step is to create a key pair that is going to be used by the partner to access the API. This happens on partner side, then the partner sends us the public key part. At no point the solaris Digital Assets Platform platform learns the corresponding private key.
+The next step is to create a key pair that is going to be used by the partner to access the API. This happens on partner side, then the partner sends us the public key part. At no point the solarisBank Digital Assets Platform platform learns the corresponding private key.
 
-Private key is using on the partners side for signing every API request and public key is used on solarisBank API side to verify the ownership and integrity of the request. We will provide additional instructions on how to generate key pairs combined with authentication code examples as separate document guide.
+The Private key is used by the partner to sign every API request and the public key is used by solaris Digital Assets' API to verify the ownership and integrity of the request. We will provide additional instructions on how to generate key pairs combined with authentication code examples as separate document guide.
 
 Finally we register the public key received from the partner, after which the partner can access the API.
 
@@ -266,6 +266,42 @@ GET /v1/wallets/82b46f5310d8a35fb4755cc13fddd681walt
   "updated_at": "2019-04-02T12:27:33Z"
 }
 ```
+
+
+## solaris Digital Assets recommendation: End customer onboarding
+
+Before a partner can offer their customers the full feature set of solaris Digital Assets' API, the partner must onboard the customer. We recommend the following steps to fully onboard the customer:
+
+### solarisBank Identity API
+
+1. Partner should create a person (end customer of Partner)
+2. Partner should create an identification for the person with a selected method
+  * Once the identification has been created, Partner should request an identification link for the respective end customer by fetching a dedicated URL
+  * Identification needs to be completed successfully.  Should an identification not reach a final status, the existing link can be reused.
+
+### solaris Digital Assets API
+
+1. Partner should create an Entity for the person (see: Entity)
+2. Partner should create an approval method for the Entity (see: Approval Methods)
+  * Approval Method should be activated by the Entity
+3. Partner should create an Account for the Entity (see: Accounts)
+  * Partner should create an Address for the Account (see: Addresses)
+
+
+> NOTE: The order above is just solaris Digital Assets' recommendation. Creating a Person is a prerequisite to further develop on top of solaris Digital Assets' API.
+> Certain functionalities, like creating Account and Addresses is possible without successful KYC of an end customer. Although, for example in an event of a detected
+> Deposit, funds will never be unlocked until the KYC has been successfully completed. Hence, Withdrawals or Transfers will be not possible either.
+
+#### Requirements for the end customer to be able to perform transactions:
+
+* Person created (sB Identity API)
+* KYC successfully completed (sB Identity API)
+* Entity created (sDA API)
+* Approval method successfully created and verified for the entity (sDA API)
+* Account and associated address created (sDA API)
+
+
+![Entity onboarding flow](./img/entity_onboarding_flow.png)
 
 ## Entities
 
@@ -1242,4 +1278,5 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
 ```
 
 ---
+
 
