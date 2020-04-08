@@ -1,5 +1,11 @@
 # Changelog
 
+## 07-04-2020
+
+API updated to v0.12.0:
+
+- Added a section about the recommended Entity onboarding flow
+
 ## 28-11-2019
 
 API updated to v0.11.0:
