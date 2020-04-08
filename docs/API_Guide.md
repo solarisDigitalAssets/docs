@@ -1,4 +1,4 @@
-# solarisBank Digital Assets Platform API Guide
+# solaris Digital Assets Platform API Guide
 
 An API platform that provides a managed custody solution for storing digital assets.
 
@@ -7,7 +7,7 @@ An API platform that provides a managed custody solution for storing digital ass
 
 ## Introduction
 
-The solarisBank Digital Assets Platform API is designed to allow partners to store digital asset funds on the platform, accept deposits, process withdrawals and keep track of balances in digital assets.
+The solaris Digital Assets Platform API is designed to allow partners to store digital asset funds on the platform, accept deposits, process withdrawals and keep track of balances in digital assets.
 
 The partner can own a collection of Wallets on our platform, where each Wallet holds the funds owned by the partner for some specific digital asset. There are two types of Wallets:
 
@@ -40,11 +40,11 @@ The partner can initiate Withdrawals to an external address or Transfers to a di
 
 ## Setup
 
-Before a partner can use the solarisBank Digital Assets Platform API we register them in our system. This happens completely on our side and is not exposed by API endpoints.
+Before a partner can use the solaris Digital Assets Platform API we register them in our system. This happens completely on our side and is not exposed by API endpoints.
 
 During this process we are going to create a Wallet for the partner, a partner Entity, and an Account owned by the partner Entity in the created Wallet.
 
-The next step is to create a key pair that is going to be used by the partner to access the API. This happens on partner side, then the partner sends us the public key part. At no point the solarisBank Digital Assets Platform platform learns the corresponding private key.
+The next step is to create a key pair that is going to be used by the partner to access the API. This happens on partner side, then the partner sends us the public key part. At no point the solaris Digital Assets Platform platform learns the corresponding private key.
 
 The Private key is used by the partner to sign every API request and the public key is used by solaris Digital Assets' API to verify the ownership and integrity of the request. We will provide additional instructions on how to generate key pairs combined with authentication code examples as separate document guide.
 
@@ -274,8 +274,8 @@ Before a partner can offer their customers the full feature set of solaris Digit
 
 ### solarisBank Identity API
 
-1. Partner should create a person (end customer of Partner)
-2. Partner should create an identification for the person with a selected method
+1. Partner should [create a person](https://docs.solarisbank.com/core/api/v1/#44qZGy7K-post-create-a-person) (end customer of Partner)
+2. Partner should [create an identification](https://docs.solarisbank.com/core/api/v1/#6Q8p3mGx-person-identification) for the person with a selected method
   * Once the identification has been created, Partner should request an identification link for the respective end customer by fetching a dedicated URL
   * Identification needs to be completed successfully.  Should an identification not reach a final status, the existing link can be reused.
 
