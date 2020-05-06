@@ -1,5 +1,12 @@
 # Changelog
 
+## 04-05-2020
+
+API updated to v0.13.0:
+
+- Introduced Callbacks for the Transactions
+- Added Table of Contents
+
 ## 07-04-2020
 
 API updated to v0.12.0:

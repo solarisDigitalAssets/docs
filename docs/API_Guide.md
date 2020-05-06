@@ -2,8 +2,76 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-* Version: [0.12.0]
-* Updated: [2020-04-07]
+- Version: [0.13.0]
+- Updated: [2020-05-04]
+
+## Table of Contents
+
+- [Introduction](#introduction)
+  - [Segregated Wallet](#segregated-wallet)
+  - [Pooled Wallet](#pooled-wallet)
+- [Setup](#setup)
+- [Authentication](#authentication)
+  - [Digest Header](#digest-header)
+  - [X-Nonce Header](#x-nonce-header)
+  - [Signature Header](#signature-header)
+  - [Examples](#examples)
+- [IDs](#ids)
+  - [Example](#example)
+- [Assets](#assets)
+  - [Example](#example-1)
+- [Wallets](#wallets)
+  - [Example](#example-2)
+- [solaris Digital Assets recommendation: End customer onboarding](#solaris-digital-assets-recommendation-end-customer-onboarding)
+  - [solarisBank Identity API](#solarisbank-identity-api)
+  - [solaris Digital Assets API](#solaris-digital-assets-api)
+    - [Requirements for the end customer to be able to perform transactions:](#requirements-for-the-end-customer-to-be-able-to-perform-transactions)
+- [Entities](#entities)
+  - [Example](#example-3)
+- [Accounts](#accounts)
+  - [Account Balance](#account-balance)
+  - [Account Available Balance](#account-available-balance)
+  - [Example](#example-4)
+- [Addresses](#addresses)
+  - [Example](#example-5)
+- [Transactions](#transactions)
+  - [Example](#example-6)
+  - [Transaction Processing Workflow](#transaction-processing-workflow)
+- [Deposits](#deposits)
+  - [Example](#example-7)
+- [Withdrawals](#withdrawals)
+  - [Withdrawal Fee Model](#withdrawal-fee-model)
+  - [Processing a Withdrawal](#processing-a-withdrawal)
+  - [Example](#example-8)
+- [WithdrawalProcessing Transactions](#withdrawalprocessing-transactions)
+  - [Example](#example-9)
+- [Transfers](#transfers)
+  - [Processing a Transfer](#processing-a-transfer)
+  - [Example](#example-10)
+- [Approval Methods](#approval-methods)
+  - [Authy push notifications](#authy-push-notifications)
+    - [Setup](#setup-1)
+    - [Register this Approval Method for an Entity](#register-this-approval-method-for-an-entity)
+    - [Activation](#activation)
+  - [DSA_ED25519](#dsa_ed25519)
+    - [Setup](#setup-2)
+    - [Register this Approval Method for an Entity](#register-this-approval-method-for-an-entity-1)
+    - [Activation](#activation-1)
+- [Approval Requests](#approval-requests)
+  - [Approval Method: AUTHY_PUSH](#approval-method-authy_push)
+    - [Setup](#setup-3)
+    - [Challenge](#challenge)
+    - [Fetching the state of the ApprovalRequest](#fetching-the-state-of-the-approvalrequest)
+  - [Approval method: DSA_ED25519](#approval-method-dsa_ed25519)
+    - [Setup](#setup-4)
+    - [Challenge](#challenge-1)
+      - [Example](#example-11)
+    - [Response](#response)
+      - [Example](#example-12)
+- [Ledger Entries](#ledger-entries)
+  - [Example](#example-13)
+- [Callbacks](#callbacks)
+  - [Example](#example-14)
 
 ## Introduction
 
@@ -11,8 +79,8 @@ The solaris Digital Assets Platform API is designed to allow partners to store d
 
 The partner can own a collection of Wallets on our platform, where each Wallet holds the funds owned by the partner for some specific digital asset. There are two types of Wallets:
 
-* Segregated Wallet
-* Pooled Wallet
+- Segregated Wallet
+- Pooled Wallet
 
 ### Segregated Wallet
 
@@ -56,15 +124,15 @@ We require our partners to generate a pair of private & public keys.
 Partners MUST register the public key with the Platform and sign every request to our API
 using their private key.
 
-We are using *HTTP Signatures* IETF draft as the base for our authentication mechanism.
-As the digital signature algorithm in HTTP Signatures we are using *Ed25519*.
+We are using _HTTP Signatures_ IETF draft as the base for our authentication mechanism.
+As the digital signature algorithm in HTTP Signatures we are using _Ed25519_.
 
 Every HTTP request to the API MUST have following headers in addition to
 standard ones:
 
-* Digest
-* X-Nonce
-* Signature
+- Digest
+- X-Nonce
+- Signature
 
 ### Digest Header
 
@@ -76,10 +144,11 @@ body is an empty string.
 
 See:
 
-* Instance Digests in HTTP <https://tools.ietf.org/html/rfc3230>
-* Additional Hash Algorithms for HTTP Instance Digests <https://tools.ietf.org/html/rfc5843>
+- Instance Digests in HTTP <https://tools.ietf.org/html/rfc3230>
+- Additional Hash Algorithms for HTTP Instance Digests <https://tools.ietf.org/html/rfc5843>
 
 Example:
+
 ```
 Digest: SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=
 ```
@@ -89,13 +158,14 @@ Digest: SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=
 The `X-Nonce` header is supposed to uniquely identify the HTTP request
 and serves to protect against replay/playback attacks.
 The `X-Nonce` header value MUST be a string of up to 32 characters,
-which MUST be  unique across all the requests generated using the same
+which MUST be unique across all the requests generated using the same
 API key.
 
 As an example, `X-Nonce` header value may be generated as 16-bytes
 random integer in hexadecimal representation.
 
 Example:
+
 ```
 X-Nonce: 514bdd41b15f6b1a0443f8c673adc9db
 ```
@@ -109,20 +179,20 @@ independently of the transport.
 
 Signature Parameters:
 
-* **keyId**
+- **keyId**
 
   Unique ID which is assigned to the Partner's API key.
 
-* **algorithm**
+- **algorithm**
 
   The value for the `algorithm` parameter MUST be `"hs2019"`.
 
-* **created**
+- **created**
 
   The value of the `created` parameter MUST be the time at which
   the HTTP request was constructed as an integer Unix timestamp.
 
-* **headers**
+- **headers**
 
   The `headers` parameter identifies how the canonical Signature String is constructed.
   Its value consists of a list of actual and pseudo- HTTP headers which will form
@@ -136,7 +206,7 @@ Signature Parameters:
 
   See:
 
-  * Signature String Construction
+  - Signature String Construction
     <https://tools.ietf.org/html/draft-cavage-http-signatures-11#section-2.3>
 
   Example of Signature String for `headers="(request-target) (created) digest x-nonce"`:
@@ -152,17 +222,17 @@ Signature Parameters:
 
   Here `\n` indicate the ASCII newline character. Note the absence of it on the last line.
 
-* **signature**
+- **signature**
 
   The value of the `signature` parameter is the digital signature of the HTTP request produced
   by the partner's private key.
 
   In order to create the `signature` parameter:
 
-  * Construct the canonical Signature String according to the value of the `headers` parameter
-  * Using the private key that corresponds to the provided `keyId` generate an Ed25519
+  - Construct the canonical Signature String according to the value of the `headers` parameter
+  - Using the private key that corresponds to the provided `keyId` generate an Ed25519
     signature of the Signature String obtained on a previous step
-  * Base64-encode the signature
+  - Base64-encode the signature
 
 ### Examples
 
@@ -184,9 +254,8 @@ Signature: keyId="foobar",algorithm="hs2019",created=1557855475,headers="(reques
 
 See:
 
-* HTTP Signatures, <https://tools.ietf.org/html/draft-cavage-http-signatures-11>
-* Ed25519, <https://ed25519.cr.yp.to/>
-
+- HTTP Signatures, <https://tools.ietf.org/html/draft-cavage-http-signatures-11>
+- Ed25519, <https://ed25519.cr.yp.to/>
 
 ## IDs
 
@@ -267,7 +336,6 @@ GET /v1/wallets/82b46f5310d8a35fb4755cc13fddd681walt
 }
 ```
 
-
 ## solaris Digital Assets recommendation: End customer onboarding
 
 Before a partner can offer their customers the full feature set of solaris Digital Assets' API, the partner must onboard the customer. We recommend the following steps to fully onboard the customer:
@@ -276,17 +344,20 @@ Before a partner can offer their customers the full feature set of solaris Digit
 
 1. Partner should [create a person](https://docs.solarisbank.com/core/api/v1/#44qZGy7K-post-create-a-person) (end customer of Partner)
 2. Partner should [create an identification](https://docs.solarisbank.com/core/api/v1/#6Q8p3mGx-person-identification) for the person with a selected method
-  * Once the identification has been created, Partner should request an identification link for the respective end customer by fetching a dedicated URL
-  * Identification needs to be completed successfully.  Should an identification not reach a final status, the existing link can be reused.
+
+- Once the identification has been created, Partner should request an identification link for the respective end customer by fetching a dedicated URL
+- Identification needs to be completed successfully. Should an identification not reach a final status, the existing link can be reused.
 
 ### solaris Digital Assets API
 
 1. Partner should create an Entity for the person (see: Entity)
 2. Partner should create an approval method for the Entity (see: Approval Methods)
-  * Approval Method should be activated by the Entity
-3. Partner should create an Account for the Entity (see: Accounts)
-  * Partner should create an Address for the Account (see: Addresses)
 
+- Approval Method should be activated by the Entity
+
+3. Partner should create an Account for the Entity (see: Accounts)
+
+- Partner should create an Address for the Account (see: Addresses)
 
 > NOTE: The order above is just solaris Digital Assets' recommendation. Creating a Person is a prerequisite to further develop on top of solaris Digital Assets' API.
 > Certain functionalities, like creating Account and Addresses is possible without successful KYC of an end customer. Although, for example in an event of a detected
@@ -294,18 +365,17 @@ Before a partner can offer their customers the full feature set of solaris Digit
 
 #### Requirements for the end customer to be able to perform transactions:
 
-* Person created (sB Identity API)
-* KYC successfully completed (sB Identity API)
-* Entity created (sDA API)
-* Approval method successfully created and verified for the entity (sDA API)
-* Account and associated address created (sDA API)
-
+- Person created (sB Identity API)
+- KYC successfully completed (sB Identity API)
+- Entity created (sDA API)
+- Approval method successfully created and verified for the entity (sDA API)
+- Account and associated address created (sDA API)
 
 ![Entity onboarding flow](./img/entity_onboarding_flow.png)
 
 ## Entities
 
-During the setup phase we only create one Entity of type `PARTNER`,  which represents the partner as an Account holder.
+During the setup phase we only create one Entity of type `PARTNER`, which represents the partner as an Account holder.
 
 To be able to create Accounts on behalf of end customers, the partner MUST beforehand create corresponding Entities of type `PERSON`. During this process the partner MUST provide a `person_id` — a unique identifier of an individual provided by solarisBank KYC product.
 
@@ -355,7 +425,6 @@ the Account Balance. Accounts start with having a balance of 0.
 Every successfully processed Transaction increases or decreases the Account Balance
 by creating corresponding Ledger Entries.
 As such the Account Balance equals to the sum of all Ledger Entries of this Account.
-
 
 ### Account Available Balance
 
@@ -447,21 +516,21 @@ A Transaction represents an operation that affected the balance of the Account.
 
 Transactions have a `type` attribute, which describes the operation:
 
-* DEPOSIT
-* WITHDRAWAL
-* WITHDRAWAL_PROCESSING
-* TRANSFER_OUTGOING
-* TRANSFER_INCOMING
+- DEPOSIT
+- WITHDRAWAL
+- WITHDRAWAL_PROCESSING
+- TRANSFER_OUTGOING
+- TRANSFER_INCOMING
 
 In addition Transaction have following attributes:
 
-| name                | type    | desc                                          |
-|---------------------|---------|-----------------------------------------------|
-| account_id          | String  | ID of the account tx belongs to               |
-| state               | String  | State of the tx, e.g. "PENDING"               |
-| amount              | Decimal | Transacted amount, positive or negative       |
-| fee_amount          | Decimal | Charged fee, always positive or 0             |
-| total_amount        | Decimal | Credited/debited amount, positive or negative |
+| name         | type    | desc                                          |
+| ------------ | ------- | --------------------------------------------- |
+| account_id   | String  | ID of the account tx belongs to               |
+| state        | String  | State of the tx, e.g. "PENDING"               |
+| amount       | Decimal | Transacted amount, positive or negative       |
+| fee_amount   | Decimal | Charged fee, always positive or 0             |
+| total_amount | Decimal | Credited/debited amount, positive or negative |
 
 `total_amount` indicates by how much the account balance have changed. It always equals to `amount - fee_amount`.
 
@@ -542,10 +611,10 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
 
 Each Transaction has a "state" attribute, that can take any value of:
 
-* PENDING
-* APPROVED
-* COMPLETED
-* FAILED
+- PENDING
+- APPROVED
+- COMPLETED
+- FAILED
 
 Whenever a Transaction is created, it starts in a PENDING state.
 
@@ -559,9 +628,10 @@ whenever the blockchain transaction is sufficiently confirmed.
 A Transaction in APPROVED state means that the initiator of the Transaction has approved it,
 and the Transaction is accepted for processing by the Platform. Depending on the type of
 Transaction, it can stay in this state for a significant amount of time, for example:
-* processing of the Transaction can be naturally delayed, as in the case of batching
+
+- processing of the Transaction can be naturally delayed, as in the case of batching
   of multiple Withdrawals
-* performing Compliance checks can delay a Transaction
+- performing Compliance checks can delay a Transaction
 
 COMPLETED state means that the Transaction has been successfully processed, and the Account
 balance has been updated. This state is final.
@@ -586,10 +656,10 @@ A Deposit is a Transaction of type DEPOSIT. A Deposit represents a single incomi
 
 Whenever a blockchain transaction is made to one of the addresses created using the API, the sequence is following:
 
-* The transaction is first detected on the network and is registered on the platform as a new Transaction of type DEPOSIT
-* The partner can then see the Deposit in the list of Account Transactions and start tracking its state
-* The transaction is confirmed by the network and the corresponding Transaction of type DEPOSIT state is changed on the platform, crediting the funds
-* The partner can detect the state change by polling for the individual Transaction details or by listing the Account Transactions
+- The transaction is first detected on the network and is registered on the platform as a new Transaction of type DEPOSIT
+- The partner can then see the Deposit in the list of Account Transactions and start tracking its state
+- The transaction is confirmed by the network and the corresponding Transaction of type DEPOSIT state is changed on the platform, crediting the funds
+- The partner can detect the state change by polling for the individual Transaction details or by listing the Account Transactions
 
 ### Example
 
@@ -633,7 +703,7 @@ The Withdrawal is then registered on the platform and validated, after which the
 Once Withdrawal is validated and approved, the platform proceeds to queueing the Withdrawal for processing.
 
 Periodically multiple Withdrawals from the same Wallet are grouped together in a single blockchain-level transaction, which is signed and eventually broadcasted. At this moment the platform creates a corresponding
-Withdrawal Processing Transaction that charges the processing fee, which  matches the network fees,
+Withdrawal Processing Transaction that charges the processing fee, which matches the network fees,
 on the partner Entity Account.
 
 Withdrawals are NOT going to be processed if the partner Entity Account cannot pay the processing fees.
@@ -723,7 +793,6 @@ It can be a Transfer between an end customer and a partner Accounts, or a Transf
 On the API level a Transfer is represented as two Transactions, one in the sender Account, having
 the type TRANSFER_OUTGOING, and one in the receiver Account, having the type TRANSFER_INCOMING.
 
-
 ### Processing a Transfer
 
 To issue a Transfer on behalf of the Account holder, the partner issues a request to create a Transfer
@@ -776,8 +845,8 @@ to approve their Transactions.
 
 Currently there are following Approval Method types supported by the platform:
 
-* `AUTHY_PUSH` -- represents a Authy push notifications based MFA
-* `DSA_ED25519` -- represents an ECDSA based MFA mechanism
+- `AUTHY_PUSH` -- represents a Authy push notifications based MFA
+- `DSA_ED25519` -- represents an ECDSA based MFA mechanism
 
 In order to be able to approve Transactions by the corresponding Account holder (an Entity
 of type `PERSON` or `PARTNER`), there MUST be a registered and activated Approval Method
@@ -791,6 +860,7 @@ Only the Approval Method in `ACTIVATED` state can be used to approve Transaction
 Currently there can be only one Approval Method of each type registered for an Entity.
 
 See:
+
 ```
 POST /v1/entities/{entity_id}/approval_methods
 GET /v1/entities/{entity_id}/approval_methods
@@ -802,7 +872,6 @@ GET /v1/entities/{entity_id}/approval_methods/{approval_method_id}
 This Approval Method is aimed at customers (individual people) as Account holders,
 and can only be registered for Entities of type `PERSON`.
 
-
 #### Setup
 
 The corresponding Entity of type `PERSON` MUST be registered.
@@ -812,6 +881,7 @@ The corresponding Entity of type `PERSON` MUST be registered.
 To register this Approval Method for an Entity, only `type` attribute is required.
 
 Example:
+
 ```
 POST /v1/entities/df8bd407b3dfbd37f8ff3e5efbd4e8acenty/approval_methods
 
@@ -819,6 +889,7 @@ POST /v1/entities/df8bd407b3dfbd37f8ff3e5efbd4e8acenty/approval_methods
   "type": "AUTHY_PUSH"
 }
 ```
+
 ```
 201 Created
 
@@ -844,20 +915,20 @@ require additional setup on their part, depending on whether they have already r
 at Authy with the phone number they provided during the KYC process or not.
 
 1. **Customer is already registered at Authy**:
-  In case the customer is already registered at Authy with the same phone number they provided
-  during the KYC process, there will be a push notification sent to the customer in their Authy app,
-  asking/notifying them to add another application.
+   In case the customer is already registered at Authy with the same phone number they provided
+   during the KYC process, there will be a push notification sent to the customer in their Authy app,
+   asking/notifying them to add another application.
 
 2. **Customer is not registered at Authy**:
-  In case the customer is not registered at Authy, or registered with a different phone number,
-  they MUST install an Authy app on their (mobile) device and
-  bind it to the same phone number they have provided during the KYC process.
+   In case the customer is not registered at Authy, or registered with a different phone number,
+   they MUST install an Authy app on their (mobile) device and
+   bind it to the same phone number they have provided during the KYC process.
 
 This Approval Method is automatically activated as soon as the customer successfully registers
 at Authy, installs and configures the Authy app on their (mobile) device.
 
-
 Example:
+
 ```
 GET /v1/entities/df8bd407b3dfbd37f8ff3e5efbd4e8acenty/approval_methods/b2046aec77bdd03dc0db46e57e0a722bapmt
 
@@ -873,7 +944,6 @@ GET /v1/entities/df8bd407b3dfbd37f8ff3e5efbd4e8acenty/approval_methods/b2046aec7
 }
 ```
 
-
 ### DSA_ED25519
 
 This Approval Method is designed for automated systems or custom integrations
@@ -882,18 +952,17 @@ for Entity of type `PARTNER`.
 
 Approving a Transaction using this method works in the following way:
 
-* a challenge is constructed in some deterministic way from the Transaction attributes
-* the challenge is signed by the Approval key (private) held by Account holder (Entity)
-* the signature is sent as a challenge response to the Platform
-* platform verifies the response, using previously registered Approval key (public)
+- a challenge is constructed in some deterministic way from the Transaction attributes
+- the challenge is signed by the Approval key (private) held by Account holder (Entity)
+- the signature is sent as a challenge response to the Platform
+- platform verifies the response, using previously registered Approval key (public)
   of the Account holder (Entity)
-
 
 #### Setup
 
 The corresponding Entity of type `PARTNER` MUST be registered.
 
-To utilize this method, the partner MUST generate an *Approval key* and store it.
+To utilize this method, the partner MUST generate an _Approval key_ and store it.
 
 The public part of this key is to be submitted to the platform with the Approval Method
 registration request.
@@ -901,14 +970,13 @@ registration request.
 **Approval key** -- an Ed25519 key pair which Partner is going to use for approving Transactions.
 This key SHOULD be different from Partner's API key.
 
-
 #### Register this Approval Method for an Entity
 
 To register this Approval Method, partner submits a request with `type` and `pub_key` attributes,
-where `pub_key` is the public key part of the *Approval key* as a 32-byte hexadecimal string.
-
+where `pub_key` is the public key part of the _Approval key_ as a 32-byte hexadecimal string.
 
 Example:
+
 ```
 POST /v1/entities/bda8720b93a2daf3ffac5a6fefaa87aaenty/approval_methods
 
@@ -917,6 +985,7 @@ POST /v1/entities/bda8720b93a2daf3ffac5a6fefaa87aaenty/approval_methods
   "pub_key": "eeb4ff2aa97bdead6df6b4bc44cde6e41d257cc05dd4f803dbeb8d30c908beeb"
 }
 ```
+
 ```
 201 Created
 
@@ -939,6 +1008,7 @@ During this process the platform operator MAY contact the partner representative
 using other communication channels to confirm the validity of the public key.
 
 Example:
+
 ```
 GET /v1/entities/bda8720b93a2daf3ffac5a6fefaa87aaenty/approval_methods/6d4e8abbaab25847a01908c6f02f8bb0apmt
 
@@ -963,17 +1033,15 @@ before it will be processed and executed by the Platform.
 
 Transaction Approval process consists of two steps:
 
-* Creating a new ApprovalRequest for a Transaction
-* Approving the ApprovalRequest
+- Creating a new ApprovalRequest for a Transaction
+- Approving the ApprovalRequest
 
 There are different Approval Methods supported which determine how an ApprovalRequest will
 be used to approve a Transaction. Different Approval Methods are available for different types
 of Account holders:
 
-
-* Entity of type PERSON -- an ApprovalRequest of type `AUTHY_PUSH`
-* Entity of type PARTNER -- an ApprovalRequest of type `DSA_ED25519`
-
+- Entity of type PERSON -- an ApprovalRequest of type `AUTHY_PUSH`
+- Entity of type PARTNER -- an ApprovalRequest of type `DSA_ED25519`
 
 The method of approval for an ApprovalRequest depends on the type of the ApprovalMethod
 which is associated with the ApprovalRequest.
@@ -983,13 +1051,13 @@ which is associated with the ApprovalRequest.
 This appproval method is aimed at customers (individual people) as Account holders.
 In order to approve an ApprovalRequest of type `AUTHY_PUSH` a customer must have the Authy app installed and activated on their smartphone.
 
-* Partner initiates a request to the Platform's API requesting the creation of an ApprovalRequest
-* A challenge is sent to the Customer's smartphone using a secure channel
-* The Customer approves or denies the ApprovalRequest
-* The Platform retrieves the response for the challenge
-* When the ApprovalRequest was approved the Platform processes the Transaction
-* When the ApprovalRequest was denied the Platform cancels the Transaction
-* When the Customer takes no action, the ApprovalRequest will fail after a configurable period. This will also fail the Transaction.
+- Partner initiates a request to the Platform's API requesting the creation of an ApprovalRequest
+- A challenge is sent to the Customer's smartphone using a secure channel
+- The Customer approves or denies the ApprovalRequest
+- The Platform retrieves the response for the challenge
+- When the ApprovalRequest was approved the Platform processes the Transaction
+- When the ApprovalRequest was denied the Platform cancels the Transaction
+- When the Customer takes no action, the ApprovalRequest will fail after a configurable period. This will also fail the Transaction.
 
 #### Setup
 
@@ -1005,6 +1073,7 @@ POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id
   "type": "AUTHY_PUSH"
 }
 ```
+
 ```
 201 Created
 
@@ -1026,6 +1095,7 @@ To see the state of an ApprovalRequest the Partner can use the following endpoin
 GET /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request
 
 ```
+
 ```
 200 Ok
 
@@ -1048,22 +1118,21 @@ for Entity of type `PARTNER`.
 Provided the Approval method is registered for the Entity and it is activated
 by the platform operator, approving a Transaction using this method works in the following way:
 
-* an Approval request of type `DSA_ED25519` is created for the Transaction,
+- an Approval request of type `DSA_ED25519` is created for the Transaction,
   which contains a Transaction specific challenge
-* a challenge message is constructed in some deterministic way from the Transaction attributes
-* the challenge message is signed by the Approval key (private) held by Account holder (Entity)
-* the signature is sent as a challenge response to the Platform
-* platform verifies the response, using an Approval key (public)
+- a challenge message is constructed in some deterministic way from the Transaction attributes
+- the challenge message is signed by the Approval key (private) held by Account holder (Entity)
+- the signature is sent as a challenge response to the Platform
+- platform verifies the response, using an Approval key (public)
   previously registered for the `DSA_ED25519` Approval method of the Account holder (Entity)
 
 #### Setup
 
 see Approval Method `DSA_ED25519` to see how this Approval Method is set up.
 
-
 #### Challenge
 
-The challenge for the DSA_ED25519 method is represented by a *Challenge message*,
+The challenge for the DSA_ED25519 method is represented by a _Challenge message_,
 that the holder of Approval key should sign and send the signature as the response.
 
 ```
@@ -1073,6 +1142,7 @@ POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id
   "type": "DSA_ED25519"
 }
 ```
+
 ```
 201 Created
 
@@ -1089,20 +1159,21 @@ POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id
 }
 ```
 
-The *Challenge message* is constructed from Transaction attributes and a list of
+The _Challenge message_ is constructed from Transaction attributes and a list of
 attribute names returned in `challenge.attrs` in the following way:
 
-1. For each *attribute_name* from the `challenge.attrs` list, construct the *attribute_string*
-  in the following way: concatenate the *attribute_name*, ASCII colon `:`, ASCII space ` `
-  and the value of corresponding Transaction attribute
-1. Construct the *Challenge message* by concatenating *attribute_string*'s in the same
-  order as the corresponding attributes in `challenge.attrs`,
-  using ASCII newline `\n` as the delimiter.
-  NOTE: the resulting string does NOT end with `\n`.
+1. For each _attribute_name_ from the `challenge.attrs` list, construct the _attribute_string_
+   in the following way: concatenate the _attribute_name_, ASCII colon `:`, ASCII space ``
+   and the value of corresponding Transaction attribute
+1. Construct the _Challenge message_ by concatenating _attribute_string_'s in the same
+   order as the corresponding attributes in `challenge.attrs`,
+   using ASCII newline `\n` as the delimiter.
+   NOTE: the resulting string does NOT end with `\n`.
 
 ##### Example
 
 Suppose there is a Withdrawal Transaction:
+
 ```
 {
   "id": "f4342c75f714405d89007ef13ce68688atrx",
@@ -1120,9 +1191,11 @@ Suppose there is a Withdrawal Transaction:
 ```
 
 And the Approval request contains the following challenge:
+
 ```
 GET /v1/.../f4342c75f714405d89007ef13ce68688atrx/approval_request
 ```
+
 ```
 200 OK
 
@@ -1139,7 +1212,8 @@ GET /v1/.../f4342c75f714405d89007ef13ce68688atrx/approval_request
 }
 ```
 
-Then the computed *Challenge message* is:
+Then the computed _Challenge message_ is:
+
 ```
 id: f4342c75f714405d89007ef13ce68688atrx\n
 account_id: f52b22a8256cd2b0ad21f3c2cc2c5875acct\n
@@ -1153,7 +1227,8 @@ reference: some-reference-ea1ee054
 
 > NOTE: the `\n` above represent the ASCII newline characters, note the absence of it on the last line.
 
-The SHA-256 digest of this *Challenge message* is:
+The SHA-256 digest of this _Challenge message_ is:
+
 ```
 d5779cee74f98ef140c2c62ae452a9dcd4a94a9959e70a5ad69472ae714d9f49
 ```
@@ -1161,8 +1236,8 @@ d5779cee74f98ef140c2c62ae452a9dcd4a94a9959e70a5ad69472ae714d9f49
 #### Response
 
 For the approval method DSA_ED25519, the response is a hexadecimal representation
-of the Ed25519 signature of the *Challenge message* constructed above, produced using
-private key part of *Approval key*.
+of the Ed25519 signature of the _Challenge message_ constructed above, produced using
+private key part of _Approval key_.
 
 ```
 POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request/approve
@@ -1176,12 +1251,12 @@ POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id
 ```
 
 The Partner MAY provide the optional `challenge.sha256` value with the request,
-which then will be validated in addition to `response` -- the signature of the *Challenge message*.
-
+which then will be validated in addition to `response` -- the signature of the _Challenge message_.
 
 ##### Example
 
-Provided *Approval key* is the following:
+Provided _Approval key_ is the following:
+
 ```
 {
   "type": "ed25519",
@@ -1190,7 +1265,8 @@ Provided *Approval key* is the following:
 }
 ```
 
-And the computed *Challenge message* is:
+And the computed _Challenge message_ is:
+
 ```
 id: f4342c75f714405d89007ef13ce68688atrx\n
 account_id: f52b22a8256cd2b0ad21f3c2cc2c5875acct\n
@@ -1203,11 +1279,13 @@ reference: some-reference-ea1ee054
 ```
 
 The signature is:
+
 ```
 4c989d1dd671f6092fe835e39170521e59ead4b85d2fa7cf68322f9b27e064ee3765680fa8dca0e48c572f65d7ca25666a32389890474041fbcfc11b46b74d0a
 ```
 
 Then the request to approve the Transaction is:
+
 ```
 POST /v1/.../f4342c75f714405d89007ef13ce68688atrx/approval_request/approve
 
@@ -1218,6 +1296,7 @@ POST /v1/.../f4342c75f714405d89007ef13ce68688atrx/approval_request/approve
   "response": "4c989d1dd671f6092fe835e39170521e59ead4b85d2fa7cf68322f9b27e064ee3765680fa8dca0e48c572f65d7ca25666a32389890474041fbcfc11b46b74d0a"
 }
 ```
+
 ```
 201 Created
 
@@ -1230,21 +1309,19 @@ A Ledger Entry is an accounting entry that describes a change to the Account bal
 
 Ledger Entries are created as a result of Transaction processing, and they are immutable. A Ledger Entry always describes the change that has happened already.
 
-
-
 Ledger Entries have a `type` attribute, which describes the operation:
 
-* DEPOSIT_AMOUNT
-* DEPOSIT_FEE
-* WITHDRAWAL_AMOUNT
-* WITHDRAWAL_FEE
-* TRANSFER_AMOUNT
-* TRANSFER_FEE
+- DEPOSIT_AMOUNT
+- DEPOSIT_FEE
+- WITHDRAWAL_AMOUNT
+- WITHDRAWAL_FEE
+- TRANSFER_AMOUNT
+- TRANSFER_FEE
 
 Ledger Entries have an `amount` attribute, that can be:
 
-* positive – increasing the balance of the Account
-* negative – decreasing the balance of the Account
+- positive – increasing the balance of the Account
+- negative – decreasing the balance of the Account
 
 See:
 
@@ -1277,6 +1354,35 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
 }
 ```
 
+## Callbacks
+
+The partner can use callbacks to get notifications regarding updates on the Resources (Transactions)
+on the platform. Every time a new Transaction is created or an existing one is updated
+a Callback with a reference to the Resource will be issued. Then the partner can
+fetch the current state of the Resource using an ordinary authenticated request
+to the corresponding API endpoint.
+
+During onboarding partner needs to provide a URL for callbacks endpoint, that can
+receive HTTP POST requests. If partner's callback endpoint is not reachable, then
+the platform will retry with increasing intervals until the callback is delivered.
+
+### Example
+
+```
+Callback Payload
+
+X-Resource-Type: TRANSACTION
+X-Resource-Location: /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57cb5078ae0a8b569acct/transactions/bf20c716075ea82a4b1f3f0b49657161atrx
+
+{
+  "id": "bf20c716075ea82a4b1f3f0b49657161atrx"
+}
+```
+
+| Field Name          | Location | Description                                         |
+| ------------------- | -------- | --------------------------------------------------- |
+| X-Resource-Type     | Headers  | Type of the created/updated Resource                |
+| X-Resource-Location | Headers  | Absolute path to fetch created/updated Resource     |
+| id                  | Body     | ID of the created/updated Resource                  |
+
 ---
-
-
