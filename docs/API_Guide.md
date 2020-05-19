@@ -2,8 +2,8 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-- Version: [0.13.0]
-- Updated: [2020-05-04]
+- Version: [0.14.0]
+- Updated: [2020-05-19]
 
 ## Table of Contents
 
@@ -111,6 +111,7 @@ The partner can initiate Withdrawals to an external address or Transfers to a di
 Before a partner can use the solaris Digital Assets Platform API we register them in our system. This happens completely on our side and is not exposed by API endpoints.
 
 During this process we are going to create a Wallet for the partner, a partner Entity, and an Account owned by the partner Entity in the created Wallet.
+The Account that is created in this step will be used to pay for network fees when processing Withdrawals.
 
 The next step is to create a key pair that is going to be used by the partner to access the API. This happens on partner side, then the partner sends us the public key part. At no point the solaris Digital Assets Platform platform learns the corresponding private key.
 
@@ -300,6 +301,8 @@ GET /v1/assets/00000000000000000000000000000001asst
   "code": "BTC",
   "precision": 8,
   "description": "Bitcoin",
+  "address_validation": "^(bc(0([ac-hj-np-z02-9]{39}|[ac-hj-np-z02-9]{59})|1[ac-hj-np-z02-9]{8,87})|[13][a-km-zA-HJ-NP-Z1-9]{25,35})$"
+  "tx_min_amount": "0.00001",
   "created_at": "2019-01-17T17:05:44Z"
   "updated_at": "2019-01-17T17:05:44Z"
 }
@@ -331,6 +334,7 @@ GET /v1/wallets/82b46f5310d8a35fb4755cc13fddd681walt
   "id": "82b46f5310d8a35fb4755cc13fddd681walt",
   "asset_id": "00000000000000000000000000000001asst",
   "balance": "123.45670000",
+  "fee_paying_account_id": "7a25b8fbc33b040f9928bdd78b0ae412acct",
   "created_at": "2019-03-17T09:38:04Z",
   "updated_at": "2019-04-02T12:27:33Z"
 }
@@ -645,8 +649,26 @@ a Transaction can transition to FAILED state. Any amount which was locked
 by such Transaction will be released, and the Account Available balance will be updated.
 This state is final.
 
-Whenever a Transaction is requested by the partner, the platform runs validation checks on this
-Transaction. If any of these checks fail, the Transaction will be created and immediately
+Whenever a Transaction is requested by the partner, the platform runs validation checks on this request:
+
+| Validation check    | Description                                            |
+| ------------------- | ------------------------------------------------------ |
+| Amount Precision    | Precision of transacted/credited/debited amount needs to be within the range of Asset Precision |
+| Min Amount          | Minimal amount allowed for outgoing transactions in this Asset |
+| Address Format      | Soft validation with Asset specified RegExp            |
+
+If any of these checks fail, the Partner will see error response with code 400 **Invalid request**:
+
+```json
+{
+  "message": "Invalid request",
+  "params": {
+    "address": "invalid"
+  }
+}
+```
+
+If others validation checks fails then a Transaction will be created and immediately
 set to FAILED state. This can happen, for example, when the corresponding Account
 does not have sufficient balance to process this Transaction.
 

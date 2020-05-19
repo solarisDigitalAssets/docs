@@ -3,7 +3,7 @@ info:
   title: solaris Digital Assets Platform API
   contact:
     email: Alexis.Hamel@solarisbank.de
-  version: 0.11.0
+  version: 0.14.0
 
   description: |
     This is a draft for solaris Digital Assets Platform API

@@ -1,5 +1,13 @@
 # Changelog
 
+## 19-05-2020
+
+API updated to v0.14.0:
+
+- Added attribute `fee_paying_account_id` for Wallets
+- Added attribute `address_validation`, `tx_min_amount` for Assets
+- Added Transactions Validation Checks
+
 ## 04-05-2020
 
 API updated to v0.13.0:
