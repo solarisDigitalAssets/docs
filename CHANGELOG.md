@@ -1,5 +1,12 @@
 # Changelog
 
+## 26-06-2020
+
+API updated to v0.15.0:
+
+- Introduced Approval Method of type: SMS.
+- Introduced Approval Requests for the new Approval Method of type SMS.
+
 ## 19-05-2020
 
 API updated to v0.14.0:
