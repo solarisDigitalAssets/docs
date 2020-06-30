@@ -2,8 +2,8 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-- Version: [0.14.0]
-- Updated: [2020-05-19]
+- Version: [0.15.0]
+- Updated: [2020-06-26]
 
 ## Table of Contents
 
@@ -53,20 +53,29 @@ An API platform that provides a managed custody solution for storing digital ass
     - [Setup](#setup-1)
     - [Register this Approval Method for an Entity](#register-this-approval-method-for-an-entity)
     - [Activation](#activation)
-  - [DSA_ED25519](#dsa_ed25519)
+  - [SMS](#sms)
     - [Setup](#setup-2)
     - [Register this Approval Method for an Entity](#register-this-approval-method-for-an-entity-1)
     - [Activation](#activation-1)
+  - [DSA_ED25519](#dsa_ed25519)
+    - [Setup](#setup-3)
+    - [Register this Approval Method for an Entity](#register-this-approval-method-for-an-entity-2)
+    - [Activation](#activation-2)
 - [Approval Requests](#approval-requests)
   - [Approval Method: AUTHY_PUSH](#approval-method-authy_push)
-    - [Setup](#setup-3)
+    - [Setup](#setup-4)
     - [Challenge](#challenge)
     - [Fetching the state of the ApprovalRequest](#fetching-the-state-of-the-approvalrequest)
-  - [Approval method: DSA_ED25519](#approval-method-dsa_ed25519)
-    - [Setup](#setup-4)
+  - [Approval Method: SMS](#approval-method-sms)
+    - [Setup](#setup-5)
     - [Challenge](#challenge-1)
+    - [Validating the Challenge](#validating-the-challenge)
+    - [Fetching the state of the ApprovalRequest](#fetching-the-state-of-the-approvalrequest-1)
+  - [Approval method: DSA_ED25519](#approval-method-dsa_ed25519)
+    - [Setup](#setup-6)
+    - [Challenge](#challenge-2)
       - [Example](#example-11)
-    - [Response](#response)
+    - [Response](#response-1)
       - [Example](#example-12)
 - [Ledger Entries](#ledger-entries)
   - [Example](#example-13)
@@ -111,7 +120,7 @@ The partner can initiate Withdrawals to an external address or Transfers to a di
 Before a partner can use the solaris Digital Assets Platform API we register them in our system. This happens completely on our side and is not exposed by API endpoints.
 
 During this process we are going to create a Wallet for the partner, a partner Entity, and an Account owned by the partner Entity in the created Wallet.
-The Account that is created in this step will be used to pay for network fees when processing Withdrawals.
+The Acount that is created in this step will be used to pay for network fees when processing Withdrawals.
 
 The next step is to create a key pair that is going to be used by the partner to access the API. This happens on partner side, then the partner sends us the public key part. At no point the solaris Digital Assets Platform platform learns the corresponding private key.
 
@@ -868,6 +877,7 @@ to approve their Transactions.
 Currently there are following Approval Method types supported by the platform:
 
 - `AUTHY_PUSH` -- represents a Authy push notifications based MFA
+- `SMS` -- represenets an SMS message
 - `DSA_ED25519` -- represents an ECDSA based MFA mechanism
 
 In order to be able to approve Transactions by the corresponding Account holder (an Entity
@@ -960,6 +970,64 @@ GET /v1/entities/df8bd407b3dfbd37f8ff3e5efbd4e8acenty/approval_methods/b2046aec7
   "id": "b2046aec77bdd03dc0db46e57e0a722bapmt",
   "entity_id": "df8bd407b3dfbd37f8ff3e5efbd4e8acenty",
   "type": "AUTHY_PUSH",
+  "state": "ACTIVATED",
+  "created_at": "2019-11-03T12:21:16Z",
+  "updated_at": "2019-11-03T12:46:10Z"
+}
+```
+
+### SMS
+
+This Approval Method is aimed at customers (individual people) as Account holders,
+and can only be registered for Entities of type `PERSON`
+
+#### Setup
+
+The corresponding Entity of type `PERSON` MUST be registered.
+
+#### Register this Approval Method for an Entity
+
+To register this Approval Method for an Entity, only `type` attribute is required.
+
+Example:
+
+```
+POST /v1/entities/df8bd407b3dfbd37f8ff3e5efbd4e8acenty/approval_methods
+
+{
+  "type": "SMS"
+}
+```
+
+```
+201 Created
+
+{
+  "id": "b2046aec77bdd03dc0db46e57e0a722bapmt",
+  "entity_id": "df8bd407b3dfbd37f8ff3e5efbd4e8acenty",
+  "type": "SMS",
+  "state": "PENDING",
+  "created_at": "2019-11-03T12:21:16Z",
+  "updated_at": "2019-11-03T12:21:16Z"
+}
+```
+
+#### Activation
+
+Registering an Approval Method of type `SMS` for an Entity will complete automatically, provided the
+entity has succesffully completed their KYC process.
+
+Example:
+
+```
+GET /v1/entities/df8bd407b3dfbd37f8ff3e5efbd4e8acenty/approval_methods/b2046aec77bdd03dc0db46e57e0a722bapmt
+
+200 OK
+
+{
+  "id": "b2046aec77bdd03dc0db46e57e0a722bapmt",
+  "entity_id": "df8bd407b3dfbd37f8ff3e5efbd4e8acenty",
+  "type": "SMS",
   "state": "ACTIVATED",
   "created_at": "2019-11-03T12:21:16Z",
   "updated_at": "2019-11-03T12:46:10Z"
@@ -1063,6 +1131,7 @@ be used to approve a Transaction. Different Approval Methods are available for d
 of Account holders:
 
 - Entity of type PERSON -- an ApprovalRequest of type `AUTHY_PUSH`
+- Entity of type PERSON -- an ApprovalRequest of type `SMS`
 - Entity of type PARTNER -- an ApprovalRequest of type `DSA_ED25519`
 
 The method of approval for an ApprovalRequest depends on the type of the ApprovalMethod
@@ -1125,6 +1194,81 @@ GET /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}
   "id": "bd4c882738787267cdf849fcb799b45eaprq",
   "transaction_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
   "type": "AUTHY_PUSH",
+  "state": "APPROVED",
+  "created_at": "2019-11-23T13:05:51Z",
+  "updated_at": "2019-11-23T13:06:28Z"
+}
+```
+
+### Approval Method: SMS
+
+This appproval method is aimed at customers (individual people) as Account holders.
+In order to approve an ApprovalRequest of type `SMS` a customer must be KYCd.
+
+- Partner initiates a request to the Platform's API requesting the creation of an ApprovalRequest
+- A challenge is sent via SMS to the Customer's mobile phone specified during the KYC process
+- The Customer provides the Response to The Platform
+- The Platform verifies the Response provided by The Customer
+- When the Response is correct the Platform processes the Transaction
+- When the Response is incorrect the Platform cancels the Transaction
+
+#### Setup
+
+see Approval Method `SMS` to see how this Approval Method is set up.
+
+#### Challenge
+
+The Challenge for an ApprovalMethod of type `SMS` will be sent to the customer's mobile phone via SMS and thus will bypass the Partner.
+
+```
+POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request
+{
+  "type": "SMS"
+}
+```
+
+```
+201 Created
+
+{
+  "id": "bd4c882738787267cdf849fcb799b45eaprq",
+  "transaction_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
+  "type": "SMS",
+  "state": "PENDING",
+  "created_at": "2019-11-23T13:05:51Z",
+  "updated_at": "2019-11-23T13:05:52Z"
+}
+```
+
+#### Response
+
+For the approval method SMS, the Customer should send the Response to the The platform.
+In order to prevent prevent potential brute force attacks, we only allow one attempt to submit the Reponse once per each ApprovalRequest.
+
+```
+POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request/approve
+
+{
+  "response": "012345" # The challenge that the customer received via SMS
+}
+```
+
+#### Fetching the state of the ApprovalRequest
+
+To see the state of an ApprovalRequest the Partner can use the following endpoint:
+
+```
+GET /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request
+
+```
+
+```
+200 Ok
+
+{
+  "id": "bd4c882738787267cdf849fcb799b45eaprq",
+  "transaction_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
+  "type": "SMS",
   "state": "APPROVED",
   "created_at": "2019-11-23T13:05:51Z",
   "updated_at": "2019-11-23T13:06:28Z"
