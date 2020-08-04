@@ -1,5 +1,11 @@
 # Changelog
 
+## 04-08-2020
+
+API updated to v0.16.0
+
+- Remove balance atttribute from Wallet resource representation
+
 ## 26-06-2020
 
 API updated to v0.15.0:

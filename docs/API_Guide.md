@@ -2,8 +2,8 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-- Version: [0.15.0]
-- Updated: [2020-06-26]
+- Version: [0.16.0]
+- Updated: [2020-08-04]
 
 ## Table of Contents
 
@@ -342,7 +342,6 @@ GET /v1/wallets/82b46f5310d8a35fb4755cc13fddd681walt
 {
   "id": "82b46f5310d8a35fb4755cc13fddd681walt",
   "asset_id": "00000000000000000000000000000001asst",
-  "balance": "123.45670000",
   "fee_paying_account_id": "7a25b8fbc33b040f9928bdd78b0ae412acct",
   "created_at": "2019-03-17T09:38:04Z",
   "updated_at": "2019-04-02T12:27:33Z"

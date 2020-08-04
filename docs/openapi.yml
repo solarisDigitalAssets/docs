@@ -3,7 +3,7 @@ info:
   title: solaris Digital Assets Platform API
   contact:
     email: Alexis.Hamel@solarisbank.de
-  version: 0.14.0
+  version: 0.16.0
 
   description: |
     This is a draft for solaris Digital Assets Platform API
@@ -1468,7 +1468,6 @@ components:
       required:
         - id
         - asset_id
-        - balance
         - created_at
         - updated_at
       properties:
@@ -1478,9 +1477,6 @@ components:
         asset_id:
           type: string
           description: ID of the underlying Asset
-        balance:
-          type: string
-          description: Balance of the wallet
         created_at:
           type: string
           description: Time at which the Wallet was created
@@ -1492,7 +1488,6 @@ components:
       example:
         id: "bfd75f4cd2e3ec5f3bbfad600dbe79e7walt"
         asset_id: "00000000000000000000000000000001asst"
-        balance: "123.45670000"
         created_at: "2019-03-01T22:46:38Z"
         updated_at: "2019-03-01T22:46:38Z"
 
