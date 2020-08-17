@@ -1,5 +1,20 @@
 # Changelog
 
+## 17-08-2020
+
+API updated to v0.17.0:
+
+- Introduced support for ERC-20 tokens
+- Introduced endpoint for creating Wallets
+- Added `type` attribute to Wallets
+- Added `type` attribute to Accounts
+
+## 04-08-2020
+
+API updated to v0.16.0
+
+- Remove balance atttribute from Wallet resource representation
+
 ## 26-06-2020
 
 API updated to v0.15.0:

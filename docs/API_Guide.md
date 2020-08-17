@@ -1,9 +1,10 @@
+
 # solaris Digital Assets Platform API Guide
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-- Version: [0.15.0]
-- Updated: [2020-06-26]
+- Version: [0.17.0]
+- Updated: [2020-08-17]
 
 ## Table of Contents
 
@@ -287,6 +288,19 @@ Any Asset has an artificial unique identifier and some additional details. For e
 
 The Asset identifiers are the only way to refer a specific asset on our platform. Any other forms of reference, like an ISO code, are not considered immutable and/or unique.
 
+Assets come in two different types: `BASE` and `TOKEN`.
+
+### Assets of type BASE
+
+Assets of this type represent crypto assets that are native to their own blockchain like Bitcoin or Ethereum.
+
+### Assets of type TOKEN
+
+Assets of this type represent crypto assets that have been created on an existing blockchain. An example for this are ERC-20 tokens which have been created on the Ethereum blockchain.
+
+Assets of this type always have a `base_asset_id` which is the ID of the Asset that represents the underlying blockhchain.
+
+
 The API provides a way to list all Assets supported by the platform:
 
 See:
@@ -297,7 +311,7 @@ GET /v1/assets/{asset_id}
 ```
 
 ### Example
-
+#### Asset of type BASE
 ```
 GET /v1/assets/00000000000000000000000000000001asst
 ```
@@ -310,8 +324,30 @@ GET /v1/assets/00000000000000000000000000000001asst
   "code": "BTC",
   "precision": 8,
   "description": "Bitcoin",
-  "address_validation": "^(bc(0([ac-hj-np-z02-9]{39}|[ac-hj-np-z02-9]{59})|1[ac-hj-np-z02-9]{8,87})|[13][a-km-zA-HJ-NP-Z1-9]{25,35})$"
+  "address_validation": "^(bc(0([ac-hj-np-z02-9]{39}|[ac-hj-np-z02-9]{59})|1[ac-hj-np-z02-9]{8,87})|[13][a-km-zA-HJ-NP-Z1-9]{25,35})$",
   "tx_min_amount": "0.00001",
+  "type":"BASE",
+  "created_at": "2019-01-17T17:05:44Z"
+  "updated_at": "2019-01-17T17:05:44Z"
+}
+```
+#### Asset of type TOKEN
+```
+GET /v1/assets/00010000000000000000000000000002asst
+```
+
+```
+200 OK
+
+{
+  "id": "00010000000000000000000000000002asst",
+  "base_asset_id":"00000000000000000000000000000002asst,
+  "code": "TKN",
+  "precision": 6,
+  "description": "A token based on ETH",
+  "address_validation": "^(bc(0([ac-hj-np-z02-9]{39}|[ac-hj-np-z02-9]{59})|1[ac-hj-np-z02-9]{8,87})|[13][a-km-zA-HJ-NP-Z1-9]{25,35})$",
+  "tx_min_amount": "0.001",
+  "type":"TOKEN",
   "created_at": "2019-01-17T17:05:44Z"
   "updated_at": "2019-01-17T17:05:44Z"
 }
@@ -319,18 +355,101 @@ GET /v1/assets/00000000000000000000000000000001asst
 
 ## Wallets
 
-The API provides a way to list all the Wallets owned by the partner or to fetch an individual Wallet's details.
+Wallets represent a collection of funds, Accounts and Addresses a Partner owns.
+A Wallet is tied to an Asset and as such can receive Assets of that kind only.
+This holds also true for Wallets that belong to Assets like Ethereum, that allow
+the creation of other Assets (tokens) on their blockchain.
+On the blockchain level an Ethereum address can receive funds in either Ether or
+any token that has been created on the Ethereum blockchain.
+To receive tokens, that have been created on the Ethereum blockchain, a Partner
+needs to create two Wallets on the Solaris Digital Assets platform, one for the
+underlying base Asset (Wallet of type `BASE`) and one for the token Asset (Wallet
+of type `TOKEN`).
 
-Since the Wallets are created outside of the API interaction, the partner can list all available Wallets to learn the individual Wallet IDs.
+The API provides a way to create new Wallets, to list all the Wallets owned by the
+partner and to fetch an individual Wallet's details.
+
+Wallets behavior and use cases differ depending on their type.
+
+### Wallets of type BASE
+
+These Wallets are tied to a base Asset like BTC or ETH. These Wallets can be used
+as pooled and segregated Wallets.
+
+When there are more than one Address created for this Wallet, it will be treated
+as a pooled Wallet.
+When there is only one Address for this Wallet, then it will be treated a segregated
+Wallet.
+
+After creating a Wallet of this type, the first Account, that is being created in this
+Wallet, will be set as a fee paying Account.
+
+Fees for Withdrawals from these Wallets will be paid in the Asset of the Wallet.
+
+When creating a Wallet of this type a valid Asset ID must be provided.
+
+
+### Wallets of type TOKEN
+
+These Wallets represent a Wallet for an Asset that is of type `TOKEN` and as such
+was created on the blockchain of an Asset of type `BASE`.
+
+These Wallets can only be used as segregated Wallets and as such can only hold one
+Address that belongs to one Account.
+
+When creating a Wallet of this type, Partners MUST provide the ID of a Wallet of
+type `BASE` (base Wallet) in addition to a valid Asset ID.
+The fee paying Account of the base Wallet will be used to pay the fees for Withdrawals
+from the token Wallet. Fees for Withdrawals from token Wallets MUST be paid in the
+base Asset of this token.
 
 See:
 
 ```
+POST /v1/wallets
 GET /v1/wallets
 GET /v1/wallets/{wallet_id}
 ```
 
 ### Example
+#### Creating a Wallet for Asset of type BASE
+```
+POST /v1/wallets
+{
+  "asset_id": "00000000000000000000000000000001asst"
+}
+```
+```
+201 Created
+{
+  "id": "4d74d207d90c4585d40aed1d71cabebawalt",
+  "asset_id": "00000000000000000000000000000001asst",
+  "fee_paying_account_id": null,
+  "type": "BASE",
+  "created_at": "2019-03-17T09:38:04Z",
+  "updated_at": "2019-04-02T12:27:33Z"
+}
+```
+#### Creating a Wallet for Asset of type TOKEN
+```
+POST /v1/wallets
+{
+  "asset_id": "00020000000000000000000000000002asst",
+  "base_wallet_id": "f1fd0e319600edf630c5cf0c7358963ewalt"
+}
+```
+```
+201 Created
+{
+  "id": "4d74d207d90c4585d40aed1d71cabebawalt",
+  "asset_id": "00000000000000000000000000000001asst",
+  "base_wallet_id": "f1fd0e319600edf630c5cf0c7358963ewalt",
+  "fee_paying_account_id": "50a262187be212f2dfa08019c4a13d4facct",
+  "type": "TOKEN",
+  "created_at": "2019-03-17T09:38:04Z",
+  "updated_at": "2019-04-02T12:27:33Z"
+}
+```
 
 ```
 GET /v1/wallets/82b46f5310d8a35fb4755cc13fddd681walt
@@ -342,8 +461,8 @@ GET /v1/wallets/82b46f5310d8a35fb4755cc13fddd681walt
 {
   "id": "82b46f5310d8a35fb4755cc13fddd681walt",
   "asset_id": "00000000000000000000000000000001asst",
-  "balance": "123.45670000",
   "fee_paying_account_id": "7a25b8fbc33b040f9928bdd78b0ae412acct",
+  "type": "BASE",
   "created_at": "2019-03-17T09:38:04Z",
   "updated_at": "2019-04-02T12:27:33Z"
 }
@@ -457,6 +576,12 @@ the current Account Available Balance.
 The Account Available Balance displays how much can be spent by the next requested
 Transaction.
 
+### Account type
+
+Accounts have one of two different kinds, depending on the underlying Wallet's type.
+It is either `BASE` when the Account belongs to a base Wallet or `TOKEN` when the
+Account belongs to a token Wallet.
+
 See:
 
 ```
@@ -484,6 +609,7 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts
   "entity_id": "10ef67dc895d6c19c273b1ffba0c1692enty",
   "balance": "0.00000000",
   "available_balance": "0.00000000",
+  "type": "BASE",
   "created_at": "2019-02-02T13:41:34Z",
   "updated_at": "2019-02-02T13:41:34Z"
 }
@@ -692,6 +818,16 @@ Whenever a blockchain transaction is made to one of the addresses created using 
 - The transaction is confirmed by the network and the corresponding Transaction of type DEPOSIT state is changed on the platform, crediting the funds
 - The partner can detect the state change by polling for the individual Transaction details or by listing the Account Transactions
 
+## Token Deposits
+
+On the blockchain level tokens can be received on Addresses of the underlying asset.
+To register token deposits that have been sent to the Address of the underlying asset
+(on the Solaris Digital Assets platform) a token Wallet MUST be created.
+
+Once a token Wallet has been created, existing Addresses of the base Wallet can receive
+token Deposits and all token Deposits for this Asset that happened before the creation
+of the Wallet will be visible to the Partner.
+
 ### Example
 
 ```
@@ -723,6 +859,11 @@ A Withdrawal is a Transaction of type WITHDRAWAL. A Withdrawal represents a sing
 During a Withdrawal processing the platform charges the Withdrawal Fee on the originating Account on behalf of the partner and credits the amount to the partner Entity Account. The Withdrawal Fee charged here is completely configurable by the partner (or can be waived by the partner altogether).
 
 Depending on the underlying blockchain, the platform can batch multiple Withdrawals together and broadcast them in a single blockchain transaction. For the transactions happening on the blockchain-level the platform charges the full network fees amount on the partner Entity Account.
+
+#### Withdrawals from token Wallets
+
+Fees for Withdrawals from token Wallets MUST be paid in the base Asset. The platform
+will collect these fees from the fee paying Account of the underlying base Wallet.
 
 ### Processing a Withdrawal
 

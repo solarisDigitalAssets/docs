@@ -1,12 +1,12 @@
-openapi: 3.0.1
+openapi: 3.0.3
 info:
-  title: solaris Digital Assets Platform API
+  title: solarisBank Digital Assets Platform API
   contact:
     email: Alexis.Hamel@solarisbank.de
-  version: 0.14.0
+  version: 0.17.0
 
   description: |
-    This is a draft for solaris Digital Assets Platform API
+    This is a draft for solarisBank Digital Assets Platform API
 
     ## Authentication
 
@@ -259,6 +259,45 @@ paths:
                       $ref: "#/components/schemas/Wallet"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      tags:
+      - wallet
+      summary: Create a new Wallet
+      description: |
+        Create a new Wallet for a given Asset ID.
+      requestBody:
+        required: true
+        description: |
+          A `asset_id` attribute must be specified.
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - asset_id
+            properties:
+              asset_id:
+                type: string
+                description: The ID of the Asset for which the Wallet should be created
+                example: "00000000000000000000000000000001asst"
+            example:
+              asset_id: "00000000000000000000000000000001asst"
+      responses:
+        "201":
+          description: A single new Wallet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Wallet"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -944,8 +983,12 @@ paths:
         There are different types of Approval Methods that can be used:
 
         * AUTHY_PUSH
+        * SMS
         * DSA_ED25519
 
+        Entities of type `PERSON` can use ApprovalMethods of type `AUTHY_PUSH`
+        and `SMS`.
+        Entities of type `PARTNER` can use ApprovalMethods of type `DSA_ED25519`.
       parameters:
       - name: entity_id
         in: path
@@ -1099,8 +1142,8 @@ paths:
         The ApprovalMethod depends directly on the type of the Entity which
         owns the Transaction's Account:
 
-        * for Entity of type PERSON  -- the approval method is `AUTHY_PUSH`
-        * for Entity of type PARTNER -- the approval method is `DSA_ED25519`
+        * for Entities of type PERSON  -- the approval method is either `AUTHY_PUSH` or `SMS`
+        * for Entities of type PARTNER -- the approval method is `DSA_ED25519`
       parameters:
       - name: entity_id
         in: path
@@ -1124,7 +1167,7 @@ paths:
         required: true
         description: |
           A `type` MUST be specified when creating a new ApprovalRequest.
-          * WHEN Account holding Entity is of type `PERSON` THEN type is `AUTHY_PUSH`
+          * WHEN Account holding Entity is of type `PERSON` THEN type is either `AUTHY_PUSH` or `SMS`
           * WHEN Account holding Entity is of type `PARTNER` THEN type is `DSA_ED25519`
         content:
           application/json:
@@ -1138,6 +1181,7 @@ paths:
                   description: The type of the to be created ApprovalRequest
                   enum:
                     - AUTHY_PUSH
+                    - SMS
                     - DSA_ED25519
             example:
               type: "DSA_ED25519"
@@ -1421,12 +1465,20 @@ components:
     # Asset schema
     #
     Asset:
+      oneOf:
+        - $ref: "#/components/schemas/AssetBase"
+        - $ref: "#/components/schemas/AssetToken"
       type: object
+
+    AssetBase:
       required:
         - id
         - code
         - description
         - precision
+        - address_validation
+        - tx_min_amount
+        - type
         - created_at
         - updated_at
       properties:
@@ -1446,6 +1498,19 @@ components:
           type: integer
           description: |
             Precision of monetary amounts in this asset (i.e. number of decimal places)
+        address_validation:
+          type: string
+          description: |
+            Regular expression which can be used to validate addresses for this Asset
+        tx_min_amount:
+          type: string
+          description: |
+            Minimal amount allowed for outgoing transactions in this Asset
+        type:
+          type: string
+          description: The type of the Asset. `BASE` in this case.
+          enum:
+          - BASE
         created_at:
           type: string
           format: date-time
@@ -1457,6 +1522,73 @@ components:
         code: "BTC"
         description: "Bitcoin"
         precision: 8
+        address_validation: "^(bc(0([ac-hj-np-z02-9]{39}|[ac-hj-np-z02-9]{59})|1[ac-hj-np-z02-9]{8,87})|[13][a-km-zA-HJ-NP-Z1-9]{25,35})$"
+        tx_min_amount: "0.00001"
+        type: "BASE"
+        created_at: "2019-03-01T22:46:38Z"
+        updated_at: "2019-03-01T22:46:38Z"
+
+    AssetToken:
+      required:
+        - id
+        - code
+        - description
+        - precision
+        - address_validation
+        - tx_min_amount
+        - type
+        - base_asset_id
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Asset
+        code:
+          type: string
+          description: |
+            A non-unique and non-permanent ISO code-like identifier of
+            the digital asset
+        description:
+          type: string
+          description: |
+            A human readable description of an Asset
+        precision:
+          type: integer
+          description: |
+            Precision of monetary amounts in this asset (i.e. number of decimal places)
+        address_validation:
+          type: string
+          description: |
+            Regular expression which can be used to validate addresses for this Asset
+        tx_min_amount:
+          type: string
+          description: |
+            Minimal amount allowed for outgoing transactions in this Asset
+        type:
+          type: string
+          description: The type of the Asset. `TOKEN` in this case.
+          enum:
+          - TOKEN
+        base_asset_id:
+          type: string
+          description: |
+            The ID of the Asset this Token belongs to.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      example:
+        id: "00030000000000000000000000000002asst"
+        code: "TKN"
+        description: "Token"
+        precision: 8
+        address_validation: "^(bc(0([ac-hj-np-z02-9]{39}|[ac-hj-np-z02-9]{59})|1[ac-hj-np-z02-9]{8,87})|[13][a-km-zA-HJ-NP-Z1-9]{25,35})$"
+        tx_min_amount: "0.00001"
+        type: "TOKEN"
+        base_asset_id: "00000000000000000000000000000002asst"
         created_at: "2019-03-01T22:46:38Z"
         updated_at: "2019-03-01T22:46:38Z"
 
@@ -1464,11 +1596,18 @@ components:
     # Wallet schema
     #
     Wallet:
+      oneOf:
+        - $ref: "#/components/schemas/WalletBase"
+        - $ref: "#/components/schemas/WalletToken"
+      type: object
+
+    WalletBase:
       type: object
       required:
         - id
         - asset_id
-        - balance
+        - fee_paying_account_id
+        - type
         - created_at
         - updated_at
       properties:
@@ -1478,9 +1617,17 @@ components:
         asset_id:
           type: string
           description: ID of the underlying Asset
-        balance:
+        fee_paying_account_id:
+          # type: string
+          description: ID of the Account that is used used to pay Withdrawal processing fees
+          example: "c043ad224bd8fff5406dc853ed0c4292acct"
+          nullable: true
+        type:
           type: string
-          description: Balance of the wallet
+          description: The type of the Wallet, `BASE` when associated Asset is of type `BASE`
+          example: BASE
+          enum:
+          - BASE
         created_at:
           type: string
           description: Time at which the Wallet was created
@@ -1492,10 +1639,56 @@ components:
       example:
         id: "bfd75f4cd2e3ec5f3bbfad600dbe79e7walt"
         asset_id: "00000000000000000000000000000001asst"
-        balance: "123.45670000"
+        fee_paying_account_id: "a4547cdd38c2150da12664434ecbd802acct"
+        type: "BASE"
         created_at: "2019-03-01T22:46:38Z"
         updated_at: "2019-03-01T22:46:38Z"
 
+    WalletToken:
+      type: object
+      required:
+        - id
+        - asset_id
+        - base_wallet_id
+        - fee_paying_account_id
+        - type
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Wallet
+        asset_id:
+          type: string
+          description: ID of the underlying Asset
+        fee_paying_account_id:
+          type: string
+          description: ID of the Account that is used used to pay Withdrawal processing fees
+        base_wallet_id:
+          type: string
+          description: ID of the base Wallet if Wallet belongs to an Asset of type TOKEN
+        type:
+          type: string
+          description: The type of the Wallet, `TOKEN` when the associated Asset is of type `TOKEN`
+          example: TOKEN
+          enum:
+          - TOKEN
+        created_at:
+          type: string
+          description: Time at which the Wallet was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the Wallet was last updated
+          format: date-time
+      example:
+        id: "bfd75f4cd2e3ec5f3bbfad600dbe79e7walt"
+        asset_id: "00020000000000000000000000000001asst"
+        base_wallet_id: "a914567475641f2248791e7b9fb8cd1fwalt"
+        fee_paying_account_id: "a4547cdd38c2150da12664434ecbd802walt"
+        type: "TOKEN"
+        created_at: "2019-03-01T22:46:38Z"
+        updated_at: "2019-03-01T22:46:38Z"
     #
     # Entity schema
     #
@@ -1503,6 +1696,7 @@ components:
       oneOf:
         - $ref: "#/components/schemas/EntityPartner"
         - $ref: "#/components/schemas/EntityPerson"
+
     EntityPartner:
       type: object
       required:
@@ -1533,6 +1727,7 @@ components:
         type: "PARTNER"
         created_at: "2019-03-01T22:31:06Z"
         updated_at: "2019-03-01T22:31:06Z"
+
     EntityPerson:
       type: object
       required:
@@ -1573,6 +1768,11 @@ components:
     # Account schema
     #
     Account:
+      oneOf:
+        - $ref: "#/components/schemas/AccountBase"
+        - $ref: "#/components/schemas/AccountToken"
+
+    AccountBase:
       type: object
       required:
         - id
@@ -1580,6 +1780,7 @@ components:
         - wallet_id
         - balance
         - available_balance
+        - type
         - created_at
         - updated_at
       properties:
@@ -1598,6 +1799,12 @@ components:
         available_balance:
           type: string
           description: Available Balance of the Account
+        type:
+          type: string
+          description: The type of the Account
+          example: BASE
+          enum:
+          - BASE
         created_at:
           type: string
           description: Time at which the Account was created
@@ -1608,6 +1815,62 @@ components:
           format: date-time
       example:
         id: "09934947ffdd4bef50ba88ddc5eab0bfacct"
+        entity_id: "359fe08986bbc6b62ea406f864b1ab90enty"
+        wallet_id: "bfce4cef815cb3b6f4e4c60d046c0ccbwall"
+        balance: "123.45670000"
+        available_balance: "123.45600000"
+        created_at: "2019-03-01T22:31:06Z"
+        updated_at: "2019-03-01T22:31:06Z"
+
+    AccountToken:
+      type: object
+      required:
+        - id
+        - base_account_id
+        - entity_id
+        - wallet_id
+        - balance
+        - available_balance
+        - type
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Account
+        base_account_id:
+          type: string
+          description: |
+            The ID of the base Account if Account belongs to a Wallet with Asset of type `TOKEN`
+        entity_id:
+          type: string
+          description: ID of the Entity owning the Account
+        wallet_id:
+          type: string
+          description: ID of the Wallet the Account is linked with
+        balance:
+          type: string
+          description: Balance of the Account
+        available_balance:
+          type: string
+          description: Available Balance of the Account
+        type:
+          type: string
+          description: The type of the Account
+          example: TOKEN
+          enum:
+          - TOKEN
+        created_at:
+          type: string
+          description: Time at which the Account was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the Account was last updated
+          format: date-time
+      example:
+        id: "09934947ffdd4bef50ba88ddc5eab0bfacct"
+        base_account_id: "e3c4bc7bdfeaed3c0a3cebd2addcd5acct"
         entity_id: "359fe08986bbc6b62ea406f864b1ab90enty"
         wallet_id: "bfce4cef815cb3b6f4e4c60d046c0ccbwall"
         balance: "123.45670000"
@@ -2154,6 +2417,7 @@ components:
         An Approval Method registered for some Entity
       oneOf:
         - $ref: "#/components/schemas/ApprovalMethodAUTHY_PUSH"
+        - $ref: "#/components/schemas/ApprovalMethodSMS"
         - $ref: "#/components/schemas/ApprovalMethodDSA_ED25519"
     ApprovalMethodAUTHY_PUSH:
       description: |
@@ -2204,6 +2468,57 @@ components:
         id: "6ec2fbc16ccb8238cbc89b3bf7ea7f39apmt"
         entity_id: "31adbcbbcede1a7a8cffb4a0e598ad5centy"
         type: "AUTHY_PUSH"
+        state: "ACTIVATED"
+        created_at: "2019-11-03T12:21:16Z"
+        updated_at: "2019-11-03T12:46:10Z"
+    ApprovalMethodSMS:
+      description: |
+        An Approval Method of type `SMS`.
+
+        It represents an MFA method which uses Verify SMS notifications
+        for approving Transactions.
+
+        In case of SMS type of Approval Method, an ACTIVATED state
+        means that the person is succesfully KYCed.
+      type: object
+      required:
+        - id
+        - entity_id
+        - type
+        - state
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of this Approval Method
+        entity_id:
+          type: string
+          description: ID of the Entity this Approval Method is registered for
+        type:
+          type: string
+          description: Type of the Approval Method
+          enum:
+            - SMS
+        state:
+          type: string
+          description: Current state of the Approval Method
+          enum:
+            - PENDING
+            - ACTIVATED
+            - DEACTIVATED
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was updated
+          format: date-time
+      example:
+        id: "6ec2fbc16ccb8238cbc89b3bf7ea7f39apmt"
+        entity_id: "31adbcbbcede1a7a8cffb4a0e598ad5centy"
+        type: "SMS"
         state: "ACTIVATED"
         created_at: "2019-11-03T12:21:16Z"
         updated_at: "2019-11-03T12:46:10Z"
@@ -2274,9 +2589,13 @@ components:
     #
     ApprovalRequest:
       description: |
-        An ApprovalRequest can be of type: `AUTHY_PUSH`, `DSA_ED25519`
+        The Object that represents an ApprovalRequest. Depending on the type an
+        ApprovalRequest might have different attributes.
+
+        An ApprovalRequest can be of type: `AUTHY_PUSH`, `SMS` or `DSA_ED25519`
       oneOf:
         - $ref: "#/components/schemas/ApprovalRequestAUTHY_PUSH"
+        - $ref: "#/components/schemas/ApprovalRequestSMS"
         - $ref: "#/components/schemas/ApprovalRequestDSA_ED25519"
 
     #
@@ -2286,11 +2605,7 @@ components:
       description: |
         An ApprovalRequest for ApprovalMethod of type `AUTHY_PUSH`.
 
-        This method is provided for Entities of type `PERSON` as Account holder.
-
-        When requested, this ApprovalRequest will initiate a push notification
-        which is then sent to the Customers mobile phone and MUST be confirmed
-        using the Authy app.
+        This ApprovalMethod is provided for Entities of type `PERSON` as Account holder.
       type: object
       required:
         - id
@@ -2317,6 +2632,9 @@ components:
         type:
           type: string
           description: Approval method
+          example: AUTHY_PUSH
+          enum:
+            - "AUTHY_PUSH"
         created_at:
           type: string
           description: Time at which this resource was created
@@ -2330,6 +2648,59 @@ components:
         state: "PENDING"
         transaction_id: "afa4bcc92adaad64fdaad3c48b8cb840tran"
         type: "AUTHY_PUSH"
+        created_at: "2019-11-03T13:05:51Z"
+        updated_at: "2019-11-03T13:05:51Z"
+          #
+    #
+    # ApprovalRequestSMS
+    #
+    ApprovalRequestSMS:
+      description: |
+        An ApprovalRequest for ApprovalMethod of type `SMS`.
+
+        This ApprovalMethod is provided for Entities of type `PERSON` as Account holder.
+      type: object
+      required:
+        - id
+        - state
+        - transaction_id
+        - type
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: The ID of the ApprovalRequest
+        state:
+          type: string
+          description: The state of the ApprovalRequest
+          enum:
+            - "PENDING"
+            - "APPROVED"
+            - "CANCELLED"
+            - "FAILED"
+        transaction_id:
+          type: string
+          description: A reference to the corresponding Transaction
+        type:
+          type: string
+          description: Approval method
+          example: SMS
+          enum:
+            - "SMS"
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was last updated
+          format: date-time
+      example:
+        id: "2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq"
+        state: "PENDING"
+        transaction_id: "afa4bcc92adaad64fdaad3c48b8cb840tran"
+        type: "SMS"
         created_at: "2019-11-03T13:05:51Z"
         updated_at: "2019-11-03T13:05:51Z"
 
@@ -2545,3 +2916,6 @@ components:
                 type: string
             example:
               message: Internal server error
+
+
+
