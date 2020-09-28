@@ -1,5 +1,11 @@
 # Changelog
 
+## 28-09-2020
+
+API updated to v0.18.0
+
+- Introduced support for canceling Transactions
+
 ## 17-08-2020
 
 API updated to v0.17.0:

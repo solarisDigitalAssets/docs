@@ -2,8 +2,8 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-- Version: [0.17.0]
-- Updated: [2020-08-17]
+- Version: [0.18.0]
+- Updated: [2020-09-28]
 
 ## Table of Contents
 
@@ -753,6 +753,7 @@ Each Transaction has a "state" attribute, that can take any value of:
 - APPROVED
 - COMPLETED
 - FAILED
+- CANCELLED
 
 Whenever a Transaction is created, it starts in a PENDING state.
 
@@ -780,8 +781,10 @@ balance has been updated. This state is final.
 
 In case of a failure that prevents the Transaction from being successfully processed,
 a Transaction can transition to FAILED state. Any amount which was locked
-by such Transaction will be released, and the Account Available balance will be updated.
-This state is final.
+by such Transaction will be released, and the Account's available balance will be updated.
+The CANCELLED state is final.
+
+Before the transaction is APPROVED a partner can choose to CANCEL a transaction, the transaction will then transition to the CANCELLED state. Any amount which was locked by such Transaction will be released, and the Account Available balance will be updated. This state is final.
 
 Whenever a Transaction is requested by the partner, the platform runs validation checks on this request:
 
@@ -1006,6 +1009,37 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b5
 
 {
   "transaction_id": "fd213476ad3a1f2df48c7cbca394f3edatrx",
+}
+```
+
+## Canceling a Transaction
+
+A transaction of `type` `WITHDRAWAL` or `TRANSFER` can be cancelled by the Partner
+given it is still in  `PENDING` state.
+
+```
+POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/cancel
+```
+
+### Example
+
+```
+POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57cb5078ae0a8b569acct/transactions/bede420fae7624091f337c22f9714fc0atrx/cancel
+
+200 OK
+
+{
+  "id": "bede420fae7624091f337c22f9714fc0atrx",
+  "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
+  "type": "WITHDRAWAL",
+  "state": "CANCELLED",
+  "amount": "-0.00000001",
+  "fee_amount": "1.00000000",
+  "total_amount": "-1.00000001",
+  "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+  "reference": "some-reference-ea1ee054",
+  "created_at": "2020-09-21T10:47:34Z",
+  "updated_at": "2020-09-21T10:47:34Z"
 }
 ```
 
