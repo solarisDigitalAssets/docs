@@ -8,6 +8,7 @@ This update introduces some breaking changes:
 
 - Individual Wallets are removed: Wallets as a resource are no longer available or required to operate Accounts
 - Accounts no longer have `wallet_id`, instead they have `asset_id` as a direct reference of the Asset they are holding
+- Transactions no longer have `total_amount` attribute, although `total_amount` is still accepted as a parameter to a Withdrawal or Transfer request
 
 Other changes in this update:
 
