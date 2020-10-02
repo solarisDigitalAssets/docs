@@ -3,7 +3,7 @@ info:
   title: solarisBank Digital Assets Platform API
   contact:
     email: Alexis.Hamel@solarisbank.de
-  version: 0.19.0
+  version: 0.19.1
 
   description: |
     This is a draft for solarisBank Digital Assets Platform API
@@ -408,6 +408,13 @@ paths:
                   type: string
                   description: The ID of an existing Asset
                   example: "00000000000000000000000000000001asst"
+                isolation:
+                  type: string
+                  description: "The isolation level of the Account (default: POOLED)"
+                  example: POOLED
+                  enum:
+                  - POOLED
+                  - SEGREGATED
             example:
               asset_id: "00000000000000000000000000000001asst"
       responses:
@@ -1727,7 +1734,7 @@ components:
           example: TOKEN
           enum:
           - TOKEN
-        type:
+        isolation:
           type: string
           description: The isolation level of the Account
           example: SEGREGATED
@@ -1987,9 +1994,11 @@ components:
           example: "0.00123000"
         fee_account_id:
           type: string
-          describption: The ID of the Account that will pay for the fees
+          description: The ID of the Account that will pay for the fees
         linked_tx_ids:
           type: array
+          items:
+            type: string
           description: |
             An array containing the IDs of Transactions that are linked to this Withdrawal.
             E.g. the ID the corresponsing WITHDRAWAL_FEE Transaction
@@ -2079,6 +2088,8 @@ components:
           example: "0"
         linked_tx_ids:
           type: array
+          items:
+            type: string
           description: |
             An array containing the IDs of Transactions that are linked to this Transaction.
             E.g. the ID of the Withdrawal that caused this WITHDRAWAL_FEE Transaction.

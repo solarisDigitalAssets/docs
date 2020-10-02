@@ -2,6 +2,14 @@
 
 ## 02-10-2020
 
+API updated to v0.19.1
+
+Fixes to Open API specification:
+- documented `isolation` attribute in Account creation
+- more minor fixes
+
+## 02-10-2020
+
 API updated to v0.19.0
 
 This update introduces some breaking changes:

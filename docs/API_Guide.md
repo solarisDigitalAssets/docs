@@ -2,7 +2,7 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-- Version: [0.19.0]
+- Version: [0.19.1]
 - Updated: [2020-10-02]
 
 ## Table of Contents
