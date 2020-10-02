@@ -1,5 +1,19 @@
 # Changelog
 
+## 02-10-2020
+
+API updated to v0.19.0
+
+This update introduces some breaking changes:
+
+- Individual Wallets are removed: Wallets as a resource are no longer available or required to operate Accounts
+- Accounts no longer have `wallet_id`, instead they have `asset_id` as a direct reference of the Asset they are holding
+
+Other changes in this update:
+
+- Introduced a way to specify from which Account the fees are going to be collected for Withdrawals: `fee_account_id`
+- Introduced a new Transaction type: WITHDRAWAL_FEE
+
 ## 28-09-2020
 
 API updated to v0.18.0

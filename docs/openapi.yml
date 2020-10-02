@@ -3,7 +3,7 @@ info:
   title: solarisBank Digital Assets Platform API
   contact:
     email: Alexis.Hamel@solarisbank.de
-  version: 0.17.0
+  version: 0.19.0
 
   description: |
     This is a draft for solarisBank Digital Assets Platform API
@@ -153,8 +153,6 @@ servers:
 tags:
 - name: Asset
   description: Digital Assets supported by the platform
-- name: Wallet
-  description: List of Wallets owned by the Partner
 - name: Entity
   description: Entities registered and controlled by the Partner
 - name: Account
@@ -226,102 +224,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Asset"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  #
-  # Wallets
-  #
-  /wallets:
-    get:
-      tags:
-      - Wallet
-      summary: List all Wallets
-      description: |
-        Returns a list of all Wallets of this partner
-      responses:
-        "200":
-          description: A list of Wallets
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - items
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Wallet"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-    post:
-      tags:
-      - wallet
-      summary: Create a new Wallet
-      description: |
-        Create a new Wallet for a given Asset ID.
-      requestBody:
-        required: true
-        description: |
-          A `asset_id` attribute must be specified.
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-              - asset_id
-            properties:
-              asset_id:
-                type: string
-                description: The ID of the Asset for which the Wallet should be created
-                example: "00000000000000000000000000000001asst"
-            example:
-              asset_id: "00000000000000000000000000000001asst"
-      responses:
-        "201":
-          description: A single new Wallet
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Wallet"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /wallets/{wallet_id}:
-    get:
-      tags:
-      - Wallet
-      summary: Get a single Wallet
-      description: |
-        Returns a single Wallet found by its ID
-      parameters:
-      - name: wallet_id
-        in: path
-        description: Wallet ID
-        required: true
-        schema:
-          type: string
-      responses:
-        "200":
-          description: A single Wallet
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Wallet"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -480,7 +382,10 @@ paths:
       description: |
         Creates a new Account owned by the given Entity.
 
-        When creating an Account, the reference to an existing Wallet must be provided.
+        When creating an Account a valid Asset ID must be provided.
+        Accounts can have one of two different isolation levels `POOLED` or `SEGREGATED`.
+        When creating an Account of isolation level `POOLED` then the `isolation` attribute can
+        be omitted.
       parameters:
       - name: entity_id
         in: path
@@ -491,20 +396,20 @@ paths:
       requestBody:
         required: true
         description: |
-          A `wallet_id` attribute must be specified, linking the new Account with an existing Wallet.
+          A `asset_id` attribute must be specified, linking the new Account with an existing Asset.
         content:
           application/json:
             schema:
               type: object
               required:
-              - wallet_id
+              - asset_id
               properties:
-                wallet_id:
+                asset_id:
                   type: string
-                  description: The ID of an existing Wallet
-                  example: "d38c4d1dfcf01a4df50230409bbbd6d8wall"
+                  description: The ID of an existing Asset
+                  example: "00000000000000000000000000000001asst"
             example:
-              wallet_id: "ba8dbafcac13a1cafb05ab17f4689eaawall"
+              asset_id: "00000000000000000000000000000001asst"
       responses:
         "201":
           description: Successfully created Account
@@ -606,8 +511,7 @@ paths:
       description: |
         Creates a new Address linked with the given Account, owned by the given Entity.
 
-        As the Account is associated with a single Wallet and therefore the single Asset,
-        the new Address is created for this particular Asset.
+        As the Account is associated with a single Asset the new Address is created for this particular Asset.
 
         No additional parameters are required to create a new Address. This Address
         can immediately be used to receive funds on the blockchain.
@@ -820,7 +724,6 @@ paths:
                 state: "PENDING"
                 amount: "-1.23450000"
                 fee_amount: "0.00100000"
-                total_amount: "-1.23550000"
                 reference: "someting-fe8cbeecef486fe6edf9c3690e4f6b0a-unique"
                 address: "1HesYJSP1QqcyPEjnQ9vzBL1wujruNGe7R"
                 blockchain_txid: "0d0baf05852a856366a302ce9c9a9bbd36f95685a1e3d3bc9ef7715424ed577b"
@@ -935,7 +838,8 @@ paths:
       description: |
         Issues a request to create a new Transfer
         from the given Account, owned by the given Entity, to another Account
-        in the same Wallet.
+        in the same Asset.
+        Transfers can only be initiated from Accounts of `isolation` `POOLED`.
 
         Two Transactions are created in the course of processing a Transfer:
         one Transaction of type TRANSFER_OUTGOING in the sender Account,
@@ -999,7 +903,7 @@ paths:
                   description: A unique reference identifier provided by the partner
                 receiver_account_id:
                   type: string
-                  description: An ID of the recipient Account, on the same Wallet
+                  description: An ID of the recipient Account, of the same Account
             example:
               reference: "something-d4cbde56778cc85c2baf4d1b24c4097f-unique"
               receiver_account_id: "8edc66729b14bf1921292ad7ee0fbce8acct"
@@ -1260,7 +1164,6 @@ paths:
                     - reference
                     - amount
                     - fee_amount
-                    - total_amount
                     - address
                 created_at: "2019-11-23T22:46:38Z"
                 updated_at: "2019-11-23T22:46:38Z"
@@ -1319,7 +1222,6 @@ paths:
                     - reference
                     - amount
                     - fee_amount
-                    - total_amount
                     - address
                 created_at: "2019-11-23T22:46:38Z"
                 updated_at: "2019-11-23T22:46:38Z"
@@ -1416,7 +1318,6 @@ paths:
                     - reference
                     - amount
                     - fee_amount
-                    - total_amount
                     - address
                 created_at: "2019-11-23T22:46:38Z"
                 updated_at: "2019-11-23T22:46:38Z"
@@ -1648,103 +1549,6 @@ components:
         updated_at: "2019-03-01T22:46:38Z"
 
     #
-    # Wallet schema
-    #
-    Wallet:
-      oneOf:
-        - $ref: "#/components/schemas/WalletBase"
-        - $ref: "#/components/schemas/WalletToken"
-      type: object
-
-    WalletBase:
-      type: object
-      required:
-        - id
-        - asset_id
-        - fee_paying_account_id
-        - type
-        - created_at
-        - updated_at
-      properties:
-        id:
-          type: string
-          description: A unique ID of the Wallet
-        asset_id:
-          type: string
-          description: ID of the underlying Asset
-        fee_paying_account_id:
-          # type: string
-          description: ID of the Account that is used used to pay Withdrawal processing fees
-          example: "c043ad224bd8fff5406dc853ed0c4292acct"
-          nullable: true
-        type:
-          type: string
-          description: The type of the Wallet, `BASE` when associated Asset is of type `BASE`
-          example: BASE
-          enum:
-          - BASE
-        created_at:
-          type: string
-          description: Time at which the Wallet was created
-          format: date-time
-        updated_at:
-          type: string
-          description: Time at which the Wallet was last updated
-          format: date-time
-      example:
-        id: "bfd75f4cd2e3ec5f3bbfad600dbe79e7walt"
-        asset_id: "00000000000000000000000000000001asst"
-        fee_paying_account_id: "a4547cdd38c2150da12664434ecbd802acct"
-        type: "BASE"
-        created_at: "2019-03-01T22:46:38Z"
-        updated_at: "2019-03-01T22:46:38Z"
-
-    WalletToken:
-      type: object
-      required:
-        - id
-        - asset_id
-        - base_wallet_id
-        - fee_paying_account_id
-        - type
-        - created_at
-        - updated_at
-      properties:
-        id:
-          type: string
-          description: A unique ID of the Wallet
-        asset_id:
-          type: string
-          description: ID of the underlying Asset
-        fee_paying_account_id:
-          type: string
-          description: ID of the Account that is used used to pay Withdrawal processing fees
-        base_wallet_id:
-          type: string
-          description: ID of the base Wallet if Wallet belongs to an Asset of type TOKEN
-        type:
-          type: string
-          description: The type of the Wallet, `TOKEN` when the associated Asset is of type `TOKEN`
-          example: TOKEN
-          enum:
-          - TOKEN
-        created_at:
-          type: string
-          description: Time at which the Wallet was created
-          format: date-time
-        updated_at:
-          type: string
-          description: Time at which the Wallet was last updated
-          format: date-time
-      example:
-        id: "bfd75f4cd2e3ec5f3bbfad600dbe79e7walt"
-        asset_id: "00020000000000000000000000000001asst"
-        base_wallet_id: "a914567475641f2248791e7b9fb8cd1fwalt"
-        fee_paying_account_id: "a4547cdd38c2150da12664434ecbd802walt"
-        type: "TOKEN"
-        created_at: "2019-03-01T22:46:38Z"
-        updated_at: "2019-03-01T22:46:38Z"
-    #
     # Entity schema
     #
     Entity:
@@ -1832,7 +1636,7 @@ components:
       required:
         - id
         - entity_id
-        - wallet_id
+        - asset_id
         - balance
         - available_balance
         - type
@@ -1845,9 +1649,9 @@ components:
         entity_id:
           type: string
           description: ID of the Entity owning the Account
-        wallet_id:
+        asset_id:
           type: string
-          description: ID of the Wallet the Account is linked with
+          description: ID of the Asset the Account is linked with
         balance:
           type: string
           description: Balance of the Account
@@ -1860,6 +1664,13 @@ components:
           example: BASE
           enum:
           - BASE
+        isolation:
+          type: string
+          description: The isolation level of the Account
+          example: POOLED
+          enum:
+          - POOLED
+          - SEGREGATED
         created_at:
           type: string
           description: Time at which the Account was created
@@ -1871,9 +1682,10 @@ components:
       example:
         id: "09934947ffdd4bef50ba88ddc5eab0bfacct"
         entity_id: "359fe08986bbc6b62ea406f864b1ab90enty"
-        wallet_id: "bfce4cef815cb3b6f4e4c60d046c0ccbwall"
+        asset_id: "00000000000000000000000000000001asst"
         balance: "123.45670000"
         available_balance: "123.45600000"
+        isolation: "POOLED"
         created_at: "2019-03-01T22:31:06Z"
         updated_at: "2019-03-01T22:31:06Z"
 
@@ -1883,7 +1695,7 @@ components:
         - id
         - base_account_id
         - entity_id
-        - wallet_id
+        - asset_id
         - balance
         - available_balance
         - type
@@ -1896,13 +1708,13 @@ components:
         base_account_id:
           type: string
           description: |
-            The ID of the base Account if Account belongs to a Wallet with Asset of type `TOKEN`
+            The ID of the base Account if Account belongs to an Asset of type `TOKEN`
         entity_id:
           type: string
           description: ID of the Entity owning the Account
-        wallet_id:
+        asset_id:
           type: string
-          description: ID of the Wallet the Account is linked with
+          description: ID of the Asset the Account is linked with
         balance:
           type: string
           description: Balance of the Account
@@ -1915,6 +1727,13 @@ components:
           example: TOKEN
           enum:
           - TOKEN
+        type:
+          type: string
+          description: The isolation level of the Account
+          example: SEGREGATED
+          enum:
+          - POOLED
+          - SEGREGATED
         created_at:
           type: string
           description: Time at which the Account was created
@@ -1927,9 +1746,10 @@ components:
         id: "09934947ffdd4bef50ba88ddc5eab0bfacct"
         base_account_id: "e3c4bc7bdfeaed3c0a3cebd2addcd5acct"
         entity_id: "359fe08986bbc6b62ea406f864b1ab90enty"
-        wallet_id: "bfce4cef815cb3b6f4e4c60d046c0ccbwall"
+        asset_id: "00000000000000000000000000000001asst"
         balance: "123.45670000"
         available_balance: "123.45600000"
+        isolation: "SEGREGATED"
         created_at: "2019-03-01T22:31:06Z"
         updated_at: "2019-03-01T22:31:06Z"
 
@@ -1976,10 +1796,11 @@ components:
     Transaction:
       description: |
         A Transaction can be of type: DEPOSIT, WITHDRAWAL, WITHDRAWAL_PROCESSING,
-        TRANSFER_OUTGOING or TRANSFER_INCOMING
+        WITHDRAWAL_FEE, TRANSFER_OUTGOING or TRANSFER_INCOMING
       oneOf:
         - $ref: "#/components/schemas/TransactionDeposit"
         - $ref: "#/components/schemas/TransactionWithdrawal"
+        - $ref: "#/components/schemas/TransactionWithdrawalFee"
         - $ref: "#/components/schemas/TransactionWithdrawalProcessing"
         - $ref: "#/components/schemas/TransactionTransferOutgoing"
         - $ref: "#/components/schemas/TransactionTransferIncoming"
@@ -1994,7 +1815,6 @@ components:
         - state
         - amount
         - fee_amount
-        - total_amount
         - created_at
         - updated_at
       properties:
@@ -2010,6 +1830,7 @@ components:
           enum:
             - DEPOSIT
             - WITHDRAWAL
+            - WITHDRAWAL_FEE
             - TRANSFER_OUTGOING
             - TRANSFER_INCOMING
             - WITHDRAWAL_PROCESSING
@@ -2029,9 +1850,6 @@ components:
           type: string
           description: Charged fee, always positive or 0
           example: "0.00123000"
-        total_amount:
-          type: string
-          description: Credited/debited amount, positive or negative
         created_at:
           type: string
           description: Time at which a transaction was created
@@ -2052,7 +1870,6 @@ components:
         - state
         - amount
         - fee_amount
-        - total_amount
         - address
         - blockchain_txid
         - blockchain_output_n
@@ -2086,9 +1903,6 @@ components:
           type: string
           description: Charged fee, always positive or 0
           example: "0.00123000"
-        total_amount:
-          type: string
-          description: Credited amount, positive
         address:
           type: string
           description: A digital asset specific address used for deposit
@@ -2118,7 +1932,6 @@ components:
         state: "PENDING"
         amount: "1.23450000"
         fee_amount: "0.00000000"
-        total_amount: "1.23450000"
         address: "1PC9aZC4hNX2rmmrt7uHTfYAS3hRbph4UN"
         blockchain_txid: "b2715bcc492ccfa30beaa7cf0d64bee751d5247a459966ce5b9d190eb1c2f185"
         blockchain_output_n: 0
@@ -2136,7 +1949,8 @@ components:
         - state
         - amount
         - fee_amount
-        - total_amount
+        - fee_account_id
+        - linked_tx_ids
         - reference
         - address
         - blockchain_txid
@@ -2171,10 +1985,14 @@ components:
           type: string
           description: Charged fee, always positive or 0
           example: "0.00123000"
-        total_amount:
+        fee_account_id:
           type: string
-          description: Debited amount, negative
-          example: "-123.00123000"
+          describption: The ID of the Account that will pay for the fees
+        linked_tx_ids:
+          type: array
+          description: |
+            An array containing the IDs of Transactions that are linked to this Withdrawal.
+            E.g. the ID the corresponsing WITHDRAWAL_FEE Transaction
         reference:
           type: string
           description: |
@@ -2208,13 +2026,71 @@ components:
         state: "PENDING"
         amount: "-1.23450000"
         fee_amount: "0.00100000"
-        total_amount: "-1.23550000"
+        fee_account_id: "ff6dc60c4f76dcea784bdc2ffed66e6facct"
+        linked_tx_ids: ["afc2a61eade4b640e49b94e777a0b26aatrx"]
         reference: "someting-fe8cbeecef486fe6edf9c3690e4f6b0a-unique"
         address: "1HesYJSP1QqcyPEjnQ9vzBL1wujruNGe7R"
         blockchain_txid: "0d0baf05852a856366a302ce9c9a9bbd36f95685a1e3d3bc9ef7715424ed577b"
         blockchain_output_n: 4
         created_at: "2019-03-01T20:48:38Z"
         updated_at: "2019-03-01T20:49:07Z"
+    TransactionWithdrawalFee:
+      description: |
+        A Transaction of type WITHDRAWAL_FEE represents the fee that is collected from an
+        Account to pay for a Withdrawal.
+      type: object
+      required:
+        - id
+        - account_id
+        - type
+        - state
+        - amount
+        - fee_amount
+        - linked_tx_ids
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of a Transaction
+        account_id:
+          type: string
+          description: ID of an Account the Transaction belongs to
+        type:
+          type: string
+          description: The type of a transaction
+          enum:
+          - WITHDRAWAL_FEE
+        state:
+          type: string
+          description: Current state of the Transaction
+          enum:
+            - PENDING
+            - APPROVED
+            - COMPLETED
+            - FAILED
+        amount:
+          type: string
+          description: Transacted amount, negative
+          example: "-0.00001234"
+        fee_amount:
+          type: string
+          description: Charged fee, always 0
+          example: "0"
+        linked_tx_ids:
+          type: array
+          description: |
+            An array containing the IDs of Transactions that are linked to this Transaction.
+            E.g. the ID of the Withdrawal that caused this WITHDRAWAL_FEE Transaction.
+        created_at:
+          type: string
+          description: Time at which a transaction was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which a transaction was updated
+          format: date-time
+
     TransactionWithdrawalProcessing:
       description: |
         A Withdrawal Processing is a Transaction created in Partner's fee paying Account,
@@ -2228,7 +2104,6 @@ components:
         - state
         - amount
         - fee_amount
-        - total_amount
         - blockchain_txid
         - created_at
         - updated_at
@@ -2260,10 +2135,6 @@ components:
           type: string
           description: Charged fee, always positive or 0
           example: "0.00000000"
-        total_amount:
-          type: string
-          description: Total amount charged or credited to the account, positive or negative
-          example: "-0.01500000"
         blockchain_txid:
           # type: string
           nullable: true
@@ -2286,14 +2157,13 @@ components:
         state: "COMPLETED"
         amount: "-0.01500000"
         fee_amount: "0.00000000"
-        total_amount: "-0.01500000"
         blockchain_txid: "abba0c28a5f26694934b740f57fd934ed3865f86218fef81224517917fe45e0d"
         created_at: "2019-03-01T20:48:38Z"
         updated_at: "2019-03-01T20:49:07Z"
     TransactionTransferOutgoing:
       description: |
         A Transfer (Outgoing) is a Transaction, which represents a transfer of funds from
-        a current Account to another (receiver) Account within the same Wallet.
+        a current Account to another (receiver) Account within the same Asset.
       type: object
       required:
         - id
@@ -2302,7 +2172,6 @@ components:
         - state
         - amount
         - fee_amount
-        - total_amount
         - reference
         - sender_account_id
         - receiver_account_id
@@ -2336,10 +2205,6 @@ components:
           type: string
           description: Charged fee, always positive or 0
           example: "0.00100000"
-        total_amount:
-          type: string
-          description: Debited amount, negative
-          example: "-1.231000000"
         reference:
           type: string
           description: |
@@ -2365,7 +2230,6 @@ components:
         state: "COMPLETED"
         amount: "-0.98760000"
         fee_amount: "0.000000000"
-        total_amount: "-0.98760000"
         reference: "something-fc522958ced6c1b5c2c57d6dddecfa0a-unique"
         sender_account_id: "ff6dc60c4f76dcea784bdc2ffed66e6facct"
         receiver_account_id: "4aeeac12d4b92c967cb826ac5dee5a8eacct"
@@ -2383,7 +2247,6 @@ components:
         - state
         - amount
         - fee_amount
-        - total_amount
         - sender_account_id
         - receiver_account_id
         - created_at
@@ -2416,10 +2279,6 @@ components:
           type: string
           description: Charged fee, always positive or 0
           example: "0.00100000"
-        total_amount:
-          type: string
-          description: Credited amount, positive
-          example: "122.99900000"
         sender_account_id:
           type: string
           description: ID of the sender Account
@@ -2441,7 +2300,6 @@ components:
         state: "COMPLETED"
         amount: "1.23450000"
         fee_amount: "0.000100000"
-        total_amount: "1.23440000"
         reference: "something-fc522958ced6c1b5c2c57d6dddecfa0a-unique"
         sender_account_id: "ff6dc60c4f76dcea784bdc2ffed66e6facct"
         receiver_account_id: "4aeeac12d4b92c967cb826ac5dee5a8eacct"
@@ -2831,7 +2689,6 @@ components:
             - reference
             - amount
             - fee_amount
-            - total_amount
             - address
         created_at: "2019-11-03T13:05:51Z"
         updated_at: "2019-11-03T13:05:51Z"
@@ -2926,7 +2783,7 @@ components:
             example:
               message: Invalid request
               params:
-                wallet_id: not_found
+                entity_id: not_found
     # 401, Unauthorized
     Unauthorized:
       description: |
@@ -2971,6 +2828,5 @@ components:
                 type: string
             example:
               message: Internal server error
-
 
 

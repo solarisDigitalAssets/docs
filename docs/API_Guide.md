@@ -2,14 +2,12 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-- Version: [0.18.0]
-- Updated: [2020-09-28]
+- Version: [0.19.0]
+- Updated: [2020-10-02]
 
 ## Table of Contents
 
 - [Introduction](#introduction)
-  - [Segregated Wallet](#segregated-wallet)
-  - [Pooled Wallet](#pooled-wallet)
 - [Setup](#setup)
 - [Authentication](#authentication)
   - [Digest Header](#digest-header)
@@ -20,8 +18,6 @@ An API platform that provides a managed custody solution for storing digital ass
   - [Example](#example)
 - [Assets](#assets)
   - [Example](#example-1)
-- [Wallets](#wallets)
-  - [Example](#example-2)
 - [solaris Digital Assets recommendation: End customer onboarding](#solaris-digital-assets-recommendation-end-customer-onboarding)
   - [solarisBank Identity API](#solarisbank-identity-api)
   - [solaris Digital Assets API](#solaris-digital-assets-api)
@@ -86,41 +82,37 @@ An API platform that provides a managed custody solution for storing digital ass
 
 The solaris Digital Assets Platform API is designed to allow partners to store digital asset funds on the platform, accept deposits, process withdrawals and keep track of balances in digital assets.
 
-The partner can own a collection of Wallets on our platform, where each Wallet holds the funds owned by the partner for some specific digital asset. There are two types of Wallets:
+The partner can own a collection of Accounts on our platform, where each Account holds the funds owned by an Entity of a partner for some specific digital asset. There are two types of Accounts:
 
-- Segregated Wallet
-- Pooled Wallet
+- Segregated Account
+- Pooled Account
 
-### Segregated Wallet
+### Segregated Account
 
-All the funds in the Wallet belong to Entity, which represents end customer or the partner themselves. On top of the Wallet an Account needs to be created.
+All the funds in the Account belong to Entity, which represents an end customer or the partner themselves.
 
-The partner can create many Addresses associated with an Account, which can be used to deposit funds there.
+The partner can create one Address associated with a `SEGREGATED` Account, which can be used to deposit funds there.
 
 The partner can initiate Withdrawals to an external address, within the existing Account balance.
 
-### Pooled Wallet
+### Pooled Account
 
-All the funds in the Wallet are treated as a single pool and there is no separation on the Wallet level between balances of individual customers.
+All the funds in `POOLED` Accounts are treated by the platform as a single pool. There is no seperation between funds and balances of individual customers on the blockchain level.
 
 The partner controls and can register Entities on our platform, which represent end customers or the partner themselves as Account holders.
 
-On top of the Wallet there can be many Accounts created, each Account associated with a registered Entity.
+The partner can register many Accounts in our platform, each Account must be associated with a registered Entity.
 
 The partner can create Addresses associated with an Account, which can be used to deposit funds there.
 
 The partner can initiate Withdrawals to an external address or Transfers to a different Account from an Account on behalf of the Account holder, within the existing Account balance.
 
-> At the moment we create a single Pooled Wallet per partner, only for Bitcoin (BTC) funds. However API is designed to provide similar workflow to all other digital assets when supported by the platform.
-
-![wallet](./img/wallet.png)
 
 ## Setup
 
 Before a partner can use the solaris Digital Assets Platform API we register them in our system. This happens completely on our side and is not exposed by API endpoints.
 
-During this process we are going to create a Wallet for the partner, a partner Entity, and an Account owned by the partner Entity in the created Wallet.
-The Acount that is created in this step will be used to pay for network fees when processing Withdrawals.
+During this process we are going to create a partner Entity. This Entity can then be used by the partner to authorise Transactions from Accounts the partner owns.
 
 The next step is to create a key pair that is going to be used by the partner to access the API. This happens on partner side, then the partner sends us the public key part. At no point the solaris Digital Assets Platform platform learns the corresponding private key.
 
@@ -352,121 +344,6 @@ GET /v1/assets/00010000000000000000000000000002asst
 }
 ```
 
-## Wallets
-
-Wallets represent a collection of funds, Accounts and Addresses a Partner owns.
-A Wallet is tied to an Asset and as such can receive Assets of that kind only.
-This holds also true for Wallets that belong to Assets like Ethereum, that allow
-the creation of other Assets (tokens) on their blockchain.
-On the blockchain level an Ethereum address can receive funds in either Ether or
-any token that has been created on the Ethereum blockchain.
-To receive tokens, that have been created on the Ethereum blockchain, a Partner
-needs to create two Wallets on the Solaris Digital Assets platform, one for the
-underlying base Asset (Wallet of type `BASE`) and one for the token Asset (Wallet
-of type `TOKEN`).
-
-The API provides a way to create new Wallets, to list all the Wallets owned by the
-partner and to fetch an individual Wallet's details.
-
-Wallets behavior and use cases differ depending on their type.
-
-### Wallets of type BASE
-
-These Wallets are tied to a base Asset like BTC or ETH. These Wallets can be used
-as pooled and segregated Wallets.
-
-When there are more than one Address created for this Wallet, it will be treated
-as a pooled Wallet.
-When there is only one Address for this Wallet, then it will be treated a segregated
-Wallet.
-
-After creating a Wallet of this type, the first Account, that is being created in this
-Wallet, will be set as a fee paying Account.
-
-Fees for Withdrawals from these Wallets will be paid in the Asset of the Wallet.
-
-When creating a Wallet of this type a valid Asset ID must be provided.
-
-
-### Wallets of type TOKEN
-
-These Wallets represent a Wallet for an Asset that is of type `TOKEN` and as such
-was created on the blockchain of an Asset of type `BASE`.
-
-These Wallets can only be used as segregated Wallets and as such can only hold one
-Address that belongs to one Account.
-
-When creating a Wallet of this type, Partners MUST provide the ID of a Wallet of
-type `BASE` (base Wallet) in addition to a valid Asset ID.
-The fee paying Account of the base Wallet will be used to pay the fees for Withdrawals
-from the token Wallet. Fees for Withdrawals from token Wallets MUST be paid in the
-base Asset of this token.
-
-See:
-
-```
-POST /v1/wallets
-GET /v1/wallets
-GET /v1/wallets/{wallet_id}
-```
-
-### Example
-#### Creating a Wallet for Asset of type BASE
-```
-POST /v1/wallets
-{
-  "asset_id": "00000000000000000000000000000001asst"
-}
-```
-```
-201 Created
-{
-  "id": "4d74d207d90c4585d40aed1d71cabebawalt",
-  "asset_id": "00000000000000000000000000000001asst",
-  "fee_paying_account_id": null,
-  "type": "BASE",
-  "created_at": "2019-03-17T09:38:04Z",
-  "updated_at": "2019-04-02T12:27:33Z"
-}
-```
-#### Creating a Wallet for Asset of type TOKEN
-```
-POST /v1/wallets
-{
-  "asset_id": "00020000000000000000000000000002asst",
-  "base_wallet_id": "f1fd0e319600edf630c5cf0c7358963ewalt"
-}
-```
-```
-201 Created
-{
-  "id": "4d74d207d90c4585d40aed1d71cabebawalt",
-  "asset_id": "00000000000000000000000000000001asst",
-  "base_wallet_id": "f1fd0e319600edf630c5cf0c7358963ewalt",
-  "fee_paying_account_id": "50a262187be212f2dfa08019c4a13d4facct",
-  "type": "TOKEN",
-  "created_at": "2019-03-17T09:38:04Z",
-  "updated_at": "2019-04-02T12:27:33Z"
-}
-```
-
-```
-GET /v1/wallets/82b46f5310d8a35fb4755cc13fddd681walt
-```
-
-```
-200 OK
-
-{
-  "id": "82b46f5310d8a35fb4755cc13fddd681walt",
-  "asset_id": "00000000000000000000000000000001asst",
-  "fee_paying_account_id": "7a25b8fbc33b040f9928bdd78b0ae412acct",
-  "type": "BASE",
-  "created_at": "2019-03-17T09:38:04Z",
-  "updated_at": "2019-04-02T12:27:33Z"
-}
-```
-
 ## solaris Digital Assets recommendation: End customer onboarding
 
 Before a partner can offer their customers the full feature set of solaris Digital Assets' API, the partner must onboard the customer. We recommend the following steps to fully onboard the customer:
@@ -544,7 +421,23 @@ POST /v1/entities
 
 An Account represents an aggregation of funds attributed to some registered Entity as an Account holder. It can be an end customer or the partner owning an Account. The association between the Account and its owner is permanent.
 
-To create an Account, the partner MUST provide a reference to an existing Entity and the Wallet.
+To create an Account, the partner MUST provide a reference to an existing Entity and the Asset associated for this Account.
+
+Accounts can have different isolation levels, `POOLED` and `SEGREGATED`.
+
+## Pooled Accounts (default)
+
+With Pooled Accounts there is no separation of funds on the blockchain level. Pooled Accounts offer
+certain benefits for it's users. It is possible to send instant Transfers from all Accounts of one
+Asset to other Accounts of the same Asset without touching the blockchain and thus without paying
+expensive fees.
+
+Accounts that are created for Assets of type `BASE` must be `POOLED`.
+
+## Segregated Accounts
+
+Segregated Accounts separate funds on the blockchain level. Transfers to other Accounts are not possible.
+
 
 ![account_creation](./img/account_creation.png)
 
@@ -577,9 +470,9 @@ Transaction.
 
 ### Account type
 
-Accounts have one of two different kinds, depending on the underlying Wallet's type.
-It is either `BASE` when the Account belongs to a base Wallet or `TOKEN` when the
-Account belongs to a token Wallet.
+Accounts have one of two different kinds, depending on the underlying Asset's type.
+It is either `BASE` when the Account belongs to a base Asset or `TOKEN` when the
+Account belongs to a token Asset.
 
 See:
 
@@ -595,7 +488,7 @@ GET /v1/entities/{entity_id}/accounts/{account_id}
 POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts
 
 {
-  "wallet_id": "82b46f5310d8a35fb4755cc13fddd681walt"
+  "asset_id": "00000000000000000000000000000001asst"
 }
 ```
 
@@ -604,10 +497,11 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts
 
 {
   "id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
-  "wallet_id": "82b46f5310d8a35fb4755cc13fddd681walt",
+  "asset_id": "00000000000000000000000000000001asst",
   "entity_id": "10ef67dc895d6c19c273b1ffba0c1692enty",
   "balance": "0.00000000",
   "available_balance": "0.00000000",
+  "isolation": "POOLED",
   "type": "BASE",
   "created_at": "2019-02-02T13:41:34Z",
   "updated_at": "2019-02-02T13:41:34Z"
@@ -657,10 +551,12 @@ Transactions have a `type` attribute, which describes the operation:
 - DEPOSIT
 - WITHDRAWAL
 - WITHDRAWAL_PROCESSING
+- WITHDRAWAL_FEE
 - TRANSFER_OUTGOING
 - TRANSFER_INCOMING
 
-In addition Transaction have following attributes:
+
+In addition Transactions have the following attributes:
 
 | name         | type    | desc                                          |
 | ------------ | ------- | --------------------------------------------- |
@@ -668,9 +564,7 @@ In addition Transaction have following attributes:
 | state        | String  | State of the tx, e.g. "PENDING"               |
 | amount       | Decimal | Transacted amount, positive or negative       |
 | fee_amount   | Decimal | Charged fee, always positive or 0             |
-| total_amount | Decimal | Credited/debited amount, positive or negative |
 
-`total_amount` indicates by how much the account balance have changed. It always equals to `amount - fee_amount`.
 
 Other attributes may be present, depending on the type of Transaction.
 
@@ -699,7 +593,6 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
       "state": "PENDING",
       "amount": "1.12340000",
       "fee_amount": "0.00000000",
-      "total_amount": "1.12340000",
       "created_at": "2019-04-02T13:15:47Z",
       "updated_at": "2019-04-02T13:15:47Z"
     },
@@ -710,8 +603,23 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
       "state": "COMPLETED",
       "amount": "-0.80000000",
       "fee_amount": "0.12340000",
-      "total_amount": "-0.92340000",
-      "reference": "unique-a8e530db9b0e3ba8-blah",
+      "reference": "unique-a8e530db9b0e3ba8-ref",
+      "linked_tx_ids": [
+        "1556f5f4fa23e81e6bbdc313fa1707f5atrx"
+      ],
+      "created_at": "2019-04-02T13:18:51Z",
+      "updated_at": "2019-04-02T13:18:51Z"
+    },
+    {
+      "id": "1556f5f4fa23e81e6bbdc313fa1707f5atrx",
+      "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
+      "type": "WITHDRAWAL_FEE",
+      "state": "COMPLETED",
+      "amount": "0.12340000",
+      "fee_amount": "0",
+      "linked_tx_ids": [
+        "4368fe9ac68c3215b2432a6acffddee8atrx"
+      ],
       "created_at": "2019-04-02T13:18:51Z",
       "updated_at": "2019-04-02T13:18:51Z"
     },
@@ -722,7 +630,6 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
       "state": "COMPLETED",
       "amount": "-0.50000000",
       "fee_amount": "0.00000000",
-      "total_amount": "-0.50000000",
       "reference": "example of reference",
       "sender_account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
       "receiver_account_id": "f0cfb103e6c3d4a37c2750a1256862a3acct",
@@ -736,7 +643,6 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
       "state": "COMPLETED",
       "amount": "-0.50000000",
       "fee_amount": "0.00000000",
-      "total_amount": "-0.50000000",
       "blockchain_txid": "648a0e4262c0edf6485ac8628bbb5411250ca057448a3125f2e36ce96e09bc28",
       "created_at": "2019-04-02T13:18:51Z",
       "updated_at": "2019-04-02T13:18:51Z"
@@ -824,11 +730,11 @@ Whenever a blockchain transaction is made to one of the addresses created using 
 
 On the blockchain level tokens can be received on Addresses of the underlying asset.
 To register token deposits that have been sent to the Address of the underlying asset
-(on the Solaris Digital Assets platform) a token Wallet MUST be created.
+(on the Solaris Digital Assets platform) a token Account MUST be created.
 
-Once a token Wallet has been created, existing Addresses of the base Wallet can receive
+Once a token Account has been created, existing Addresses of the base Account can receive
 token Deposits and all token Deposits for this Asset that happened before the creation
-of the Wallet will be visible to the Partner.
+of the Account will be visible to the Partner.
 
 ### Example
 
@@ -846,7 +752,6 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
   "state": "PENDING",
   "amount": "1.12340000",
   "fee_amount": "0.00000000",
-  "total_amount": "1.12340000",
   "created_at": "2019-04-02T13:15:47Z",
   "updated_at": "2019-04-02T13:15:47Z"
 }
@@ -858,14 +763,22 @@ A Withdrawal is a Transaction of type WITHDRAWAL. A Withdrawal represents a sing
 
 ### Withdrawal Fee Model
 
-During a Withdrawal processing the platform charges the Withdrawal Fee on the originating Account on behalf of the partner and credits the amount to the partner Entity Account. The Withdrawal Fee charged here is completely configurable by the partner (or can be waived by the partner altogether).
+The SDA platform offers a flexible solution for paying blockchain fees. When creating a Withdrawal the partner can specify an Account that pays the fees for this Withdrawal.
+This can either be the Account from which the Withdrawal originates from, or any other Account the partner's Entity owns. This allows to the partner to pay the fees for the
+customer, chooses he so do so.
 
-Depending on the underlying blockchain, the platform can batch multiple Withdrawals together and broadcast them in a single blockchain transaction. For the transactions happening on the blockchain-level the platform charges the full network fees amount on the partner Entity Account.
+As a default the originating Account of the Withdrawal is used. In case the originating Account is a TOKEN Account, the default is the corresponding BASE Account.
 
-#### Withdrawals from token Wallets
+For Withdrawals in Assets of type `TOKEN` the specified fee Account must belong to the corresponding Asset of type `BASE`.
 
-Fees for Withdrawals from token Wallets MUST be paid in the base Asset. The platform
-will collect these fees from the fee paying Account of the underlying base Wallet.
+The platform will charge the specified Account. A transaction of type `WITHDRAWAL_FEE` will be created in the originating Account of the Withdrawal.
+
+The platform uses the collected fees to pay for transactions on a blockchain.
+
+
+#### Withdrawals from TOKEN Accounts
+
+Fees for Withdrawals from TOKEN Accounts MUST be paid in the base Asset of said TOKEN Account. The platform will collect these fees from the fee paying Account that has been specified in the Withdrawal or the default fee Account for the originating Account.
 
 ### Processing a Withdrawal
 
@@ -876,11 +789,7 @@ The Withdrawal is then registered on the platform and validated, after which the
 
 Once Withdrawal is validated and approved, the platform proceeds to queueing the Withdrawal for processing.
 
-Periodically multiple Withdrawals from the same Wallet are grouped together in a single blockchain-level transaction, which is signed and eventually broadcasted. At this moment the platform creates a corresponding
-Withdrawal Processing Transaction that charges the processing fee, which matches the network fees,
-on the partner Entity Account.
-
-Withdrawals are NOT going to be processed if the partner Entity Account cannot pay the processing fees.
+Periodically multiple Withdrawals are grouped together in a single blockchain-level transaction, which is signed and eventually broadcasted.
 
 After a corresponding blockchain-level transaction is broadcasted on the network,
 all included Withdrawals are completed and their blockchain reference attributes are updated.
@@ -897,9 +806,10 @@ POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/withdrawal
 POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57cb5078ae0a8b569acct/transactions/withdrawal
 
 {
-  "reference": "unique-a8e530db9b0e3ba8-blah",
+  "reference": "unique-a8e530db9b0e3ba8-ref",
   "address": "3D2oetdNuZUqQHPJmcMDDHYoqkyNVsFk9r",
-  "amount": "1.00000000"
+  "amount": "1.00000000",
+  "fee_account_id": "b4b7525ae27160d582b9a2305aba9e00acct"
 }
 ```
 
@@ -911,58 +821,11 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b5
 }
 ```
 
-## WithdrawalProcessing Transactions
-
-A WithdrawalProcessing is a Transaction of type WITHDRAWAL_PROCESSING.
-The Digital Assets Platform processes Withdrawal Transactions in batches to include as many
-Withdrawals as possible in one single network transaction.
-When the batch of Withdrawals is processed and a network transaction has been broadcasted to the network,
-then a Transaction of type WITHDRAWAL_PROCESSING is created by the Digital Assets Platform.
-This WithdrawalProcessing Transaction represents a single transfer of funds
-from the Partner Entity’s Account and is used to pay the actual network fees for
-the network transaction.
-
-The WithdrawalProcessing Transaction has an attribute `amount` that represents the amount
-that is moved on the Partner Entity’s fee paying Account. The `amount` can be negative or positive.
-The `amount` is calculated as follows:
-`(SUM of the `fee_amounts` of all Withdrawals included in a network transaction) MINUS the actual network transaction fee`.
-
-As the `fee_amounts` of the Withdrawals are only an estimate they can be less or more than
-the actual fee that needs to be paid to the network thus leading to a positive or negative
-amount that will be taken from or credited to the Partner Entity’s fee paying Account.
-
-See:
-
-```
-GET /v1/entities/{entity_id}/accounts/{account_id}/transactions
-```
-
-### Example
-
-```
-GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57cb5078ae0a8b569acct/transactions/9c41ec8a82fb99b57cb5078ae0a8b569atrx
-
-200 OK
-
-{
-  "id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
-  "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
-  "type": "WITHDRAWAL_PROCESSING",
-  "state": "COMPLETED",
-  "amount": "-0.50000000",
-  "fee_amount": "0.00000000",
-  "total_amount": "-0.50000000",
-  "blockchain_txid": "648a0e4262c0edf6485ac8628bbb5411250ca057448a3125f2e36ce96e09bc28",
-  "created_at": "2019-04-02T13:18:51Z",
-  "updated_at": "2019-04-02T13:18:51Z"
-}
-```
-
 ## Transfers
 
-A Transfer represents a transfer of funds from one Account to another within the same Wallet.
+A Transfer represents a transfer of funds from one Account to another Account of the same Asset.
 This operation is not reflected externally as a blockchain transaction or any other observable event.
-It can be a Transfer between an end customer and a partner Accounts, or a Transfer between two end customer Accounts.
+It can be a Transfer between any tow `POOLED` Accounts of the same Asset.
 
 On the API level a Transfer is represented as two Transactions, one in the sender Account, having
 the type TRANSFER_OUTGOING, and one in the receiver Account, having the type TRANSFER_INCOMING.
@@ -998,7 +861,7 @@ POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/transfer
 POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57cb5078ae0a8b569acct/transactions/transfer
 
 {
-  "reference": "unique-32d57e1d72b9b5fa-blah",
+  "reference": "unique-32d57e1d72b9b5fa-ref",
   "receiver_account_id": "e0c7cea27569ba4c59572e4073ee823bacct",
   "amount": "1.00000000"
 }
@@ -1522,7 +1385,6 @@ Suppose there is a Withdrawal Transaction:
   "state": "PENDING",
   "amount": "-0.00000001",
   "fee_amount": "1.00000000",
-  "total_amount": "-1.00000001",
   "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
   "reference": "some-reference-ea1ee054",
   "created_at": "2019-08-21T10:47:34Z",
@@ -1545,7 +1407,7 @@ GET /v1/.../f4342c75f714405d89007ef13ce68688atrx/approval_request
   "type": "DSA_ED25519",
   "state": "PENDING",
   "challenge": {
-    "attrs": ["id","account_id","type,amount","fee_amount","total_amount","address","reference"]
+    "attrs": ["id","account_id","type,amount","fee_amount","address","reference"]
   },
   "created_at": "2019-08-21T10:47:34Z",
   "updated_at": "2019-08-21T10:47:34Z"
@@ -1560,7 +1422,6 @@ account_id: f52b22a8256cd2b0ad21f3c2cc2c5875acct\n
 type: WITHDRAWAL\n
 amount: -0.00000001\n
 fee_amount: 1.00000000\n
-total_amount: -1.00000001\n
 address: 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa\n
 reference: some-reference-ea1ee054
 ```
@@ -1613,7 +1474,6 @@ account_id: f52b22a8256cd2b0ad21f3c2cc2c5875acct\n
 type: WITHDRAWAL\n
 amount: -0.00000001\n
 fee_amount: 1.00000000\n
-total_amount: -1.00000001\n
 address: 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa\n
 reference: some-reference-ea1ee054
 ```
@@ -1726,4 +1586,3 @@ X-Resource-Location: /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/
 | id                  | Body     | ID of the created/updated Resource                  |
 
 ---
-
