@@ -2,8 +2,8 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-- Version: [0.19.1]
-- Updated: [2020-10-02]
+- Version: [0.20.0]
+- Updated: [2020-10-12]
 
 ## Table of Contents
 
@@ -550,7 +550,6 @@ Transactions have a `type` attribute, which describes the operation:
 
 - DEPOSIT
 - WITHDRAWAL
-- WITHDRAWAL_PROCESSING
 - WITHDRAWAL_FEE
 - TRANSFER_OUTGOING
 - TRANSFER_INCOMING
@@ -558,12 +557,13 @@ Transactions have a `type` attribute, which describes the operation:
 
 In addition Transactions have the following attributes:
 
-| name         | type    | desc                                          |
-| ------------ | ------- | --------------------------------------------- |
-| account_id   | String  | ID of the account tx belongs to               |
-| state        | String  | State of the tx, e.g. "PENDING"               |
-| amount       | Decimal | Transacted amount, positive or negative       |
-| fee_amount   | Decimal | Charged fee, always positive or 0             |
+| name           | type    | desc                                              |
+| -------------- | ------- | ------------------------------------------------- |
+| account_id     | String  | ID of the account tx belongs to                   |
+| state          | String  | State of the tx, e.g. "PENDING"                   |
+| amount         | Decimal | Transacted amount, positive or negative           |
+| fee_amount     | Decimal | Charged fee, always positive or 0                 |
+| fee_account_id | String  | ID of the account from which the fee is collected |
 
 
 Other attributes may be present, depending on the type of Transaction.
@@ -593,6 +593,10 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
       "state": "PENDING",
       "amount": "1.12340000",
       "fee_amount": "0.00000000",
+      "fee_account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
+      "address": "1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX",
+      "blockchain_txid": "0dfd5b293f62780ef18eb85c6cdbbad408217576ac0e4f610d2f7a145a7f8de2",
+      "blockchain_output_n": 1,
       "created_at": "2019-04-02T13:15:47Z",
       "updated_at": "2019-04-02T13:15:47Z"
     },
@@ -603,7 +607,11 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
       "state": "COMPLETED",
       "amount": "-0.80000000",
       "fee_amount": "0.12340000",
+      "fee_account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
+      "address": "2N7M3hr2d8BDJUX1ttd8oC2a3gZPr8MGo8C",
       "reference": "unique-a8e530db9b0e3ba8-ref",
+      "blockchain_txid": "2950ce725f529c5ea6dcedeeceaea7f42a62eeeb81c7da0bb08eb52e0f96d9d6",
+      "blockchain_output_n": 0,
       "linked_tx_ids": [
         "1556f5f4fa23e81e6bbdc313fa1707f5atrx"
       ],
@@ -617,6 +625,7 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
       "state": "COMPLETED",
       "amount": "0.12340000",
       "fee_amount": "0",
+      "fee_account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
       "linked_tx_ids": [
         "4368fe9ac68c3215b2432a6acffddee8atrx"
       ],
@@ -630,20 +639,10 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
       "state": "COMPLETED",
       "amount": "-0.50000000",
       "fee_amount": "0.00000000",
+      "fee_account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
       "reference": "example of reference",
       "sender_account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
       "receiver_account_id": "f0cfb103e6c3d4a37c2750a1256862a3acct",
-      "created_at": "2019-04-02T13:18:51Z",
-      "updated_at": "2019-04-02T13:18:51Z"
-    },
-    {
-      "id": "kajsdhfkjh241k43aslkdjf1h5kjh9atrx",
-      "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
-      "type": "WITHDRAWAL_PROCESSING",
-      "state": "COMPLETED",
-      "amount": "-0.50000000",
-      "fee_amount": "0.00000000",
-      "blockchain_txid": "648a0e4262c0edf6485ac8628bbb5411250ca057448a3125f2e36ce96e09bc28",
       "created_at": "2019-04-02T13:18:51Z",
       "updated_at": "2019-04-02T13:18:51Z"
     }
@@ -752,6 +751,10 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
   "state": "PENDING",
   "amount": "1.12340000",
   "fee_amount": "0.00000000",
+  "fee_account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
+  "address": "1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX",
+  "blockchain_txid": "0dfd5b293f62780ef18eb85c6cdbbad408217576ac0e4f610d2f7a145a7f8de2",
+  "blockchain_output_n": 1,
   "created_at": "2019-04-02T13:15:47Z",
   "updated_at": "2019-04-02T13:15:47Z"
 }
@@ -764,8 +767,8 @@ A Withdrawal is a Transaction of type WITHDRAWAL. A Withdrawal represents a sing
 ### Withdrawal Fee Model
 
 The SDA platform offers a flexible solution for paying blockchain fees. When creating a Withdrawal the partner can specify an Account that pays the fees for this Withdrawal.
-This can either be the Account from which the Withdrawal originates from, or any other Account the partner's Entity owns. This allows to the partner to pay the fees for the
-customer, chooses he so do so.
+This can either be the Account from which the Withdrawal originates from, or any other Account the partner's Entity owns. This allows the partner to pay the fees for the
+customer, if he chooses to do so.
 
 As a default the originating Account of the Withdrawal is used. In case the originating Account is a TOKEN Account, the default is the corresponding BASE Account.
 
@@ -898,9 +901,14 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b5
   "state": "CANCELLED",
   "amount": "-0.00000001",
   "fee_amount": "1.00000000",
-  "total_amount": "-1.00000001",
+  "fee_account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
   "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
   "reference": "some-reference-ea1ee054",
+  "blockchain_txid": null,
+  "blockchain_output_n": null,
+  "linked_tx_ids": [
+    "1556f5f4fa23e81e6bbdc313fa1707f5atrx"
+  ],
   "created_at": "2020-09-21T10:47:34Z",
   "updated_at": "2020-09-21T10:47:34Z"
 }
@@ -1407,7 +1415,7 @@ GET /v1/.../f4342c75f714405d89007ef13ce68688atrx/approval_request
   "type": "DSA_ED25519",
   "state": "PENDING",
   "challenge": {
-    "attrs": ["id","account_id","type,amount","fee_amount","address","reference"]
+    "attrs": ["id","account_id","type","amount","fee_amount","address","reference"]
   },
   "created_at": "2019-08-21T10:47:34Z",
   "updated_at": "2019-08-21T10:47:34Z"

@@ -1,5 +1,14 @@
 # Changelog
 
+## 12-10-2020
+
+API updated to v0.20.0
+
+- Updated Transaction representation: `fee_account_id` is a common attribute now
+- Updated Account representation: `isolation` attribute is now considered deprecated, isolation level is now determined by Account's Asset
+- Updated Asset representation: an additional `token_url` attribute determines underlying token protocol (e.g. ERC20) and the smart contract address
+- Withdrawal Processing Transactions are no longer documented: as the network fees for processing Withdrawals are now paid by the platform, Withdrawal Processing Transactions no longer appear in Partner's Accounts
+
 ## 02-10-2020
 
 API updated to v0.19.1
