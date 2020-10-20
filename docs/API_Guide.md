@@ -267,7 +267,7 @@ See:
 
 ## Filtering
 
-Endpoints that list resources support filtering, in order to get the desired resulset. At the moment
+Endpoints that list resources support filtering, in order to get the desired result set. At the moment
 the filtering scheme only supports exact matches (state = $SOME_STATE) or collection ranges (state IN ($POSSIBLE_STATES)),
 at the moment we do not support operational filters (>, <, <=, >=).
 
