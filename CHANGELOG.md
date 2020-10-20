@@ -1,5 +1,13 @@
 # Changelog
 
+## 20-10-2020
+
+API updated to v0.20.1
+
+- Added Pagination support for endpoints that list resources.
+- Added Sorting support for endpoints that list resources.
+- Added Filtering support for endpoints that list resources.
+
 ## 12-10-2020
 
 API updated to v0.20.0

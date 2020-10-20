@@ -2,8 +2,8 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-- Version: [0.20.0]
-- Updated: [2020-10-12]
+- Version: [0.20.1]
+- Updated: [2020-10-20]
 
 ## Table of Contents
 
@@ -14,6 +14,11 @@ An API platform that provides a managed custody solution for storing digital ass
   - [X-Nonce Header](#x-nonce-header)
   - [Signature Header](#signature-header)
   - [Examples](#examples)
+- [Filtering](#filtering)
+- [Sorting](#sorting)
+- [Pagination](#pagination)
+  - [Limit-Offset Pagination](#limit-offset-pagination)
+  - [Cursor Pagination (TBD)](#cursor-pagination-tbd)
 - [IDs](#ids)
   - [Example](#example)
 - [Assets](#assets)
@@ -258,6 +263,225 @@ See:
 
 - HTTP Signatures, <https://tools.ietf.org/html/draft-cavage-http-signatures-11>
 - Ed25519, <https://ed25519.cr.yp.to/>
+
+
+## Filtering
+
+Endpoints that list resources support filtering, in order to get the desired resulset. At the moment
+the filtering scheme only supports exact matches (state = $SOME_STATE) or collection ranges (state IN ($POSSIBLE_STATES)),
+at the moment we do not support operational filters (>, <, <=, >=).
+
+In order to filter you must add to the request query params in the following manner: `filter[$RESOURCE_ATTRIBUTE]=$DESIRED_VALUE`,
+several filters can be applied at once by chaining them.
+To filter using a collection of values use array notation: `filter[$RESOURCE_ATTRIBUTE][]=$FIRST_VALUE&filter[$RESOURCE_ATTRIBUTE][]=$SECOND_VALUE`
+
+### Examples
+
+- Match single values:
+
+```
+GET .../transactions?filter[type]=DEPOSIT
+
+```
+```
+200 OK
+
+{
+  "items": [
+    {
+      "id": "bf20c716075ea82a4b1f3f0b49657161atrx",
+      "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
+      "type": "DEPOSIT",
+      "state": "COMPLETED",
+      "amount": "1.12340000",
+      "fee_amount": "0.00000000",
+      "created_at": "2019-04-02T13:15:47Z",
+      "updated_at": "2019-04-02T13:15:47Z"
+    }
+  ]
+}
+```
+
+- Match any value in a set:
+```
+GET .../transactions?filter[state][]=COMPLETED&filter[state][]=FAILED
+
+```
+```
+200 OK
+
+{
+  "items": [
+    {
+      "id": "bf20c716075ea82a4b1f3f0b49657161atrx",
+      "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
+      "type": "DEPOSIT",
+      "state": "COMPLETED",
+      "amount": "1.12340000",
+      "fee_amount": "0.00000000",
+      "created_at": "2019-04-02T13:15:47Z",
+      "updated_at": "2019-04-02T13:15:47Z"
+    }
+  ]
+}
+```
+
+- Combine multiple filters:
+
+```
+GET .../transactions?filter[state][]=COMPLETED&filter[state][]=FAILED&filter[type]=DEPOSIT
+
+```
+```
+200 OK
+
+{
+  "items": [
+    {
+      "id": "bf20c716075ea82a4b1f3f0b49657161atrx",
+      "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
+      "type": "DEPOSIT",
+      "state": "COMPLETED",
+      "amount": "1.12340000",
+      "fee_amount": "0.00000000",
+      "created_at": "2019-04-02T13:15:47Z",
+      "updated_at": "2019-04-02T13:15:47Z"
+    }
+  ]
+}
+```
+
+## Sorting
+
+Endpoints that list resources support sorting of the result. In order to sort a result set you must add to the
+request the `sort` query parameter and set it's values using array notation: `sort[]=$SORT_STRING` where `$SORT_STRING` is: `$ATTRIBUTE $DIRECTION`,
+
+By default resources are ordered by `created_at desc` and `id asc`.
+
+### Examples
+
+```
+GET .../transactions?sort[]=created_at%20desc
+```
+
+```
+200 OK
+
+{
+  "items": [
+    {
+      "id": "bf20c716075ea82a4b1f3f0b49657161atrx",
+      "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
+      "type": "DEPOSIT",
+      "state": "COMPLETED",
+      "amount": "1.12340000",
+      "fee_amount": "0.00000000",
+      "created_at": "2020-10-09T13:15:47Z",
+      "updated_at": "2020-10-09T13:15:47Z"
+    },
+    {
+      "id": "bf20c716075ea82a4b1f3v0b49a57182atrx",
+      "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
+      "type": "DEPOSIT",
+      "state": "COMPLETED",
+      "amount": "1.00010000",
+      "fee_amount": "0.00000000",
+      "created_at": "2020-10-01T11:17:47Z",
+      "updated_at": "2020-10-01T11:17:47Z"
+    }
+  ]
+}
+```
+
+```
+GET .../transactions?sort[]=created_at%20desc&sort[]=state%20desc
+```
+
+```
+200 OK
+
+{
+  "items": [
+    {
+      "id": "bf20c716075ea82a4b1f3f0b49657161atrx",
+      "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
+      "type": "DEPOSIT",
+      "state": "COMPLETED",
+      "amount": "1.12340000",
+      "fee_amount": "0.00000000",
+      "created_at": "2020-10-09T13:15:47Z",
+      "updated_at": "2020-10-09T13:15:47Z"
+    },
+    {
+      "id": "bf20c716075ea82a4b1f3v0b49a57182atrx",
+      "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
+      "type": "DEPOSIT",
+      "state": "COMPLETED",
+      "amount": "1.00010000",
+      "fee_amount": "0.00000000",
+      "created_at": "2020-10-01T11:17:47Z",
+      "updated_at": "2020-10-01T11:17:47Z"
+    }
+  ]
+}
+```
+
+## Pagination
+Endpoints that list resources support pagination. At the moment we only support Limit-Offset pagination,
+but we plan to also support Cursor based pagination in the future.
+
+### Limit-Offset Pagination
+In order to paginate resources you must use the parameters `pagination[page]` and `pagination[size]`, both of which must
+have integer values, the default value for `pagination[size]` when no value is passed is `100`.
+
+When requesting a paginated result the response will contain a `pagination` object which will
+include the values for the next page (`next`) and the previous (`prev`), when such a page is not
+available the value will be `nil`.
+
+Limit-Offset pagination can be used in combination with sorting and filtering when needed.
+
+#### Example
+
+```
+GET .../transactions?pagination[page]=1&pagination[size]=200
+```
+
+```
+200 OK
+
+{
+  "items": [
+    {
+      "id": "bf20c716075ea82a4b1f3f0b49657161atrx",
+      "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
+      "type": "DEPOSIT",
+      "state": "COMPLETED",
+      "amount": "1.12340000",
+      "fee_amount": "0.00000000",
+      "created_at": "2020-10-09T13:15:47Z",
+      "updated_at": "2020-10-09T13:15:47Z"
+    },
+    {
+      "id": "bf20c716075ea82a4b1f3v0b49a57182atrx",
+      "account_id": "9c41ec8a82fb99b57cb5078ae0a8b569acct",
+      "type": "DEPOSIT",
+      "state": "COMPLETED",
+      "amount": "1.00010000",
+      "fee_amount": "0.00000000",
+      "created_at": "2020-10-01T11:17:47Z",
+      "updated_at": "2020-10-01T11:17:47Z"
+    }
+  ],
+  "pagination": {
+    "next": 2,
+    "prev": null
+  }
+}
+```
+
+
+
+### Cursor Pagination (TBD)
 
 ## IDs
 
@@ -1594,3 +1818,4 @@ X-Resource-Location: /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/
 | id                  | Body     | ID of the created/updated Resource                  |
 
 ---
+

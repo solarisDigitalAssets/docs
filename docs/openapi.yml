@@ -183,6 +183,10 @@ paths:
       summary: List all Assets
       description: |
         Returns a list of all Digital Assets supported by the platform.
+      parameters:
+        - $ref: "#/components/parameters/filterParams"
+        - $ref: "#/components/parameters/sortParams"
+        - $ref: "#/components/parameters/limitOffsetParams"
       responses:
         "200":
           description: A list of Assets
@@ -198,6 +202,9 @@ paths:
                     description: An array containing Assets
                     items:
                       $ref: "#/components/schemas/Asset"
+                  pagination:
+                    $ref: "#/components/schemas/paginationResponse"
+
         "401":
           $ref: "#/components/responses/Unauthorized"
         "500":
@@ -241,6 +248,10 @@ paths:
       summary: List all Entities
       description: |
         Returns a list of all Entities of this partner
+      parameters:
+        - $ref: "#/components/parameters/filterParams"
+        - $ref: "#/components/parameters/sortParams"
+        - $ref: "#/components/parameters/limitOffsetParams"
       responses:
         "200":
           description: A list of Entities
@@ -255,6 +266,8 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Entity"
+                  pagination:
+                    $ref: "#/components/schemas/paginationResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "500":
@@ -348,12 +361,15 @@ paths:
       description: |
         Returns a list of all Accounts owned by the given Entity
       parameters:
-      - name: entity_id
-        in: path
-        description: Entity ID
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: Entity ID
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/filterParams"
+        - $ref: "#/components/parameters/sortParams"
+        - $ref: "#/components/parameters/limitOffsetParams"
       responses:
         "200":
           description: A list of Accounts
@@ -368,6 +384,8 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Account"
+                  pagination:
+                    $ref: "#/components/schemas/paginationResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -475,18 +493,21 @@ paths:
       description: |
         Returns a list of all Addresses linked with the given Account, owned by the given Entity
       parameters:
-      - name: entity_id
-        in: path
-        description: Entity ID
-        required: true
-        schema:
-          type: string
-      - name: account_id
-        in: path
-        description: Account ID
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: Entity ID
+          required: true
+          schema:
+            type: string
+        - name: account_id
+          in: path
+          description: Account ID
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/filterParams"
+        - $ref: "#/components/parameters/sortParams"
+        - $ref: "#/components/parameters/limitOffsetParams"
       responses:
         "200":
           description: A list of Addresses
@@ -501,6 +522,8 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Address"
+                  pagination:
+                    $ref: "#/components/schemas/paginationResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -599,18 +622,21 @@ paths:
       description: |
         Returns a list of all Transactions of the given Account, owned by the given Entity.
       parameters:
-      - name: entity_id
-        in: path
-        description: Entity ID
-        required: true
-        schema:
-          type: string
-      - name: account_id
-        in: path
-        description: Account ID
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: Entity ID
+          required: true
+          schema:
+            type: string
+        - name: account_id
+          in: path
+          description: Account ID
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/filterParams"
+        - $ref: "#/components/parameters/sortParams"
+        - $ref: "#/components/parameters/limitOffsetParams"
       responses:
         "200":
           description: A list of Transactions
@@ -625,6 +651,8 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Transaction"
+                  pagination:
+                    $ref: "#/components/schemas/paginationResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -953,12 +981,15 @@ paths:
         and `SMS`.
         Entities of type `PARTNER` can use ApprovalMethods of type `DSA_ED25519`.
       parameters:
-      - name: entity_id
-        in: path
-        description: Entity ID
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: Entity ID
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/filterParams"
+        - $ref: "#/components/parameters/sortParams"
+        - $ref: "#/components/parameters/limitOffsetParams"
       responses:
         "200":
           description: A list of Approval Methods registered for this Entity
@@ -973,6 +1004,8 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/ApprovalMethod"
+                  pagination:
+                    $ref: "#/components/schemas/paginationResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -1345,18 +1378,21 @@ paths:
       description: |
         Returns a list of all Ledger Entries of a given Account, owned by the given Entity
       parameters:
-      - name: entity_id
-        in: path
-        description: Entity ID
-        required: true
-        schema:
-          type: string
-      - name: account_id
-        in: path
-        description: Account ID
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: Entity ID
+          required: true
+          schema:
+            type: string
+        - name: account_id
+          in: path
+          description: Account ID
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/filterParams"
+        - $ref: "#/components/parameters/sortParams"
+        - $ref: "#/components/parameters/limitOffsetParams"
       responses:
         "200":
           description: A list of Ledger Entries
@@ -1371,6 +1407,8 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/LedgerEntry"
+                  pagination:
+                    $ref: "#/components/schemas/paginationResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -1420,7 +1458,61 @@ paths:
           $ref: "#/components/responses/InternalServerError"
 
 components:
+  parameters:
+    filterParams:
+      in: query
+      name: filter
+      schema:
+        type: object
+        properties:
+          attribute_name:
+            type: string
+      style: deepObject
+      explode: true
+
+    sortParams:
+      in: query
+      name: sort
+      schema:
+        type: array
+        items:
+          type: string
+      style: form
+      explode: true
+
+    limitOffsetParams:
+      in: query
+      name: pagination
+      schema:
+        type: object
+        properties:
+          page:
+            type: integer
+          size:
+            type: integer
+            default: 100
+      style: deepObject
+      explode: true
+
   schemas:
+    #
+    # Pagination Response
+    #
+    paginationResponse:
+      required:
+        - next
+        - prev
+      properties:
+        next:
+          type: integer
+          nullable: true
+          description: |
+            The number of the next page in the dataset if available
+        prev:
+          type: integer
+          nullable: true
+          description: |
+            The number of the previous page in the dataset if available
     #
     # Asset schema
     #
@@ -2805,5 +2897,4 @@ components:
                 type: string
             example:
               message: Internal server error
-
 
