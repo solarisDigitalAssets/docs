@@ -3,7 +3,7 @@ info:
   title: solarisBank Digital Assets Platform API
   contact:
     email: Alexis.Hamel@solarisbank.de
-  version: 0.20.0
+  version: 0.21.2
 
   description: |
     This is a draft for solarisBank Digital Assets Platform API
@@ -148,7 +148,10 @@ info:
     --
 
 servers:
+- url: https://api.solarisdigitalassets.com/v1
+  description: Production
 - url: https://api.sb-cryptocustody-sandbox.aws.solarisbank.io/v1
+  description: Sandbox
 
 tags:
 - name: Asset
@@ -349,6 +352,25 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
+
+  #
+  # Accepting the terms and conditions
+  #
+  /entities/{entity_id}/terms_and_conditions:
+    post:
+      tags:
+      - Entity
+      summary: Accept terms and conditions
+      description: |
+        By posting to this endpoint the partner signifies the acceptance of SDA's terms and conditions by the Entity.
+        A call to this enpoint will update the Enttity identified by `entity_id` with a timestamp of when this endpoint was first called.
+    responses:
+      "201":
+        description: Successfully accepted the terms and conditions
+      "404":
+        $ref: "#/components/responses/NotFound"
+      "500":
+        $ref: "#/components/responses/InternalServerError"
 
   #
   # Accounts
@@ -1922,6 +1944,7 @@ components:
         - amount
         - fee_amount
         - fee_account_id
+        - end_to_end_id
         - created_at
         - updated_at
       properties:
@@ -1960,6 +1983,9 @@ components:
         fee_account_id:
           type: string
           description: The ID of the Account that will pay for the fees
+        end_to_end_id:
+          type: string
+          description: Identifier used to track a Transaction across the system
         created_at:
           type: string
           description: Time at which a transaction was created

@@ -2,8 +2,8 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-- Version: [0.20.1]
-- Updated: [2020-10-20]
+- Version: [0.21.2]
+- Updated: [2020-11-04]
 
 ## Table of Contents
 
@@ -111,7 +111,6 @@ The partner can register many Accounts in our platform, each Account must be ass
 The partner can create Addresses associated with an Account, which can be used to deposit funds there.
 
 The partner can initiate Withdrawals to an external address or Transfers to a different Account from an Account on behalf of the Account holder, within the existing Account balance.
-
 
 ## Setup
 
@@ -264,7 +263,6 @@ See:
 - HTTP Signatures, <https://tools.ietf.org/html/draft-cavage-http-signatures-11>
 - Ed25519, <https://ed25519.cr.yp.to/>
 
-
 ## Filtering
 
 Endpoints that list resources support filtering, in order to get the desired result set. At the moment
@@ -283,6 +281,7 @@ To filter using a collection of values use array notation: `filter[$RESOURCE_ATT
 GET .../transactions?filter[type]=DEPOSIT
 
 ```
+
 ```
 200 OK
 
@@ -307,6 +306,7 @@ GET .../transactions?filter[type]=DEPOSIT
 GET .../transactions?filter[state][]=COMPLETED&filter[state][]=FAILED
 
 ```
+
 ```
 200 OK
 
@@ -332,6 +332,7 @@ GET .../transactions?filter[state][]=COMPLETED&filter[state][]=FAILED
 GET .../transactions?filter[state][]=COMPLETED&filter[state][]=FAILED&filter[type]=DEPOSIT
 
 ```
+
 ```
 200 OK
 
@@ -427,10 +428,12 @@ GET .../transactions?sort[]=created_at%20desc&sort[]=state%20desc
 ```
 
 ## Pagination
+
 Endpoints that list resources support pagination. At the moment we only support Limit-Offset pagination,
 but we plan to also support Cursor based pagination in the future.
 
 ### Limit-Offset Pagination
+
 In order to paginate resources you must use the parameters `pagination[page]` and `pagination[size]`, both of which must
 have integer values, the default value for `pagination[size]` when no value is passed is `100`.
 
@@ -479,8 +482,6 @@ GET .../transactions?pagination[page]=1&pagination[size]=200
 }
 ```
 
-
-
 ### Cursor Pagination (TBD)
 
 ## IDs
@@ -515,7 +516,6 @@ Assets of this type represent crypto assets that have been created on an existin
 
 Assets of this type always have a `base_asset_id` which is the ID of the Asset that represents the underlying blockhchain.
 
-
 The API provides a way to list all Assets supported by the platform:
 
 See:
@@ -526,7 +526,9 @@ GET /v1/assets/{asset_id}
 ```
 
 ### Example
+
 #### Asset of type BASE
+
 ```
 GET /v1/assets/00000000000000000000000000000001asst
 ```
@@ -546,7 +548,9 @@ GET /v1/assets/00000000000000000000000000000001asst
   "updated_at": "2019-01-17T17:05:44Z"
 }
 ```
+
 #### Asset of type TOKEN
+
 ```
 GET /v1/assets/00010000000000000000000000000002asst
 ```
@@ -599,9 +603,9 @@ Before a partner can offer their customers the full feature set of solaris Digit
 
 - Person created (sB Identity API)
 - KYC successfully completed (sB Identity API)
-- Entity created (sDA API)
-- Approval method successfully created and verified for the entity (sDA API)
-- Account and associated address created (sDA API)
+- Entity created (SDA API)
+- Approval method successfully created and verified for the entity (SDA API)
+- Account and associated address created (SDA API)
 
 ![Entity onboarding flow](./img/entity_onboarding_flow.png)
 
@@ -636,9 +640,26 @@ POST /v1/entities
   "id": "10ef67dc895d6c19c273b1ffba0c1692enty",
   "type": "PERSON",
   "person_id": "5b1c711ef5cf4b7012b688616ed052d3cper",
+  "terms_conditions_signed_at": null,
   "created_at": "2019-04-02T12:27:33Z",
-  "updated_at": "2019-04-02T12:27:33Z"
+  "updated_at": "2019-04-02T12:27:33Z",
 }
+```
+
+## Terms and Conditions
+
+Entities of type `PERSON` are required to accept SDA's terms and conditions in order to use the platform. This is done by issuing a POST requests to `/v1/entities/{entity_id}/terms_and_conditions`.
+It is the partner's responsibility to present SDA's terms and conditions to the customer. The partner MUST NOT call this endpoint otherwise.
+
+See:
+
+```
+POST /v1/entities/{entity_id}/terms_and_conditions
+```
+
+### Example
+```
+POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/terms_and_conditions
 ```
 
 ## Accounts
@@ -661,7 +682,6 @@ Accounts that are created for Assets of type `BASE` must be `POOLED`.
 ## Segregated Accounts
 
 Segregated Accounts separate funds on the blockchain level. Transfers to other Accounts are not possible.
-
 
 ![account_creation](./img/account_creation.png)
 
@@ -778,7 +798,6 @@ Transactions have a `type` attribute, which describes the operation:
 - TRANSFER_OUTGOING
 - TRANSFER_INCOMING
 
-
 In addition Transactions have the following attributes:
 
 | name           | type    | desc                                              |
@@ -788,7 +807,6 @@ In addition Transactions have the following attributes:
 | amount         | Decimal | Transacted amount, positive or negative           |
 | fee_amount     | Decimal | Charged fee, always positive or 0                 |
 | fee_account_id | String  | ID of the account from which the fee is collected |
-
 
 Other attributes may be present, depending on the type of Transaction.
 
@@ -917,11 +935,11 @@ Before the transaction is APPROVED a partner can choose to CANCEL a transaction,
 
 Whenever a Transaction is requested by the partner, the platform runs validation checks on this request:
 
-| Validation check    | Description                                            |
-| ------------------- | ------------------------------------------------------ |
-| Amount Precision    | Precision of transacted/credited/debited amount needs to be within the range of Asset Precision |
-| Min Amount          | Minimal amount allowed for outgoing transactions in this Asset |
-| Address Format      | Soft validation with Asset specified RegExp            |
+| Validation check | Description                                                                                     |
+| ---------------- | ----------------------------------------------------------------------------------------------- |
+| Amount Precision | Precision of transacted/credited/debited amount needs to be within the range of Asset Precision |
+| Min Amount       | Minimal amount allowed for outgoing transactions in this Asset                                  |
+| Address Format   | Soft validation with Asset specified RegExp                                                     |
 
 If any of these checks fail, the Partner will see error response with code 400 **Invalid request**:
 
@@ -1002,7 +1020,6 @@ The platform will charge the specified Account. A transaction of type `WITHDRAWA
 
 The platform uses the collected fees to pay for transactions on a blockchain.
 
-
 #### Withdrawals from TOKEN Accounts
 
 Fees for Withdrawals from TOKEN Accounts MUST be paid in the base Asset of said TOKEN Account. The platform will collect these fees from the fee paying Account that has been specified in the Withdrawal or the default fee Account for the originating Account.
@@ -1010,6 +1027,9 @@ Fees for Withdrawals from TOKEN Accounts MUST be paid in the base Asset of said 
 ### Processing a Withdrawal
 
 To issue a Withdrawal on behalf of the customer, the partner creates a new Withdrawal object and provides a `reference` value, which MUST be unique across all Transactions of this partner and serves as idempotency key.
+
+Additionally the partner can set an optional `end_to_end_id` at the moment of requesting a Withdrawal which can help partners to identify the Transaction, when not set the platform will set one automatically.
+The `end_to_end_id` must be a unique string, the string must have a size no larger than 64 characters and all characters must be in the ASCII 7 bit character list.
 
 The Withdrawal is then registered on the platform and validated, after which the customer
 (as an Account holder) MUST approve the Withdrawal. See [Transaction Approvals].
@@ -1048,6 +1068,29 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b5
 }
 ```
 
+### Example setting an end_to_end_id
+
+```
+POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57cb5078ae0a8b569acct/transactions/withdrawal
+
+{
+  "reference": "unique-a8e530db9b0e3ba8-ref",
+  "address": "3D2oetdNuZUqQHPJmcMDDHYoqkyNVsFk9r",
+  "amount": "1.00000000",
+  "fee_account_id": "b4b7525ae27160d582b9a2305aba9e00acct",
+  "end_to_end_id": "d97fbb01ed496dea646809dd"
+}
+```
+
+```
+201 Created
+
+{
+  "transaction_id": "bede420fae7624091f337c22f9714fc0atrx"
+}
+```
+
+
 ## Transfers
 
 A Transfer represents a transfer of funds from one Account to another Account of the same Asset.
@@ -1062,6 +1105,10 @@ the type TRANSFER_OUTGOING, and one in the receiver Account, having the type TRA
 To issue a Transfer on behalf of the Account holder, the partner issues a request to create a Transfer
 on the sender Account and provides a `reference` value, which MUST be unique across all Transactions
 of this partner and serves as idempotency key.
+
+Additionally the partner can set an optional `end_to_end_id` at the moment of requesting a Transfer.
+This `end_to_end_id` will be set to both Outgoing and Incoming Transfer Transactions and can help partner to identify the transactions, when not set the platform will set it automatically.
+The `end_to_end_id` must be a unique string, the string must have a size no larger than 64 characters and all characters must be in the ASCII 7 bit character list.
 
 To reference a receiver Account of the Transfer, the partner MUST provide an ID of that Account.
 
@@ -1102,10 +1149,31 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b5
 }
 ```
 
+### Example setting an end_to_end_id
+
+```
+POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57cb5078ae0a8b569acct/transactions/transfer
+
+{
+  "reference": "unique-32d57e1d72b9b5fa-ref",
+  "receiver_account_id": "e0c7cea27569ba4c59572e4073ee823bacct",
+  "amount": "1.00000000",
+  "end_to_end_id": "1a37702e42ca8b999b8750655208"
+}
+```
+
+```
+201 Created
+
+{
+  "transaction_id": "fd213476ad3a1f2df48c7cbca394f3edatrx",
+}
+```
+
 ## Canceling a Transaction
 
 A transaction of `type` `WITHDRAWAL` or `TRANSFER` can be cancelled by the Partner
-given it is still in  `PENDING` state.
+given it is still in `PENDING` state.
 
 ```
 POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/cancel
@@ -1512,7 +1580,7 @@ POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id
 #### Response
 
 For the approval method SMS, the Customer should send the Response to the The platform.
-In order to prevent prevent potential brute force attacks, we only allow one attempt to submit the Reponse once per each ApprovalRequest.
+In order to prevent prevent potential brute force attacks, we only allow one attempt to submit the Response once per each ApprovalRequest.
 
 ```
 POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request/approve
@@ -1811,11 +1879,11 @@ X-Resource-Location: /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/
 }
 ```
 
-| Field Name          | Location | Description                                         |
-| ------------------- | -------- | --------------------------------------------------- |
-| X-Resource-Type     | Headers  | Type of the created/updated Resource                |
-| X-Resource-Location | Headers  | Absolute path to fetch created/updated Resource     |
-| id                  | Body     | ID of the created/updated Resource                  |
+| Field Name          | Location | Description                                     |
+| ------------------- | -------- | ----------------------------------------------- |
+| X-Resource-Type     | Headers  | Type of the created/updated Resource            |
+| X-Resource-Location | Headers  | Absolute path to fetch created/updated Resource |
+| id                  | Body     | ID of the created/updated Resource              |
 
 ---
 

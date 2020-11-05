@@ -1,5 +1,18 @@
 # Changelog
 
+## 05-11-2020
+
+API updated to v0.21.2
+
+ - Introduced End to End ID
+ - Introduced Terms and Conditions Endpoint
+
+## 04-11-2020
+
+API updated to v0.21.0
+
+- Updated Open API specification with Production sDA API url
+
 ## 20-10-2020
 
 API updated to v0.20.1
