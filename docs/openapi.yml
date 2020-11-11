@@ -3,7 +3,7 @@ info:
   title: solarisBank Digital Assets Platform API
   contact:
     email: Alexis.Hamel@solarisbank.de
-  version: 0.21.2
+  version: 0.22.0
 
   description: |
     This is a draft for solarisBank Digital Assets Platform API
@@ -148,32 +148,32 @@ info:
     --
 
 servers:
-- url: https://api.solarisdigitalassets.com/v1
-  description: Production
-- url: https://api.sb-cryptocustody-sandbox.aws.solarisbank.io/v1
-  description: Sandbox
+  - url: https://api.solarisdigitalassets.com/v1
+    description: Production
+  - url: https://api.sb-cryptocustody-sandbox.aws.solarisbank.io/v1
+    description: Sandbox
 
 tags:
-- name: Asset
-  description: Digital Assets supported by the platform
-- name: Entity
-  description: Entities registered and controlled by the Partner
-- name: Account
-  description: Accounts controlled by the Partner
-- name: Address
-  description: Digital Asset Addresses linked with the Accounts
-- name: Transaction
-  description: Transactions of an Account
-- name: Withdrawal
-  description: Creating a Withdrawal
-- name: Transfer
-  description: Transfers between Accounts
-- name: Approval Method
-  description: Approval Methods registered for Entities
-- name: Approval Request
-  description: Approval Requests for approving an outgoing Transaction via a second factor
-- name: LedgerEntry
-  description: Ledger Entries of an Account
+  - name: Asset
+    description: Digital Assets supported by the platform
+  - name: Entity
+    description: Entities registered and controlled by the Partner
+  - name: Account
+    description: Accounts controlled by the Partner
+  - name: Address
+    description: Digital Asset Addresses linked with the Accounts
+  - name: Transaction
+    description: Transactions of an Account
+  - name: Withdrawal
+    description: Creating a Withdrawal
+  - name: Transfer
+    description: Transfers between Accounts
+  - name: Approval Method
+    description: Approval Methods registered for Entities
+  - name: Approval Request
+    description: Approval Requests for approving an outgoing Transaction via a second factor
+  - name: LedgerEntry
+    description: Ledger Entries of an Account
 
 paths:
   #
@@ -182,7 +182,7 @@ paths:
   /assets:
     get:
       tags:
-      - Asset
+        - Asset
       summary: List all Assets
       description: |
         Returns a list of all Digital Assets supported by the platform.
@@ -197,7 +197,7 @@ paths:
             application/json:
               schema:
                 required:
-                - items
+                  - items
                 type: object
                 properties:
                   items:
@@ -216,17 +216,17 @@ paths:
   /assets/{asset_id}:
     get:
       tags:
-      - Asset
+        - Asset
       summary: Get a single Asset
       description: |
         Returns a single Asset found by its ID
       parameters:
-      - name: asset_id
-        in: path
-        description: Asset ID
-        required: true
-        schema:
-          type: string
+        - name: asset_id
+          in: path
+          description: Asset ID
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: A single Asset
@@ -247,7 +247,7 @@ paths:
   /entities:
     get:
       tags:
-      - Entity
+        - Entity
       summary: List all Entities
       description: |
         Returns a list of all Entities of this partner
@@ -275,30 +275,41 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/InternalServerError"
-
     post:
       tags:
-      - Entity
+        - Entity
       summary: Create an Entity
       description: |
-        Creates a new Entity of type PERSON owned by the partner.
+        Creates a new Entity of type PERSON or BUSINESS owned by the partner.
       requestBody:
         required: true
         description: |
           A `person_id` attribute must be specified, when creating an Entity of type PERSON.
+          A `name` attribute must be specified, when creating an Entity of type BUSINESS.
         content:
           application/json:
             schema:
               type: object
               required:
-              - person_id
+                - type
+                - person_id
+                - name
               properties:
                 person_id:
                   type: string
-                  description: The ID of the person, provided by solarsBank KYC product
+                  description: The ID of the person, provided by solarsBank KYC product (required for PERSON)
                   example: "b27a2b1c7b2ac61e3f0e7a1221ce816ecper"
+                type:
+                  type: string
+                  description: The type of the Entity (`PERSON` or `BUSINESS`)
+                  example: "PERSON"
+                name:
+                  type: string
+                  description: The name of the Entity (required for BUSINESS)
+                  example: "Mustermann GmbH"
             example:
               person_id: "f0af0d2164f3f8bcc44bf68d7beecce3cper"
+              type: "PERSON"
       responses:
         "201":
           description: Successfully created Entity
@@ -322,17 +333,17 @@ paths:
   /entities/{entity_id}:
     get:
       tags:
-      - Entity
+        - Entity
       summary: Get a single Entity
       description: |
         Returns a single Entity found by its ID
       parameters:
-      - name: entity_id
-        in: path
-        description: Entity ID
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: Entity ID
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: A single Entity
@@ -359,18 +370,25 @@ paths:
   /entities/{entity_id}/terms_and_conditions:
     post:
       tags:
-      - Entity
+        - Entity
       summary: Accept terms and conditions
       description: |
         By posting to this endpoint the partner signifies the acceptance of SDA's terms and conditions by the Entity.
-        A call to this enpoint will update the Enttity identified by `entity_id` with a timestamp of when this endpoint was first called.
-    responses:
-      "201":
-        description: Successfully accepted the terms and conditions
-      "404":
-        $ref: "#/components/responses/NotFound"
-      "500":
-        $ref: "#/components/responses/InternalServerError"
+        A call to this endpoint will update the Entity identified by `entity_id` with a timestamp of when this endpoint was first called.
+      parameters:
+        - name: entity_id
+          in: path
+          description: ID of the Entity the new Account belongs to
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Successfully accepted the terms and conditions
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   #
   # Accounts
@@ -378,7 +396,7 @@ paths:
   /entities/{entity_id}/accounts:
     get:
       tags:
-      - Account
+        - Account
       summary: List all Accounts of an Entity
       description: |
         Returns a list of all Accounts owned by the given Entity
@@ -417,19 +435,19 @@ paths:
 
     post:
       tags:
-      - Account
+        - Account
       summary: Create an Account
       description: |
         Creates a new Account owned by the given Entity.
 
         When creating an Account a valid Asset ID must be provided.
       parameters:
-      - name: entity_id
-        in: path
-        description: ID of the Entity the new Account belongs to
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: ID of the Entity the new Account belongs to
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         description: |
@@ -439,7 +457,7 @@ paths:
             schema:
               type: object
               required:
-              - asset_id
+                - asset_id
               properties:
                 asset_id:
                   type: string
@@ -450,8 +468,8 @@ paths:
                   description: "(deprecated) The isolation level of the Account is now determined by the Asset"
                   example: POOLED
                   enum:
-                  - POOLED
-                  - SEGREGATED
+                    - POOLED
+                    - SEGREGATED
             example:
               asset_id: "00000000000000000000000000000001asst"
       responses:
@@ -473,23 +491,23 @@ paths:
   /entities/{entity_id}/accounts/{account_id}:
     get:
       tags:
-      - Account
+        - Account
       summary: Get a single Account
       description: |
         Returns an Account identified by its ID, owned by the given Entity
       parameters:
-      - name: entity_id
-        in: path
-        description: Entity ID
-        required: true
-        schema:
-          type: string
-      - name: account_id
-        in: path
-        description: Account ID
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: Entity ID
+          required: true
+          schema:
+            type: string
+        - name: account_id
+          in: path
+          description: Account ID
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: A single Account
@@ -510,7 +528,7 @@ paths:
   /entities/{entity_id}/accounts/{account_id}/addresses:
     get:
       tags:
-      - Address
+        - Address
       summary: List all Addresses of an Account
       description: |
         Returns a list of all Addresses linked with the given Account, owned by the given Entity
@@ -555,7 +573,7 @@ paths:
 
     post:
       tags:
-      - Address
+        - Address
       summary: Create an Address
       description: |
         Creates a new Address linked with the given Account, owned by the given Entity.
@@ -566,18 +584,18 @@ paths:
         can immediately be used to receive funds on the blockchain.
 
       parameters:
-      - name: entity_id
-        in: path
-        description: Entity ID
-        required: true
-        schema:
-          type: string
-      - name: account_id
-        in: path
-        description: Account ID
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: Entity ID
+          required: true
+          schema:
+            type: string
+        - name: account_id
+          in: path
+          description: Account ID
+          required: true
+          schema:
+            type: string
       responses:
         "201":
           description: Successfully created Address
@@ -595,30 +613,30 @@ paths:
   /entities/{entity_id}/accounts/{account_id}/addresses/{address_id}:
     get:
       tags:
-      - Address
+        - Address
       summary: Get a single Address
       description: |
         Returns a single Address identified by its ID, linked with the given Account,
         owned by the given Entity.
       parameters:
-      - name: entity_id
-        in: path
-        description: Entity ID
-        required: true
-        schema:
-          type: string
-      - name: account_id
-        in: path
-        description: Account ID
-        required: true
-        schema:
-          type: string
-      - name: address_id
-        in: path
-        description: Address ID
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: Entity ID
+          required: true
+          schema:
+            type: string
+        - name: account_id
+          in: path
+          description: Account ID
+          required: true
+          schema:
+            type: string
+        - name: address_id
+          in: path
+          description: Address ID
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: A single Address
@@ -639,7 +657,7 @@ paths:
   /entities/{entity_id}/accounts/{account_id}/transactions:
     get:
       tags:
-      - Transaction
+        - Transaction
       summary: List all Transactions of an Account
       description: |
         Returns a list of all Transactions of the given Account, owned by the given Entity.
@@ -685,29 +703,29 @@ paths:
   /entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/cancel:
     post:
       tags:
-      - Transaction
+        - Transaction
       summary: Cancel a Transaction
       description: |
         Cancel a Transaction identified by its ID
       parameters:
-      - name: entity_id
-        in: path
-        description: Entity ID
-        required: true
-        schema:
-          type: string
-      - name: account_id
-        in: path
-        description: Account ID
-        required: true
-        schema:
-          type: string
-      - name: transaction_id
-        in: path
-        description: Transaction ID
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: Entity ID
+          required: true
+          schema:
+            type: string
+        - name: account_id
+          in: path
+          description: Account ID
+          required: true
+          schema:
+            type: string
+        - name: transaction_id
+          in: path
+          description: Transaction ID
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: A single Transaction
@@ -736,34 +754,33 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-
   /entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}:
     get:
       tags:
-      - Transaction
+        - Transaction
       summary: Get a single Transaction
       description: |
         Returns a single Transaction identified by its ID of the given Account,
         owned by the given Entity.
       parameters:
-      - name: entity_id
-        in: path
-        description: Entity ID
-        required: true
-        schema:
-          type: string
-      - name: account_id
-        in: path
-        description: Account ID
-        required: true
-        schema:
-          type: string
-      - name: transaction_id
-        in: path
-        description: Transaction ID
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: Entity ID
+          required: true
+          schema:
+            type: string
+        - name: account_id
+          in: path
+          description: Account ID
+          required: true
+          schema:
+            type: string
+        - name: transaction_id
+          in: path
+          description: Transaction ID
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: A single Transaction
@@ -797,7 +814,7 @@ paths:
   /entities/{entity_id}/accounts/{account_id}/transactions/withdrawal:
     post:
       tags:
-      - Withdrawal
+        - Withdrawal
       summary: Create a Withdrawal
       description: |
         Issues a request to create a new Withdrawal Transaction from the given Account, owned
@@ -824,18 +841,18 @@ paths:
         repeat the attempt after some (rather short) period of time.
 
       parameters:
-      - name: entity_id
-        in: path
-        description: Entity ID
-        required: true
-        schema:
-          type: string
-      - name: account_id
-        in: path
-        description: Account ID
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: Entity ID
+          required: true
+          schema:
+            type: string
+        - name: account_id
+          in: path
+          description: Account ID
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -887,7 +904,7 @@ paths:
   /entities/{entity_id}/accounts/{account_id}/transactions/transfer:
     post:
       tags:
-      - Transfer
+        - Transfer
       summary: Create a Transfer
       description: |
         Issues a request to create a new Transfer
@@ -922,18 +939,18 @@ paths:
         repeat the attempt after some (rather short) period of time.
 
       parameters:
-      - name: entity_id
-        in: path
-        description: Entity ID
-        required: true
-        schema:
-          type: string
-      - name: account_id
-        in: path
-        description: Account ID
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: Entity ID
+          required: true
+          schema:
+            type: string
+        - name: account_id
+          in: path
+          description: Account ID
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -984,7 +1001,7 @@ paths:
   /entities/{entity_id}/approval_methods:
     get:
       tags:
-      - Approval Method
+        - Approval Method
       summary: List Approval Methods registered for this Entity
       description: |
         Retrieves a list of Approval Methods that were registered for
@@ -1036,7 +1053,7 @@ paths:
           $ref: "#/components/responses/InternalServerError"
     post:
       tags:
-      - Approval Method
+        - Approval Method
       summary: Register a new Approval Method for this Entity
       description: |
         Registers a new Approval Method for an Entity with a given ID.
@@ -1059,12 +1076,12 @@ paths:
         Transactions initiated by this Entity.
 
       parameters:
-      - name: entity_id
-        in: path
-        description: Entity ID
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: Entity ID
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -1079,8 +1096,8 @@ paths:
                   description: Type of Approval Method
                   example: AUTHY_PUSH
                   enum:
-                  - AUTHY_PUSH
-                  - DSA_ED25519
+                    - AUTHY_PUSH
+                    - DSA_ED25519
                 pub_key:
                   type: string
                   description: |
@@ -1109,23 +1126,23 @@ paths:
   /entities/{entity_id}/approval_methods/{approval_method_id}:
     get:
       tags:
-      - Approval Method
+        - Approval Method
       summary: Get a single Approval Method
       description: |
         Returns an Approval Method identified by its ID, owned by the given Entity
       parameters:
-      - name: entity_id
-        in: path
-        description: Entity ID
-        required: true
-        schema:
-          type: string
-      - name: approval_method_id
-        in: path
-        description: Approval Method ID
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: Entity ID
+          required: true
+          schema:
+            type: string
+        - name: approval_method_id
+          in: path
+          description: Approval Method ID
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: A single Approval Method
@@ -1163,24 +1180,24 @@ paths:
         * for Entities of type PERSON  -- the approval method is either `AUTHY_PUSH` or `SMS`
         * for Entities of type PARTNER -- the approval method is `DSA_ED25519`
       parameters:
-      - name: entity_id
-        in: path
-        description: Entity ID
-        required: true
-        schema:
-          type: string
-      - name: account_id
-        in: path
-        description: Account ID
-        required: true
-        schema:
-          type: string
-      - name: transaction_id
-        in: path
-        description: Transaction ID
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: Entity ID
+          required: true
+          schema:
+            type: string
+        - name: account_id
+          in: path
+          description: Account ID
+          required: true
+          schema:
+            type: string
+        - name: transaction_id
+          in: path
+          description: Transaction ID
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         description: |
@@ -1243,24 +1260,24 @@ paths:
         Fetches the ApprovalRequest for an outgoing Transaction identified by given
         `transaction_id`.
       parameters:
-      - name: entity_id
-        in: path
-        description: Entity ID
-        required: true
-        schema:
-          type: string
-      - name: account_id
-        in: path
-        description: Account ID
-        required: true
-        schema:
-          type: string
-      - name: transaction_id
-        in: path
-        description: Transaction ID
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: Entity ID
+          required: true
+          schema:
+            type: string
+        - name: account_id
+          in: path
+          description: Account ID
+          required: true
+          schema:
+            type: string
+        - name: transaction_id
+          in: path
+          description: Transaction ID
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: An ApprovalRequest
@@ -1293,8 +1310,8 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request/approve:
-    post:
+  ? /entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request/approve
+  : post:
       tags:
         - Approval Request
       summary: Approve an ApprovalRequest of type `DSA_ED25519`
@@ -1306,24 +1323,24 @@ paths:
         See Transaction Approvals description [API Guide](API_Guide.md)
         on how to compute the response for a particular approval method.
       parameters:
-      - name: entity_id
-        in: path
-        description: Entity ID
-        required: true
-        schema:
-          type: string
-      - name: account_id
-        in: path
-        description: Account ID
-        required: true
-        schema:
-          type: string
-      - name: transaction_id
-        in: path
-        description: Transaction ID
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: Entity ID
+          required: true
+          schema:
+            type: string
+        - name: account_id
+          in: path
+          description: Account ID
+          required: true
+          schema:
+            type: string
+        - name: transaction_id
+          in: path
+          description: Transaction ID
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         description: |
@@ -1395,7 +1412,7 @@ paths:
   /entities/{entity_id}/accounts/{account_id}/ledger_entries:
     get:
       tags:
-      - LedgerEntry
+        - LedgerEntry
       summary: List all Ledger Entries of an Account
       description: |
         Returns a list of all Ledger Entries of a given Account, owned by the given Entity
@@ -1441,30 +1458,30 @@ paths:
   /entities/{entity_id}/accounts/{account_id}/ledger_entries/{ledger_entry_id}:
     get:
       tags:
-      - LedgerEntry
+        - LedgerEntry
       summary: Get a single Ledger Entry
       description: |
         Returns a single Ledger Entry identified by its ID of the given Account,
         owned by the given Entity.
       parameters:
-      - name: entity_id
-        in: path
-        description: Entity ID
-        required: true
-        schema:
-          type: string
-      - name: account_id
-        in: path
-        description: Account ID
-        required: true
-        schema:
-          type: string
-      - name: ledger_entry_id
-        in: path
-        description: Ledger Entry ID
-        required: true
-        schema:
-          type: string
+        - name: entity_id
+          in: path
+          description: Entity ID
+          required: true
+          schema:
+            type: string
+        - name: account_id
+          in: path
+          description: Account ID
+          required: true
+          schema:
+            type: string
+        - name: ledger_entry_id
+          in: path
+          description: Ledger Entry ID
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: A single Ledger Entry
@@ -1584,7 +1601,7 @@ components:
           type: string
           description: The type of the Asset. `BASE` in this case.
           enum:
-          - BASE
+            - BASE
         created_at:
           type: string
           format: date-time
@@ -1644,7 +1661,7 @@ components:
           type: string
           description: The type of the Asset. `TOKEN` in this case.
           enum:
-          - TOKEN
+            - TOKEN
         base_asset_id:
           type: string
           description: |
@@ -1701,7 +1718,7 @@ components:
           description: Type of Entity
           example: PARTNER
           enum:
-          - PARTNER
+            - PARTNER
         created_at:
           type: string
           description: Time at which the Entity was created
@@ -1733,7 +1750,7 @@ components:
           description: Type of Entity
           example: PERSON
           enum:
-          - PERSON
+            - PERSON
         person_id:
           type: string
           description: The ID of the person, provided by solarsBank KYC product
@@ -1792,14 +1809,14 @@ components:
           description: The type of the Account
           example: BASE
           enum:
-          - BASE
+            - BASE
         isolation:
           type: string
           description: (deprecated) The isolation level of the Account
           example: POOLED
           enum:
-          - POOLED
-          - SEGREGATED
+            - POOLED
+            - SEGREGATED
         created_at:
           type: string
           description: Time at which the Account was created
@@ -1855,14 +1872,14 @@ components:
           description: The type of the Account
           example: TOKEN
           enum:
-          - TOKEN
+            - TOKEN
         isolation:
           type: string
           description: The isolation level of the Account
           example: SEGREGATED
           enum:
-          - POOLED
-          - SEGREGATED
+            - POOLED
+            - SEGREGATED
         created_at:
           type: string
           description: Time at which the Account was created
@@ -2023,7 +2040,7 @@ components:
           type: string
           description: The type of a transaction
           enum:
-          - DEPOSIT
+            - DEPOSIT
         state:
           type: string
           description: Current state of the Transaction
@@ -2110,7 +2127,7 @@ components:
           type: string
           description: The type of a transaction
           enum:
-          - WITHDRAWAL
+            - WITHDRAWAL
         state:
           type: string
           description: Current state of the Transaction
@@ -2206,7 +2223,7 @@ components:
           type: string
           description: The type of a transaction
           enum:
-          - WITHDRAWAL_FEE
+            - WITHDRAWAL_FEE
         state:
           type: string
           description: Current state of the Transaction
@@ -2272,7 +2289,7 @@ components:
           type: string
           description: The type of a transaction
           enum:
-          - TRANSFER_OUTGOING
+            - TRANSFER_OUTGOING
         state:
           type: string
           description: Current state of the Transaction
@@ -2352,7 +2369,7 @@ components:
           type: string
           description: The type of a transaction
           enum:
-          - TRANSFER_INCOMING
+            - TRANSFER_INCOMING
         state:
           type: string
           description: Current state of the Transaction
@@ -2657,7 +2674,8 @@ components:
         transaction_id: "afa4bcc92adaad64fdaad3c48b8cb840tran"
         type: "AUTHY_PUSH"
         created_at: "2019-11-03T13:05:51Z"
-        updated_at: "2019-11-03T13:05:51Z"
+        updated_at:
+          "2019-11-03T13:05:51Z"
           #
     #
     # ApprovalRequestSMS
@@ -2821,13 +2839,13 @@ components:
           description: Type of the Ledger Entry
           example: "DEPOSIT_AMOUNT"
           enum:
-          - DEPOSIT_AMOUNT
-          - DEPOSIT_FEE
-          - WITHDRAWAL_AMOUNT
-          - WITHDRAWAL_FEE
-          - TRANSFER_AMOUNT
-          - TRANSFER_FEE
-          - WITHDRAWAL_BATCH_FEE
+            - DEPOSIT_AMOUNT
+            - DEPOSIT_FEE
+            - WITHDRAWAL_AMOUNT
+            - WITHDRAWAL_FEE
+            - TRANSFER_AMOUNT
+            - TRANSFER_FEE
+            - WITHDRAWAL_BATCH_FEE
         amount:
           type: string
           description: Amount of the Ledger Entry, positive or negative
@@ -2923,4 +2941,3 @@ components:
                 type: string
             example:
               message: Internal server error
-
