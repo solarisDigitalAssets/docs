@@ -2,86 +2,105 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-- Version: [0.21.2]
-- Updated: [2020-11-04]
+- Version: [0.22.0]
+- Updated: [2020-11-09]
 
 ## Table of Contents
 
-- [Introduction](#introduction)
-- [Setup](#setup)
-- [Authentication](#authentication)
-  - [Digest Header](#digest-header)
-  - [X-Nonce Header](#x-nonce-header)
-  - [Signature Header](#signature-header)
-  - [Examples](#examples)
-- [Filtering](#filtering)
-- [Sorting](#sorting)
-- [Pagination](#pagination)
-  - [Limit-Offset Pagination](#limit-offset-pagination)
-  - [Cursor Pagination (TBD)](#cursor-pagination-tbd)
-- [IDs](#ids)
-  - [Example](#example)
-- [Assets](#assets)
-  - [Example](#example-1)
-- [solaris Digital Assets recommendation: End customer onboarding](#solaris-digital-assets-recommendation-end-customer-onboarding)
-  - [solarisBank Identity API](#solarisbank-identity-api)
-  - [solaris Digital Assets API](#solaris-digital-assets-api)
-    - [Requirements for the end customer to be able to perform transactions:](#requirements-for-the-end-customer-to-be-able-to-perform-transactions)
-- [Entities](#entities)
-  - [Example](#example-3)
-- [Accounts](#accounts)
-  - [Account Balance](#account-balance)
-  - [Account Available Balance](#account-available-balance)
-  - [Example](#example-4)
-- [Addresses](#addresses)
-  - [Example](#example-5)
-- [Transactions](#transactions)
-  - [Example](#example-6)
-  - [Transaction Processing Workflow](#transaction-processing-workflow)
-- [Deposits](#deposits)
-  - [Example](#example-7)
-- [Withdrawals](#withdrawals)
-  - [Withdrawal Fee Model](#withdrawal-fee-model)
-  - [Processing a Withdrawal](#processing-a-withdrawal)
-  - [Example](#example-8)
-- [WithdrawalProcessing Transactions](#withdrawalprocessing-transactions)
-  - [Example](#example-9)
-- [Transfers](#transfers)
-  - [Processing a Transfer](#processing-a-transfer)
-  - [Example](#example-10)
-- [Approval Methods](#approval-methods)
-  - [Authy push notifications](#authy-push-notifications)
-    - [Setup](#setup-1)
-    - [Register this Approval Method for an Entity](#register-this-approval-method-for-an-entity)
-    - [Activation](#activation)
-  - [SMS](#sms)
-    - [Setup](#setup-2)
-    - [Register this Approval Method for an Entity](#register-this-approval-method-for-an-entity-1)
-    - [Activation](#activation-1)
-  - [DSA_ED25519](#dsa_ed25519)
-    - [Setup](#setup-3)
-    - [Register this Approval Method for an Entity](#register-this-approval-method-for-an-entity-2)
-    - [Activation](#activation-2)
-- [Approval Requests](#approval-requests)
-  - [Approval Method: AUTHY_PUSH](#approval-method-authy_push)
-    - [Setup](#setup-4)
-    - [Challenge](#challenge)
-    - [Fetching the state of the ApprovalRequest](#fetching-the-state-of-the-approvalrequest)
-  - [Approval Method: SMS](#approval-method-sms)
-    - [Setup](#setup-5)
-    - [Challenge](#challenge-1)
-    - [Validating the Challenge](#validating-the-challenge)
-    - [Fetching the state of the ApprovalRequest](#fetching-the-state-of-the-approvalrequest-1)
-  - [Approval method: DSA_ED25519](#approval-method-dsa_ed25519)
-    - [Setup](#setup-6)
-    - [Challenge](#challenge-2)
-      - [Example](#example-11)
-    - [Response](#response-1)
-      - [Example](#example-12)
-- [Ledger Entries](#ledger-entries)
-  - [Example](#example-13)
-- [Callbacks](#callbacks)
-  - [Example](#example-14)
+- [solaris Digital Assets Platform API Guide](#solaris-digital-assets-platform-api-guide)
+  - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+    - [Segregated Account](#segregated-account)
+    - [Pooled Account](#pooled-account)
+  - [Setup](#setup)
+  - [Authentication](#authentication)
+    - [Digest Header](#digest-header)
+    - [X-Nonce Header](#x-nonce-header)
+    - [Signature Header](#signature-header)
+    - [Examples](#examples)
+  - [Filtering](#filtering)
+    - [Examples](#examples-1)
+  - [Sorting](#sorting)
+    - [Examples](#examples-2)
+  - [Pagination](#pagination)
+    - [Limit-Offset Pagination](#limit-offset-pagination)
+      - [Example](#example)
+  - [IDs](#ids)
+    - [Example](#example-1)
+  - [Assets](#assets)
+    - [Assets of type BASE](#assets-of-type-base)
+    - [Assets of type TOKEN](#assets-of-type-token)
+    - [Example](#example-2)
+      - [Asset of type BASE](#asset-of-type-base)
+      - [Asset of type TOKEN](#asset-of-type-token)
+  - [solaris Digital Assets recommendation: End customer onboarding](#solaris-digital-assets-recommendation-end-customer-onboarding)
+    - [solarisBank Identity API](#solarisbank-identity-api)
+    - [solaris Digital Assets API](#solaris-digital-assets-api)
+      - [Requirements for the end customer to be able to perform transactions:](#requirements-for-the-end-customer-to-be-able-to-perform-transactions)
+  - [Entities](#entities)
+    - [Example](#example-3)
+    - [Terms and Conditions](#terms-and-conditions)
+      - [Example](#example-4)
+  - [Accounts](#accounts)
+    - [Pooled Accounts (default)](#pooled-accounts-default)
+    - [Segregated Accounts](#segregated-accounts)
+    - [Account Balance](#account-balance)
+    - [Account Available Balance](#account-available-balance)
+    - [Account type](#account-type)
+      - [Example](#example-5)
+  - [Addresses](#addresses)
+    - [Example](#example-6)
+  - [Transactions](#transactions)
+    - [Example](#example-7)
+    - [Transaction Processing Workflow](#transaction-processing-workflow)
+  - [Deposits](#deposits)
+    - [Token Deposits](#token-deposits)
+      - [Example](#example-8)
+  - [Withdrawals](#withdrawals)
+    - [Withdrawal Fee Model](#withdrawal-fee-model)
+    - [Withdrawals from TOKEN Accounts](#withdrawals-from-token-accounts)
+    - [Processing a Withdrawal](#processing-a-withdrawal)
+    - [Example](#example-9)
+    - [Example setting an end_to_end_id](#example-setting-an-end_to_end_id)
+  - [Transfers](#transfers)
+    - [Processing a Transfer](#processing-a-transfer)
+    - [Example](#example-10)
+    - [Example setting an end_to_end_id](#example-setting-an-end_to_end_id-1)
+  - [Canceling a Transaction](#canceling-a-transaction)
+    - [Example](#example-11)
+  - [Approval Methods](#approval-methods)
+    - [Authy push notifications](#authy-push-notifications)
+      - [Setup](#setup-1)
+      - [Register this Approval Method for an Entity](#register-this-approval-method-for-an-entity)
+      - [Activation](#activation)
+    - [SMS](#sms)
+      - [Setup](#setup-2)
+      - [Register this Approval Method for an Entity](#register-this-approval-method-for-an-entity-1)
+      - [Activation](#activation-1)
+    - [DSA_ED25519](#dsa_ed25519)
+      - [Setup](#setup-3)
+      - [Register this Approval Method for an Entity](#register-this-approval-method-for-an-entity-2)
+      - [Activation](#activation-2)
+  - [Approval Requests](#approval-requests)
+    - [Approval Method: AUTHY_PUSH](#approval-method-authy_push)
+      - [Setup](#setup-4)
+      - [Challenge](#challenge)
+      - [Fetching the state of the ApprovalRequest](#fetching-the-state-of-the-approvalrequest)
+    - [Approval Method: SMS](#approval-method-sms)
+      - [Setup](#setup-5)
+      - [Challenge](#challenge-1)
+      - [Response](#response)
+      - [Fetching the state of the ApprovalRequest](#fetching-the-state-of-the-approvalrequest-1)
+    - [Approval method: DSA_ED25519](#approval-method-dsa_ed25519)
+      - [Setup](#setup-6)
+      - [Challenge](#challenge-2)
+        - [Example](#example-12)
+      - [Response](#response-1)
+        - [Example](#example-13)
+  - [Ledger Entries](#ledger-entries)
+    - [Example](#example-14)
+  - [Callbacks](#callbacks)
+    - [Example](#example-15)
 
 ## Introduction
 
@@ -265,7 +284,7 @@ See:
 
 ## Filtering
 
-Endpoints that list resources support filtering, in order to get the desired result set. At the moment
+Endpoints that list resources support filtering, in order to get the desired resulset. At the moment
 the filtering scheme only supports exact matches (state = $SOME_STATE) or collection ranges (state IN ($POSSIBLE_STATES)),
 at the moment we do not support operational filters (>, <, <=, >=).
 
@@ -302,6 +321,7 @@ GET .../transactions?filter[type]=DEPOSIT
 ```
 
 - Match any value in a set:
+
 ```
 GET .../transactions?filter[state][]=COMPLETED&filter[state][]=FAILED
 
@@ -482,8 +502,6 @@ GET .../transactions?pagination[page]=1&pagination[size]=200
 }
 ```
 
-### Cursor Pagination (TBD)
-
 ## IDs
 
 All resources exposed by the API have uniform unique ID scheme, which follows the scheme of solarisBank API — an ID is a String of 36 characters.
@@ -625,10 +643,13 @@ GET /v1/entities/{entity_id}
 
 ### Example
 
+Creating Entity of type `PERSON`
+
 ```
 POST /v1/entities
 
 {
+  "type": "PERSON",
   "person_id": "5b1c711ef5cf4b7012b688616ed052d3cper"
 }
 ```
@@ -646,9 +667,33 @@ POST /v1/entities
 }
 ```
 
-## Terms and Conditions
+Creating Entity of type `BUSINESS`
 
-Entities of type `PERSON` are required to accept SDA's terms and conditions in order to use the platform. This is done by issuing a POST requests to `/v1/entities/{entity_id}/terms_and_conditions`.
+```
+POST /v1/entities
+
+{
+  "type": "BUSINESS",
+  "name": "Mustermann GmbH"
+}
+```
+
+```
+201 Created
+
+{
+  "id": "10ef67dc895d6c19c273b1ffba0c1692enty",
+  "type": "BUSINESS",
+  "name": "Mustermann GmbH",
+  "terms_conditions_signed_at": null,
+  "created_at": "2019-04-02T12:27:33Z",
+  "updated_at": "2019-04-02T12:27:33Z",
+}
+```
+
+### Terms and Conditions
+
+Entities of type `PERSON` and `BUSINESS` are required to accept SDA's terms and conditions in order to use the platform. This is done by issuing a POST requests to `/v1/entities/{entity_id}/terms_and_conditions`.
 It is the partner's responsibility to present SDA's terms and conditions to the customer. The partner MUST NOT call this endpoint otherwise.
 
 See:
@@ -657,7 +702,7 @@ See:
 POST /v1/entities/{entity_id}/terms_and_conditions
 ```
 
-### Example
+#### Example
 ```
 POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/terms_and_conditions
 ```
@@ -670,7 +715,7 @@ To create an Account, the partner MUST provide a reference to an existing Entity
 
 Accounts can have different isolation levels, `POOLED` and `SEGREGATED`.
 
-## Pooled Accounts (default)
+### Pooled Accounts (default)
 
 With Pooled Accounts there is no separation of funds on the blockchain level. Pooled Accounts offer
 certain benefits for it's users. It is possible to send instant Transfers from all Accounts of one
@@ -679,7 +724,7 @@ expensive fees.
 
 Accounts that are created for Assets of type `BASE` must be `POOLED`.
 
-## Segregated Accounts
+### Segregated Accounts
 
 Segregated Accounts separate funds on the blockchain level. Transfers to other Accounts are not possible.
 
@@ -726,7 +771,7 @@ GET /v1/entities/{entity_id}/accounts
 GET /v1/entities/{entity_id}/accounts/{account_id}
 ```
 
-### Example
+#### Example
 
 ```
 POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts
@@ -967,7 +1012,7 @@ Whenever a blockchain transaction is made to one of the addresses created using 
 - The transaction is confirmed by the network and the corresponding Transaction of type DEPOSIT state is changed on the platform, crediting the funds
 - The partner can detect the state change by polling for the individual Transaction details or by listing the Account Transactions
 
-## Token Deposits
+### Token Deposits
 
 On the blockchain level tokens can be received on Addresses of the underlying asset.
 To register token deposits that have been sent to the Address of the underlying asset
@@ -977,7 +1022,7 @@ Once a token Account has been created, existing Addresses of the base Account ca
 token Deposits and all token Deposits for this Asset that happened before the creation
 of the Account will be visible to the Partner.
 
-### Example
+#### Example
 
 ```
 GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57cb5078ae0a8b569acct/transactions/bf20c716075ea82a4b1f3f0b49657161atrx
@@ -1020,7 +1065,7 @@ The platform will charge the specified Account. A transaction of type `WITHDRAWA
 
 The platform uses the collected fees to pay for transactions on a blockchain.
 
-#### Withdrawals from TOKEN Accounts
+### Withdrawals from TOKEN Accounts
 
 Fees for Withdrawals from TOKEN Accounts MUST be paid in the base Asset of said TOKEN Account. The platform will collect these fees from the fee paying Account that has been specified in the Withdrawal or the default fee Account for the originating Account.
 
@@ -1218,7 +1263,7 @@ Currently there are following Approval Method types supported by the platform:
 - `DSA_ED25519` -- represents an ECDSA based MFA mechanism
 
 In order to be able to approve Transactions by the corresponding Account holder (an Entity
-of type `PERSON` or `PARTNER`), there MUST be a registered and activated Approval Method
+of type `PERSON`, `PARTNER` or `BUSINESS`), there MUST be a registered and activated Approval Method
 for this Entity.
 
 When first registered, an Approval Method is in a `PENDING` state. Then, depending on
@@ -1375,7 +1420,7 @@ GET /v1/entities/df8bd407b3dfbd37f8ff3e5efbd4e8acenty/approval_methods/b2046aec7
 
 This Approval Method is designed for automated systems or custom integrations
 (e.g. custom mobile apps). Currently this Approval Method is only available
-for Entity of type `PARTNER`.
+for Entity of type `PARTNER` and `BUSINESS`.
 
 Approving a Transaction using this method works in the following way:
 
@@ -1387,7 +1432,7 @@ Approving a Transaction using this method works in the following way:
 
 #### Setup
 
-The corresponding Entity of type `PARTNER` MUST be registered.
+The corresponding Entity of type `PARTNER` or `BUSINESS` MUST be registered.
 
 To utilize this method, the partner MUST generate an _Approval key_ and store it.
 
@@ -1470,6 +1515,7 @@ of Account holders:
 - Entity of type PERSON -- an ApprovalRequest of type `AUTHY_PUSH`
 - Entity of type PERSON -- an ApprovalRequest of type `SMS`
 - Entity of type PARTNER -- an ApprovalRequest of type `DSA_ED25519`
+- Entity of type BUSINESS -- an ApprovalRequest of type `DSA_ED25519`
 
 The method of approval for an ApprovalRequest depends on the type of the ApprovalMethod
 which is associated with the ApprovalRequest.
@@ -1886,4 +1932,3 @@ X-Resource-Location: /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/
 | id                  | Body     | ID of the created/updated Resource              |
 
 ---
-

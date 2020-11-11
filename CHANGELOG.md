@@ -1,11 +1,17 @@
 # Changelog
 
+## 09-11-2020
+
+API updated to v0.22.0
+
+- Introduced `BUSINESS` Entity type
+
 ## 05-11-2020
 
 API updated to v0.21.2
 
- - Introduced End to End ID
- - Introduced Terms and Conditions Endpoint
+- Introduced End to End ID
+- Introduced Terms and Conditions Endpoint
 
 ## 04-11-2020
 
