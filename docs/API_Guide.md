@@ -2,8 +2,8 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-- Version: [0.22.0]
-- Updated: [2020-11-09]
+- Version: [0.23.0]
+- Updated: [2020-11-30]
 
 ## Table of Contents
 
@@ -522,7 +522,7 @@ Any Asset has an artificial unique identifier and some additional details. For e
 
 The Asset identifiers are the only way to refer a specific asset on our platform. Any other forms of reference, like an ISO code, are not considered immutable and/or unique.
 
-Assets come in two different types: `BASE` and `TOKEN`.
+Assets come in three different types: `BASE`, `TOKEN` and `FIAT`.
 
 ### Assets of type BASE
 
@@ -533,6 +533,13 @@ Assets of this type represent crypto assets that are native to their own blockch
 Assets of this type represent crypto assets that have been created on an existing blockchain. An example for this are ERC-20 tokens which have been created on the Ethereum blockchain.
 
 Assets of this type always have a `base_asset_id` which is the ID of the Asset that represents the underlying blockhchain.
+
+### Assets of type FIAT
+
+Assets of this type represent fiat assets. An example is Euro. Those Assets are only used as a reference Asset for fiat currencies in trading pairs and have only an informative purpose.
+
+No Accounts can be created for Assets of this type.
+
 
 The API provides a way to list all Assets supported by the platform:
 
@@ -587,6 +594,22 @@ GET /v1/assets/00010000000000000000000000000002asst
   "type":"TOKEN",
   "created_at": "2019-01-17T17:05:44Z"
   "updated_at": "2019-01-17T17:05:44Z"
+}
+```
+
+#### Asset of type FIAT
+
+```
+{
+  "id": "f0000000000000000000000000000001asst",
+  "type": "FIAT",
+  "code": "EUR",
+  "precision": 2,
+  "description": "Euro",
+  "address_validation": null,
+  "tx_min_amount": "30.0",
+  "created_at": "2020-11-24T12:56:55Z",
+  "updated_at": "2020-11-24T12:57:09Z"
 }
 ```
 
@@ -762,6 +785,8 @@ Transaction.
 Accounts have one of two different kinds, depending on the underlying Asset's type.
 It is either `BASE` when the Account belongs to a base Asset or `TOKEN` when the
 Account belongs to a token Asset.
+
+It is not possible to create Accounts for Assets of type `FIAT`!
 
 See:
 
