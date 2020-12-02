@@ -1,5 +1,11 @@
 # Changelog
 
+## 02-12-2020
+
+API updated to v0.23.1
+
+- Removed some syntactically incorrect commas from the openapi.yml
+
 ## 01-12-2020
 
 API updated to v0.23.0
