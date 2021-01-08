@@ -3,7 +3,7 @@ info:
   title: solarisBank Digital Assets Platform API
   contact:
     email: Alexis.Hamel@solarisbank.de
-  version: 0.23.1
+  version: 0.24.0
 
   description: |
     This is a draft for solarisBank Digital Assets Platform API
@@ -158,6 +158,8 @@ tags:
     description: Digital Assets supported by the platform
   - name: Entity
     description: Entities registered and controlled by the Partner
+  - name: ClosureRequest
+    description: The request to end the contractual relationship between SDA and the customer
   - name: Account
     description: Accounts controlled by the Partner
   - name: Address
@@ -383,17 +385,196 @@ paths:
          required: true
          schema:
            type: string
-    responses:
-      "201":
-        description: Successfully accepted the terms and conditions
+      responses:
+        "201":
+          description: Successfully accepted the terms and conditions
+          content:
+            application/json:
+              schema:
+                type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  #
+  # ClosureRequests
+  #
+  /entities/{entity_id}/closure_requests:
+    get:
+      tags:
+      - ClosureRequests
+      summary: List all ClosureRequests
+      description: |
+        Returns a list of all ClosureRequests of the Entity identified by `entity_id`
+      parameters:
+      - $ref: "#/components/parameters/filterParams"
+      - $ref: "#/components/parameters/sortParams"
+      - $ref: "#/components/parameters/limitOffsetParams"
+      - name: entity_id
+        in: path
+        description: ID of the Entity that should update the terms and conditions.
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: A list of ClosureRequests
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ClosureRequest"
+                  pagination:
+                    $ref: "#/components/schemas/paginationResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      tags:
+      - ClosureRequest
+      summary: Create a new ClosureRequest for Entity with `entity_id`
+      description: |
+        On behalf of the customer the partner can initiate the request to end the contractual realtionship between the customer and SDA.
+        A call to this endpoint will create a new ClosureRequest for the Entity identified by `entity_id`. This ClosureRequest will be
+        processed in the background.
+      parameters:
+       - name: entity_id
+         in: path
+         description: ID of the Entity that should update the terms and conditions.
+         required: true
+         schema:
+           type: string
+      requestBody:
+        required: true
+        description: A `reason` attribute must be specified. `reason` must be `CUSTOMER_WISH`.
         content:
           application/json:
             schema:
               type: object
-      "404":
-        $ref: "#/components/responses/NotFound"
-      "500":
-        $ref: "#/components/responses/InternalServerError"
+              required:
+              - reason
+              properties:
+                reason:
+                  type: string
+                  description: The reason for the termination of the contract between Entity and SDA
+                  example: "CUSTOMER_WISH"
+            example:
+              reason: "CUSTOMER_WISH"
+      responses:
+        "201":
+          description: Successfully created a ClosureRequest
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClosureRequest"
+              example:
+                id: "ae93e4dcb3d0f5d0e36a227a94ff39e5creq"
+                reason: "CUSTOMER_WISH"
+                entity_id: "275cf8f7559fd88710b4c919f85777aaenty"
+                state: "APPROVED"
+                valid_until: "2019-04-01T22:31:06Z"
+                created_at: "2019-03-01T22:31:06Z"
+                updated_at: "2019-03-01T22:31:06Z"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /entities/{entity_id}/closure_requests/{closure_request_id}:
+    get:
+      tags:
+      - ClosureRequest
+      summary: Get a single ClosureRequest
+      description: |
+        Returns a single ClosureRequest found by its ID
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: closure_request_id
+        in: path
+        description: ClosureRequest ID
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: A single ClosureRequest
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClosureRequest"
+              example:
+                id: "ae93e4dcb3d0f5d0e36a227a94ff39e5creq"
+                reason: "CUSTOMER_WISH"
+                entity_id: "275cf8f7559fd88710b4c919f85777aaenty"
+                state: "APPROVED"
+                valid_until: "2019-04-01T22:31:06Z"
+                created_at: "2019-03-01T22:31:06Z"
+                updated_at: "2019-03-01T22:31:06Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /entities/{entity_id}/closure_requests/{closure_request_id}/confirm:
+    post:
+      tags:
+      - ClosureRequest
+      summary: Confirm a ClosureRequest with `closure_request_id`
+      description: |
+        After the partner got notified of a ClosureRequest of type `COMPLIANCE_IMMEDIATE_INTERNAL` the parter
+        must confirm this ClosureRequest to the SDA platform.
+      parameters:
+       - name: entity_id
+         in: path
+         description: ID of the Entity to which the ClosureRequest belongs to
+         required: true
+         schema:
+           type: string
+       - name: closure_request_id
+         in: path
+         description: ID of the ClosureRequest that should be confirmed
+         required: true
+         schema:
+           type: string
+      responses:
+        "200":
+          description: Successfully confirmed a ClosureRequest
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClosureRequest"
+              example:
+                id: "ae93e4dcb3d0f5d0e36a227a94ff39e5creq"
+                reason: "COMPLIANCE_IMMEDIATE_INTERNAL"
+                entity_id: "275cf8f7559fd88710b4c919f85777aaenty"
+                state: "APPROVED"
+                valid_until: "2019-04-01T22:31:06Z"
+                created_at: "2019-03-01T22:31:06Z"
+                updated_at: "2019-03-01T22:31:06Z"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   #
   # Accounts
@@ -1693,7 +1874,7 @@ components:
         code: "TKN"
         description: "Token"
         precision: 8
-        address_validation: "^(bc(0([ac-hj-np-z02-9]{39}|[ac-hj-np-z02-9]{59})|1[ac-hj-np-z02-9]{8,87})|[13][a-km-zA-HJ-NP-Z1-9]{25,35})$"
+        address_validation: "^0x[a-fA-F0-9]{40}$"
         tx_min_amount: "0.00001"
         type: "TOKEN"
         base_asset_id: "00000000000000000000000000000002asst"
@@ -1731,17 +1912,19 @@ components:
             Precision of monetary amounts in this asset (i.e. number of decimal places)
         address_validation:
           type: string
+          nullable: true
           description: |
-            Regular expression which can be used to validate addresses for this Asset
+            (DEPRECATED) Will not be used in FIAT assets
         tx_min_amount:
           type: string
+          nullable: true
           description: |
             Minimal amount allowed for outgoing transactions in this Asset
         type:
           type: string
-          description: The type of the Asset. `BASE` in this case.
+          description: The type of the Asset. `FIAT` in this case.
           enum:
-          - BASE
+          - FIAT
         created_at:
           type: string
           format: date-time
@@ -1826,6 +2009,24 @@ components:
           description: Time at which the customer acknowledged the T&Cs
           format: date-time
           nullable: true
+        state:
+          type: string
+          description: |
+            The state of an Entity of type `PERSON`.
+          example: ACTIVE
+          enum:
+          - ACTIVE
+          - CLOSING
+          - LEGALLY_CLOSED
+          - CLOSED
+        legally_closed_at:
+          type: string
+          description: Time at which the Entity's state was set to `LEGALLY_CLOSED`
+          format: date-time
+        closed_at:
+          type: string
+          description: Time at which the Entity's state was set to `CLOSED`
+          format: date-time
         created_at:
           type: string
           description: Time at which the Entity was created
@@ -1839,6 +2040,8 @@ components:
         type: "PERSON"
         person_id: "e3c4bc7bdfeaed3c0a3cebd2addcd5accper"
         terms_conditions_signed_at: "2019-03-01T22:45:06Z"
+        legally_closed_at: "2021-02-01T13:22:12Z"
+        closed_at: "2021-03-01T16:54:16Z"
         created_at: "2019-03-01T22:31:06Z"
         updated_at: "2019-03-01T22:45:06Z"
 
@@ -1885,6 +2088,59 @@ components:
         terms_conditions_signed_at: "2019-03-01T22:45:06Z"
         created_at: "2019-03-01T22:31:06Z"
         updated_at: "2019-03-01T22:45:06Z"
+
+    #
+    # ClosureRequest
+    #
+    ClosureRequest:
+      type: object
+      required:
+        - id
+        - entity_id
+        - reason
+        - state
+        - valid_until
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the ClosureRequest
+        reason:
+          type: string
+          description: Reason for Account closure
+          example: CUSTOMER_WISH
+          enum:
+          - CUSTOMER_WISH
+        valid_until:
+          type: string
+          description: Time until which the Entity can empty their Accounts
+          format: date-time
+        state:
+          type: string
+          description: The state of the ClosureRequest
+          example: PENDING
+          enum:
+          - PENDING
+          - APPROVED
+          - FAILED
+          - COMPLETED
+        created_at:
+          type: string
+          description: Time at which the ClosureRequest was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the ClosureRequest was last updated
+          format: date-time
+      example:
+        id: "ae93e4dcb3d0f5d0e36a227a94ff39e5creq"
+        reason: "CUSTOMER_WISH"
+        entity_id: "275cf8f7559fd88710b4c919f85777aaenty"
+        state: "APPROVED"
+        valid_until: "2019-04-01T22:31:06Z"
+        created_at: "2019-03-01T22:31:06Z"
+        updated_at: "2019-03-01T22:31:06Z"
 
     #
     # Account schema

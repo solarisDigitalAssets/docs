@@ -1,5 +1,12 @@
 # Changelog
 
+## 08-01-2021
+
+API updated to v0.24.0
+
+- Added documentation for ClosureRequests
+- Added documentation for Entity states
+
 ## 02-12-2020
 
 API updated to v0.23.1
