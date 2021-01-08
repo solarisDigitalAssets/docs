@@ -1,5 +1,27 @@
 # Changelog
 
+## 08-01-2021
+
+API updated to v0.24.0
+
+- Added documentation for ClosureRequests
+- Added documentation for Entity states
+
+## 02-12-2020
+
+API updated to v0.23.1
+
+- Removed some syntactically incorrect commas from the openapi.yml
+
+## 01-12-2020
+
+API updated to v0.23.0
+
+- Introduced endpoint for accepting terms and conditions
+- Introduced Asset of type `FIAT`
+- Added some fixes for end-to-end reference
+- Added some fixes for `BUSINESS` Entity
+
 ## 09-11-2020
 
 API updated to v0.22.0

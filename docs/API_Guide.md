@@ -2,8 +2,8 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-- Version: [0.22.0]
-- Updated: [2020-11-09]
+- Version: [0.24.0]
+- Updated: [2021-01-06]
 
 ## Table of Contents
 
@@ -522,7 +522,7 @@ Any Asset has an artificial unique identifier and some additional details. For e
 
 The Asset identifiers are the only way to refer a specific asset on our platform. Any other forms of reference, like an ISO code, are not considered immutable and/or unique.
 
-Assets come in two different types: `BASE` and `TOKEN`.
+Assets come in three different types: `BASE`, `TOKEN` and `FIAT`.
 
 ### Assets of type BASE
 
@@ -533,6 +533,13 @@ Assets of this type represent crypto assets that are native to their own blockch
 Assets of this type represent crypto assets that have been created on an existing blockchain. An example for this are ERC-20 tokens which have been created on the Ethereum blockchain.
 
 Assets of this type always have a `base_asset_id` which is the ID of the Asset that represents the underlying blockhchain.
+
+### Assets of type FIAT
+
+Assets of this type represent fiat assets. An example is Euro. Those Assets are only used as a reference Asset for fiat currencies in trading pairs and have only an informative purpose.
+
+No Accounts can be created for Assets of this type.
+
 
 The API provides a way to list all Assets supported by the platform:
 
@@ -590,6 +597,22 @@ GET /v1/assets/00010000000000000000000000000002asst
 }
 ```
 
+#### Asset of type FIAT
+
+```
+{
+  "id": "f0000000000000000000000000000001asst",
+  "type": "FIAT",
+  "code": "EUR",
+  "precision": 2,
+  "description": "Euro",
+  "address_validation": null,
+  "tx_min_amount": "30.0",
+  "created_at": "2020-11-24T12:56:55Z",
+  "updated_at": "2020-11-24T12:57:09Z"
+}
+```
+
 ## solaris Digital Assets recommendation: End customer onboarding
 
 Before a partner can offer their customers the full feature set of solaris Digital Assets' API, the partner must onboard the customer. We recommend the following steps to fully onboard the customer:
@@ -633,6 +656,13 @@ During the setup phase we only create one Entity of type `PARTNER`, which repres
 
 To be able to create Accounts on behalf of end customers, the partner MUST beforehand create corresponding Entities of type `PERSON`. During this process the partner MUST provide a `person_id` — a unique identifier of an individual provided by solarisBank KYC product.
 
+### Entities can have multiple states which are:
+
+`ACTIVE` - The Entity can use the platform without restrictions.
+`CLOSING` - A ClosureRequest has been created for the Entity; awaiting confirmation by the partner.
+`LEGALLY_CLOSED` – The contractual relationship between SDA and the customer has ended, the customer can still withdraw their remaining funds.
+`CLOSED` – The contractual relationship between SDA and the customer has ended. This customer can not use any functionality of the platform.
+
 See:
 
 ```
@@ -662,6 +692,9 @@ POST /v1/entities
   "type": "PERSON",
   "person_id": "5b1c711ef5cf4b7012b688616ed052d3cper",
   "terms_conditions_signed_at": null,
+  "state": "ACTIVE",
+  "legally_closed_at": null,
+  "closed_at": null,
   "created_at": "2019-04-02T12:27:33Z",
   "updated_at": "2019-04-02T12:27:33Z",
 }
@@ -705,6 +738,100 @@ POST /v1/entities/{entity_id}/terms_and_conditions
 #### Example
 ```
 POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/terms_and_conditions
+```
+
+### ClosureRequests (Entity and Account Closures)
+
+The contractual relationship between a customer and Solaris Digital Assets can be terminated by both parties.
+To initiate the termination of the contract, a ClosureRequest must be created by the initiating party. This ClosureRequest
+represents the processing of the termination. A ClosureRequest has a lifecycle and will traverse through multiple states.
+A ClosureRequest starts in state `PENDING` directly after initialization. After the ClosureRequest has been approved it will transition to
+state `APPROVED` (this happens automatically for ClosureRequests of type `CUSTOMER_WISH`). After a ClosureRequest has been processed it will
+end in it's final state: `COMPLETED`. After a ClosureRequest has been completed, the contractual realtionship between Solaris Digital Assets and the
+customer has ended. Solaris Digital Assets will then stop to offer it's services to this customer. I.e. the customer's Accounts can not be used anymore.
+The creation of a ClosureRequest can fail, e.g. when there already is an existing ClosureRequest for this customer. In this case the ClosureRequest's
+state will be `FAILED`.
+
+ClosureRequests can have different `reasons` depending on which party initiates the termination of the contract and under which circumstances the contract is
+terminated. Only ClosureRequests of `reason: CUSTOMER_WISH` can be created by a partner.
+
+#### Reason: `CUSTOMER_WISH`
+
+An end customer can end their contractual relationship with Solaris Digital Assets. To enable end customers to do that, our API offers endpoints for requesting, listing and showing ClosureRequests.
+After a the relationship between the customer and Solaris Digital Assets has ended, the customer will not longer be able to use their Account.
+After a ClosureRequest has been submitted the customer will have 30 days to withdraw their Assets from their Accounts.
+For that we allow one final Withdrawal per Account. For those final Withdrawals the `total_amount` MUST be specified and the full available balance of the Account MUST be withdrawn.
+
+See:
+
+```
+POST /v1/entities/{entity_id}/closure_requests
+GET /v1/entities/{entity_id}/closure_requests
+GET /v1/entities/{entity_id}/closure_requests/{closure_request_id}
+```
+
+### Example
+
+Creating a ClosureRequest: `CUSTOMER_WISH`
+
+```
+POST /v1/entities/5a991ba917c829ca2ab6ce9a4ee3f9fcenty/closure_requests
+
+{
+  "reason": "CUSTOMER_WISH"
+}
+
+```
+
+```
+201 Created
+
+{
+  "id": "6138143133c91f3235a108d31dc90805creq",
+  "entity_id": "5a991ba917c829ca2ab6ce9a4ee3f9fcenty",
+  "reason": "CUSTOMER_WISH",
+  "state": "APPROVED",
+  "valid_until": "2021-01-01T12:35:38Z",
+  "created_at": "2020-12-02T12:35:38Z",
+  "updated_at": "2020-12-02T12:35:38Z"
+}
+```
+
+### Reason: `COMPLIANCE_IMMEDIATE_INTERNAL`
+
+A platform's compliance officer can initiate the of end of the platform's relationship with the end customer. After the compliance officer has
+initiated the account closure the partner will receive a callback for a ClosureRequest with reason `COMPLIANCE_IMMEDIATE_INTERNAL` (see: [Callbacks](#callbacks)).
+Upon receiving the callback with the ClosureRequest the partner must inform the end customer of the closure, the partner must later confirm to the platform (via API) that the end customer has acknowledged the account closure.
+
+To approve the ClosureRequest:
+
+```
+POST /v1/entities/{entity_id}/closure_requests/{closure_request_id}/confirm
+```
+
+After a ClosureRequest has been confirmed the customer will have 30 days to withdraw their Assets from their Accounts.
+For that we allow one final Withdrawal per Account. For those final Withdrawals the `total_amount` MUST be specified and the full available balance of the Account MUST be withdrawn.
+
+Example:
+
+```
+POST /v1/entities/5a991ba917c829ca2ab6ce9a4ee3f9fcenty/closure_requests/3038143133c91f3235a108d31dc00211creq/confirm
+
+```
+
+```
+200 OK
+
+{
+  "id": "3038143133c91f3235a108d31dc00211creq",
+  "entity_id": "5a991ba917c829ca2ab6ce9a4ee3f9fcenty",
+  "reason": "COMPLIANCE_IMMEDIATE_INTERNAL",
+  "state": "APPROVED",
+  "valid_until": "2021-01-01T12:35:38Z",
+  "created_at": "2020-12-02T12:35:38Z",
+  "updated_at": "2020-12-02T12:35:38Z"
+}
+
 ```
 
 ## Accounts
@@ -762,6 +889,8 @@ Transaction.
 Accounts have one of two different kinds, depending on the underlying Asset's type.
 It is either `BASE` when the Account belongs to a base Asset or `TOKEN` when the
 Account belongs to a token Asset.
+
+It is not possible to create Accounts for Assets of type `FIAT`!
 
 See:
 
@@ -1902,7 +2031,7 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
 
 ## Callbacks
 
-The partner can use callbacks to get notifications regarding updates on the Resources (Transactions)
+The partner can use callbacks to get notifications regarding updates on the Resources (Transactions & ClosureRequests)
 on the platform. Every time a new Transaction is created or an existing one is updated
 a Callback with a reference to the Resource will be issued. Then the partner can
 fetch the current state of the Resource using an ordinary authenticated request
