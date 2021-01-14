@@ -2,6 +2,11 @@
 
 ## 08-01-2021
 
+API updated to v0.25.0
+
+- Added documentation for `Trades` related endpoints
+- Added `Trade_API_Guide.md` documentation
+
 API updated to v0.24.0
 
 - Added documentation for ClosureRequests
@@ -63,6 +68,7 @@ API updated to v0.20.0
 API updated to v0.19.1
 
 Fixes to Open API specification:
+
 - documented `isolation` attribute in Account creation
 - more minor fixes
 
