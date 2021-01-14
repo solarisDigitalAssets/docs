@@ -11,6 +11,7 @@ In this project you will find code examples, tools and documentation related to 
 
 * API guide: [API_Guide.md](docs/API_Guide.md)
 * API specification: [openapi.yml](docs/openapi.yml)
+* Brokerage API guide: [API_Guide.md](docs/Brokerage_API_Guide.md)
 
 ## Changelog
 
