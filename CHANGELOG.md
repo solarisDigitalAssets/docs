@@ -1,5 +1,12 @@
 # Changelog
 
+## 14-01-2021
+
+API updated to v0.25.0
+
+- Added documentation for `Trades` related endpoints
+- Added `Trade_API_Guide.md` documentation
+
 ## 08-01-2021
 
 API updated to v0.24.0
