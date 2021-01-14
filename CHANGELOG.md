@@ -4,8 +4,8 @@
 
 API updated to v0.25.0
 
-- Added documentation for `Trades` related endpoints
-- Added `Trade_API_Guide.md` documentation
+- Added documentation for `Brokerage` related endpoints
+- Added `Brokerage_API_Guide.md` documentation
 
 ## 08-01-2021
 
