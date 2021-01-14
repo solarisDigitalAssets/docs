@@ -1,4 +1,4 @@
-# solaris Digital Assets Platform Trading API Guide
+# solaris Digital Assets Platform - Brokerage API Guide
 
 ## Trading Pairs
 
@@ -316,3 +316,4 @@ POST /v1/trading/trades/{:trade_id}/approval_request/approve
   "updated_at": "2020-10-02T15:10:12Z"
 }
 ```
+
