@@ -1,5 +1,11 @@
 # Changelog
 
+## 15-01-2021
+
+- Removes mentions of CRYPTO -> CRYPTO Trades from `Brokerage_API_Guide.md` documentation
+- Renames `API_Guide.md` to `Custody_API_Guide.md`
+- Fixes links to documentations on `README.md`
+
 ## 14-01-2021
 
 API updated to v0.25.0
