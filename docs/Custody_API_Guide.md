@@ -284,7 +284,7 @@ See:
 
 ## Filtering
 
-Endpoints that list resources support filtering, in order to get the desired resulset. At the moment
+Endpoints that list resources support filtering, in order to get the desired resultset. At the moment
 the filtering scheme only supports exact matches (state = $SOME_STATE) or collection ranges (state IN ($POSSIBLE_STATES)),
 at the moment we do not support operational filters (>, <, <=, >=).
 
@@ -532,7 +532,7 @@ Assets of this type represent crypto assets that are native to their own blockch
 
 Assets of this type represent crypto assets that have been created on an existing blockchain. An example for this are ERC-20 tokens which have been created on the Ethereum blockchain.
 
-Assets of this type always have a `base_asset_id` which is the ID of the Asset that represents the underlying blockhchain.
+Assets of this type always have a `base_asset_id` which is the ID of the Asset that represents the underlying blockchain.
 
 ### Assets of type FIAT
 
@@ -747,9 +747,9 @@ To initiate the termination of the contract, a ClosureRequest must be created by
 represents the processing of the termination. A ClosureRequest has a lifecycle and will traverse through multiple states.
 A ClosureRequest starts in state `PENDING` directly after initialization. After the ClosureRequest has been approved it will transition to
 state `APPROVED` (this happens automatically for ClosureRequests of type `CUSTOMER_WISH`) setting the Entity's state to `LEGALLY_CLOSED`.
-After a ClosureRequest has been processed it will end in it's final state: `COMPLETED` which will set the Entity's state to `CLOSED`. After a ClosureRequest
+After a ClosureRequest has been processed it will end in its final state: `COMPLETED` which will set the Entity's state to `CLOSED`. After a ClosureRequest
 has been completed, the contractual realtionship between Solaris Digital Assets and the customer has ended. Solaris Digital Assets will then
-stop to offer it's services to this customer. I.e. the customer's Accounts can not be used anymore.
+stop to offer its services to this customer. I.e. the customer's Accounts can not be used anymore.
 The creation of a ClosureRequest can fail, e.g. when there already is an existing ClosureRequest for this customer. In this case the ClosureRequest's
 state will be `FAILED`.
 
@@ -759,7 +759,7 @@ terminated. Only ClosureRequests of `reason: CUSTOMER_WISH` can be created by a 
 #### Reason: `CUSTOMER_WISH`
 
 An end customer can end their contractual relationship with Solaris Digital Assets. To enable end customers to do that, our API offers endpoints for requesting, listing and showing ClosureRequests.
-After a the relationship between the customer and Solaris Digital Assets has ended, the customer will not longer be able to use their Account.
+After the relationship between the customer and Solaris Digital Assets has ended, the customer will no longer be able to use their Account.
 After a ClosureRequest has been submitted the customer will have 30 days to withdraw their Assets from their Accounts.
 For that we allow one final Withdrawal per Account. For those final Withdrawals the `total_amount` MUST be specified and the full available balance of the Account MUST be withdrawn.
 
@@ -800,7 +800,7 @@ POST /v1/entities/5a991ba917c829ca2ab6ce9a4ee3f9fcenty/closure_requests
 
 ### Reason: `COMPLIANCE_IMMEDIATE_INTERNAL`
 
-A platform's compliance officer can initiate the of end of the platform's relationship with the end customer. After the compliance officer has
+A platform's compliance officer can initiate the end of the platform's relationship with the end customer. After the compliance officer has
 initiated the account closure the partner will receive a callback for a ClosureRequest with reason `COMPLIANCE_IMMEDIATE_INTERNAL` (see: [Callbacks](#callbacks)).
 Upon receiving the callback with the ClosureRequest the partner must inform the end customer of the closure, the partner must later confirm to the platform (via API) that the end customer has acknowledged the account closure.
 
@@ -846,7 +846,7 @@ Accounts can have different isolation levels, `POOLED` and `SEGREGATED`.
 ### Pooled Accounts (default)
 
 With Pooled Accounts there is no separation of funds on the blockchain level. Pooled Accounts offer
-certain benefits for it's users. It is possible to send instant Transfers from all Accounts of one
+certain benefits for its users. It is possible to send instant Transfers from all Accounts of one
 Asset to other Accounts of the same Asset without touching the blockchain and thus without paying
 expensive fees.
 
@@ -1083,7 +1083,7 @@ Before the Transaction can be processed by the Platform, the initiator of Transa
 MUST approve it. For the Transactions requested by the partner, i.e. a Withdrawal or a Transfer,
 it should be the corresponding Account holder. Other Transaction types are automatically created
 and approved by the Platform, in response to some external events, e.g. a Deposit is created
-whenever a blockchain transaction it spotted on the network, and it is approved
+whenever a blockchain transaction is spotted on the network, and it is approved
 whenever the blockchain transaction is sufficiently confirmed.
 
 A Transaction in APPROVED state means that the initiator of the Transaction has approved it,
@@ -1104,7 +1104,7 @@ balance has been updated. This state is final.
 In case of a failure that prevents the Transaction from being successfully processed,
 a Transaction can transition to FAILED state. Any amount which was locked
 by such Transaction will be released, and the Account's available balance will be updated.
-The CANCELLED state is final.
+The FAILED state is final.
 
 Before the transaction is APPROVED a partner can choose to CANCEL a transaction, the transaction will then transition to the CANCELLED state. Any amount which was locked by such Transaction will be released, and the Account Available balance will be updated. This state is final.
 
@@ -1127,7 +1127,7 @@ If any of these checks fail, the Partner will see error response with code 400 *
 }
 ```
 
-If others validation checks fails then a Transaction will be created and immediately
+If other validation checks fail then a Transaction will be created and immediately
 set to FAILED state. This can happen, for example, when the corresponding Account
 does not have sufficient balance to process this Transaction.
 
@@ -1270,7 +1270,7 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b5
 
 A Transfer represents a transfer of funds from one Account to another Account of the same Asset.
 This operation is not reflected externally as a blockchain transaction or any other observable event.
-It can be a Transfer between any tow `POOLED` Accounts of the same Asset.
+It can be a Transfer between any two `POOLED` Accounts of the same Asset.
 
 On the API level a Transfer is represented as two Transactions, one in the sender Account, having
 the type TRANSFER_OUTGOING, and one in the receiver Account, having the type TRANSFER_INCOMING.
@@ -1389,7 +1389,7 @@ to approve their Transactions.
 Currently there are following Approval Method types supported by the platform:
 
 - `AUTHY_PUSH` -- represents a Authy push notifications based MFA
-- `SMS` -- represenets an SMS message
+- `SMS` -- represents an SMS message
 - `DSA_ED25519` -- represents an ECDSA based MFA mechanism
 
 In order to be able to approve Transactions by the corresponding Account holder (an Entity
@@ -1527,7 +1527,7 @@ POST /v1/entities/df8bd407b3dfbd37f8ff3e5efbd4e8acenty/approval_methods
 #### Activation
 
 Registering an Approval Method of type `SMS` for an Entity will complete automatically, provided the
-entity has succesffully completed their KYC process.
+entity has succesfully completed their KYC process.
 
 Example:
 
@@ -1638,7 +1638,7 @@ Transaction Approval process consists of two steps:
 - Creating a new ApprovalRequest for a Transaction
 - Approving the ApprovalRequest
 
-There are different Approval Methods supported which determine how an ApprovalRequest will
+There are different Approval Methods supported that determine how an ApprovalRequest will
 be used to approve a Transaction. Different Approval Methods are available for different types
 of Account holders:
 
@@ -1756,7 +1756,7 @@ POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id
 #### Response
 
 For the approval method SMS, the Customer should send the Response to the The platform.
-In order to prevent prevent potential brute force attacks, we only allow one attempt to submit the Response once per each ApprovalRequest.
+In order to prevent potential brute force attacks, we only allow one attempt to submit the Response once per each ApprovalRequest.
 
 ```
 POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request/approve
