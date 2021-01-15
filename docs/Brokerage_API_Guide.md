@@ -8,7 +8,6 @@ The code is a string which consists of 2 assets separated by a slash symbol, whe
 
 - "BTC/EUR" means "I trade BTC for EUR" == "I sell BTC"
 - "EUR/BTC" means "I trade EUR for BTC" == "I buy BTC"
-- "BTC/ETH" means "I trade BTC for ETH"
 
 It is possible to list all Trading Pairs on the platform or a specific Trading Pair by a unique identifier.
 
@@ -16,7 +15,6 @@ The possible trading directions are:
 
 1. digital assets -> fiat assets
 2. fiat assets -> digital assets
-3. digital assets -> digital assets
 
 The Trading Pair identifiers are the only way to refer a specific trading pair on our platform. Any other forms of reference, like a code, are not considered immutable and/or unique.
 
