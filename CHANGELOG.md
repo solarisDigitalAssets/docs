@@ -1,5 +1,9 @@
 # Changelog
 
+## 19-01-2021
+
+- Mark and renames references to Brokerage API as `DRAFT`
+
 ## 15-01-2021
 
 - Removes mentions of CRYPTO -> CRYPTO Trades from `Brokerage_API_Guide.md` documentation
