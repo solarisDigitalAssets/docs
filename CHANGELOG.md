@@ -2,7 +2,7 @@
 
 ## 19-01-2021
 
-- Mark and renames references to Brokerage API as `DRAFT`
+- Mark and rename references to Brokerage API as `DRAFT`
 
 ## 15-01-2021
 
