@@ -1,5 +1,11 @@
 # Changelog
 
+## 21-01-2021
+
+- Document Entity states
+- Document Entity states transitions on account closure flow
+- Update `openapi.yml`
+
 ## 19-01-2021
 
 - Mark and rename references to Brokerage API as `DRAFT`
