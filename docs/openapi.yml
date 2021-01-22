@@ -2971,12 +2971,16 @@ components:
       required:
       - id
       - type
+      - state
       - created_at
       - updated_at
       properties:
         id:
           type: string
           description: A unique ID of the Entity
+        state:
+          type: string
+          description: State of Entity
         type:
           type: string
           description: Type of Entity
@@ -2994,6 +2998,7 @@ components:
       example:
         id: 1cbce42a62fc0cdeb1cf17df3ecd6fd6enty
         type: PARTNER
+        state: ACTIVE
         created_at: '2019-03-01T22:31:06Z'
         updated_at: '2019-03-01T22:31:06Z'
     EntityPerson:
@@ -3001,6 +3006,7 @@ components:
       required:
       - id
       - type
+      - state
       - person_id
       - terms_conditions_signed_at
       - created_at
@@ -3053,6 +3059,7 @@ components:
       example:
         id: 7d57be2d17a328150abd28daaae76d47enty
         type: PERSON
+        state: ACTIVE
         person_id: e3c4bc7bdfeaed3c0a3cebd2addcd5accper
         terms_conditions_signed_at: '2019-03-01T22:45:06Z'
         legally_closed_at: '2021-02-01T13:22:12Z'
@@ -3065,6 +3072,7 @@ components:
       - id
       - name
       - type
+      - state
       - terms_conditions_signed_at
       - created_at
       - updated_at
@@ -3078,6 +3086,9 @@ components:
           example: PERSON
           enum:
           - BUSINESS
+        state:
+          type: string
+          description: State of Entity
         name:
           type: string
           description: A description for the Entity
@@ -3098,6 +3109,7 @@ components:
       example:
         id: 7d57be2d17a328150abd28daaae76d47enty
         type: PERSON
+        state: ACTIVE
         person_id: e3c4bc7bdfeaed3c0a3cebd2addcd5accper
         terms_conditions_signed_at: '2019-03-01T22:45:06Z'
         created_at: '2019-03-01T22:31:06Z'
