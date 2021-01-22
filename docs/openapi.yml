@@ -883,7 +883,7 @@ paths:
       summary: Get a single Asset
       description: 'Returns a single Asset found by its ID
 
-'
+        '
       parameters:
       - name: asset_id
         in: path
@@ -912,7 +912,7 @@ paths:
       description: 'Returns a list of all ClosureRequests of the Entity identified
         by `entity_id`
 
-'
+        '
       parameters:
       - "$ref": "#/components/parameters/filterParams"
       - "$ref": "#/components/parameters/sortParams"
@@ -1003,7 +1003,7 @@ paths:
       summary: Get a single ClosureRequest
       description: 'Returns a single ClosureRequest found by its ID
 
-'
+        '
       parameters:
       - name: entity_id
         in: path
@@ -1087,7 +1087,7 @@ paths:
       summary: List all Entities
       description: 'Returns a list of all Entities of this partner
 
-'
+        '
       parameters:
       - "$ref": "#/components/parameters/filterParams"
       - "$ref": "#/components/parameters/sortParams"
@@ -1118,7 +1118,7 @@ paths:
       summary: Create an Entity
       description: 'Creates a new Entity of type PERSON or BUSINESS owned by the partner.
 
-'
+        '
       requestBody:
         required: true
         description: |
@@ -1175,7 +1175,7 @@ paths:
       summary: Get a single Entity
       description: 'Returns a single Entity found by its ID
 
-'
+        '
       parameters:
       - name: entity_id
         in: path
@@ -1236,7 +1236,7 @@ paths:
       description: 'Returns a list of all Ledger Entries of a given Account, owned
         by the given Entity
 
-'
+        '
       parameters:
       - name: entity_id
         in: path
@@ -1461,7 +1461,7 @@ paths:
         description: 'A response to the ApprovalRequest''s challenge when type is
           `DSA_ED25519`
 
-'
+          '
         content:
           application/json:
             schema:
@@ -1477,7 +1477,7 @@ paths:
                   description: 'Optional, an object containing a SHA-256 hash of the
                     challenge message that will be considered for validation
 
-'
+                    '
                   properties:
                     sha256:
                       type: string
@@ -1530,7 +1530,7 @@ paths:
       summary: List all Trading Pairs
       description: 'Returns a list of all Trading Pairs supported by the platform.
 
-'
+        '
       parameters:
       - "$ref": "#/components/parameters/filterParams"
       - "$ref": "#/components/parameters/sortParams"
@@ -1563,7 +1563,7 @@ paths:
       summary: Get a single Trading Pair
       description: 'Returns a single Trading Paiir identified by its ID.
 
-'
+        '
       parameters:
       - name: trading_pair_id
         in: path
@@ -1642,7 +1642,7 @@ paths:
       summary: List all Trades
       description: 'Returns a list of all Trades created by a given partner.
 
-'
+        '
       parameters:
       - "$ref": "#/components/parameters/filterParams"
       - "$ref": "#/components/parameters/sortParams"
@@ -1674,7 +1674,7 @@ paths:
       summary: Create a new Trade
       description: 'Creates a new Trade on the platform.
 
-'
+        '
       requestBody:
         required: true
         content:
@@ -1740,7 +1740,7 @@ paths:
       summary: Get a single Trade
       description: 'Returns a single Trade identified by its ID.
 
-'
+        '
       parameters:
       - name: trade_id
         in: path
@@ -1781,7 +1781,7 @@ paths:
         `CREATED` state. In case the Trade cannot be found the endpoint replies with
         `404 Not Found` status code.
 
-'
+        '
       parameters:
       - name: trade_id
         in: path
@@ -1823,7 +1823,7 @@ paths:
       description: 'Returns a list of all Transactions of the given Account, owned
         by the given Entity.
 
-'
+        '
       parameters:
       - name: entity_id
         in: path
@@ -1869,7 +1869,7 @@ paths:
       summary: Cancel a Transaction
       description: 'Cancel a Transaction identified by its ID
 
-'
+        '
       parameters:
       - name: entity_id
         in: path
@@ -2033,13 +2033,13 @@ paths:
                   description: 'Transacted amount *(required if `total_amount` is
                     not specified)*
 
-'
+                    '
                 total_amount:
                   type: string
                   description: 'Total amount deducted from the Account *(required
                     if `amount` is not specified)*
 
-'
+                    '
                 reference:
                   type: string
                   description: A unique reference identifier provided by the partner
@@ -2121,13 +2121,13 @@ paths:
                   description: 'Transacted amount *(required if `total_amount` is
                     not specified)*
 
-'
+                    '
                 total_amount:
                   type: string
                   description: 'Total amount deducted from the Account *(required
                     if `amount` is not specified)*
 
-'
+                    '
                 reference:
                   type: string
                   description: A unique reference identifier provided by the partner
@@ -2165,18 +2165,18 @@ components:
           nullable: true
           description: 'The number of the next page in the dataset if available
 
-'
+            '
         prev:
           type: integer
           nullable: true
           description: 'The number of the previous page in the dataset if available
 
-'
+            '
     TransactionRequestResponse:
       description: 'A successul response to a Transaction initiation request (e.g.
         Withdrawal or Transfer).
 
-'
+        '
       type: object
       required:
       - transaction_id
@@ -2269,7 +2269,7 @@ components:
           description: 'The ID of the base Account if Account belongs to an Asset
             of type `TOKEN`
 
-'
+            '
         entity_id:
           type: string
           description: ID of the Entity owning the Account
@@ -2349,7 +2349,7 @@ components:
     ApprovalMethod:
       description: 'An Approval Method registered for some Entity
 
-'
+        '
       oneOf:
       - "$ref": "#/components/schemas/ApprovalMethodAUTHY_PUSH"
       - "$ref": "#/components/schemas/ApprovalMethodSMS"
@@ -2673,7 +2673,7 @@ components:
               description: 'An array containing the keys used to construct the challenge
                 message
 
-'
+                '
               items:
                 type: string
         created_at:
@@ -2730,24 +2730,24 @@ components:
           type: string
           description: 'A human readable description of an Asset
 
-'
+            '
         precision:
           type: integer
           description: 'Precision of monetary amounts in this asset (i.e. number of
             decimal places)
 
-'
+            '
         address_validation:
           type: string
           description: 'Regular expression which can be used to validate addresses
             for this Asset
 
-'
+            '
         tx_min_amount:
           type: string
           description: 'Minimal amount allowed for outgoing transactions in this Asset
 
-'
+            '
         type:
           type: string
           description: The type of the Asset. `BASE` in this case.
@@ -2795,24 +2795,24 @@ components:
           type: string
           description: 'A human readable description of an Asset
 
-'
+            '
         precision:
           type: integer
           description: 'Precision of monetary amounts in this asset (i.e. number of
             decimal places)
 
-'
+            '
         address_validation:
           type: string
           description: 'Regular expression which can be used to validate addresses
             for this Asset
 
-'
+            '
         tx_min_amount:
           type: string
           description: 'Minimal amount allowed for outgoing transactions in this Asset
 
-'
+            '
         type:
           type: string
           description: The type of the Asset. `TOKEN` in this case.
@@ -2822,7 +2822,7 @@ components:
           type: string
           description: 'The ID of the Asset this Token belongs to.
 
-'
+            '
         token_url:
           type: string
           description: |
@@ -2874,13 +2874,13 @@ components:
           type: string
           description: 'A human readable description of an Asset
 
-'
+            '
         precision:
           type: integer
           description: 'Precision of monetary amounts in this asset (i.e. number of
             decimal places)
 
-'
+            '
         address_validation:
           type: string
           nullable: true
@@ -2890,7 +2890,7 @@ components:
           nullable: true
           description: 'Minimal amount allowed for outgoing transactions in this Asset
 
-'
+            '
         type:
           type: string
           description: The type of the Asset. `FIAT` in this case.
@@ -3033,9 +3033,11 @@ components:
           type: string
           description: 'The state of an Entity of type `PERSON`.
 
-'
+            '
           example: ACTIVE
           enum:
+          - PENDING
+          - LOCKED
           - ACTIVE
           - CLOSING
           - LEGALLY_CLOSED
@@ -3044,10 +3046,12 @@ components:
           type: string
           description: Time at which the Entity's state was set to `LEGALLY_CLOSED`
           format: date-time
+          nullable: true
         closed_at:
           type: string
           description: Time at which the Entity's state was set to `CLOSED`
           format: date-time
+          nullable: true
         created_at:
           type: string
           description: Time at which the Entity was created
@@ -3325,7 +3329,7 @@ components:
               description: 'An array containing the keys used to construct the challenge
                 message
 
-'
+                '
               items:
                 type: string
         created_at:
@@ -3356,7 +3360,7 @@ components:
       description: 'A Trading Pair represents two assets (currency) which can be part
         of a Trade.
 
-'
+        '
       type: object
       required:
       - id
@@ -3406,7 +3410,7 @@ components:
     Price:
       description: 'A Price indicates a trade price for a given Trading Pair.
 
-'
+        '
       type: object
       required:
       - trading_pair_id
@@ -3447,7 +3451,7 @@ components:
     Trade:
       description: 'Represents a Trade on the platform.
 
-'
+        '
       type: object
       required:
       - id
@@ -3517,7 +3521,7 @@ components:
     TransactionCommonAttributes:
       description: 'This schema represents a set of common attributes of a Transaction
 
-'
+        '
       type: object
       required:
       - id
@@ -3735,7 +3739,7 @@ components:
           description: 'A reference identifier supplied with the Withdrawal request
             by the partner
 
-'
+            '
         address:
           type: string
           description: A digital asset specific address where funds are sent to
@@ -3901,7 +3905,7 @@ components:
           description: 'A reference identifier supplied with the Transfer request
             by the partner
 
-'
+            '
         sender_account_id:
           type: string
           description: ID of the sender Account
