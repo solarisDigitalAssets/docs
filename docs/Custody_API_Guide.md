@@ -746,9 +746,10 @@ The contractual relationship between a customer and Solaris Digital Assets can b
 To initiate the termination of the contract, a ClosureRequest must be created by the initiating party. This ClosureRequest
 represents the processing of the termination. A ClosureRequest has a lifecycle and will traverse through multiple states.
 A ClosureRequest starts in state `PENDING` directly after initialization. After the ClosureRequest has been approved it will transition to
-state `APPROVED` (this happens automatically for ClosureRequests of type `CUSTOMER_WISH`). After a ClosureRequest has been processed it will
-end in it's final state: `COMPLETED`. After a ClosureRequest has been completed, the contractual realtionship between Solaris Digital Assets and the
-customer has ended. Solaris Digital Assets will then stop to offer it's services to this customer. I.e. the customer's Accounts can not be used anymore.
+state `APPROVED` (this happens automatically for ClosureRequests of type `CUSTOMER_WISH`) setting the Entity's state to `LEGALLY_CLOSED`.
+After a ClosureRequest has been processed it will end in it's final state: `COMPLETED` which will set the Entity's state to `CLOSED`. After a ClosureRequest
+has been completed, the contractual realtionship between Solaris Digital Assets and the customer has ended. Solaris Digital Assets will then
+stop to offer it's services to this customer. I.e. the customer's Accounts can not be used anymore.
 The creation of a ClosureRequest can fail, e.g. when there already is an existing ClosureRequest for this customer. In this case the ClosureRequest's
 state will be `FAILED`.
 
