@@ -1,5 +1,11 @@
 # Changelog
 
+## 24-03-2021
+
+- Document Entities of type `REPRESENTATIVE_PERSON`
+- Document ApprovalMethod of type `GROUP`
+- Document ApprovalRequest of type `GROUP`
+
 ## 21-01-2021
 
 - Document Entity states

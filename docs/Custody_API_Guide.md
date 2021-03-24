@@ -2,8 +2,8 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-- Version: [0.24.0]
-- Updated: [2021-01-06]
+- Version: [0.25.0]
+- Updated: [2021-03-24]
 
 ## Table of Contents
 
@@ -68,35 +68,40 @@ An API platform that provides a managed custody solution for storing digital ass
     - [Example setting an end_to_end_id](#example-setting-an-end_to_end_id-1)
   - [Canceling a Transaction](#canceling-a-transaction)
     - [Example](#example-11)
-  - [Approval Methods](#approval-methods)
+  - [ApprovalMethods](#approvalmethods)
     - [Authy push notifications](#authy-push-notifications)
       - [Setup](#setup-1)
-      - [Register this Approval Method for an Entity](#register-this-approval-method-for-an-entity)
+      - [Register this ApprovalMethod for an Entity](#register-this-approvalmethod-for-an-entity)
       - [Activation](#activation)
     - [SMS](#sms)
       - [Setup](#setup-2)
-      - [Register this Approval Method for an Entity](#register-this-approval-method-for-an-entity-1)
+      - [Register this ApprovalMethod for an Entity](#register-this-approvalmethod-for-an-entity-1)
       - [Activation](#activation-1)
     - [DSA_ED25519](#dsa_ed25519)
       - [Setup](#setup-3)
-      - [Register this Approval Method for an Entity](#register-this-approval-method-for-an-entity-2)
+      - [Register this ApprovalMethod for an Entity](#register-this-approvalmethod-for-an-entity-2)
       - [Activation](#activation-2)
-  - [Approval Requests](#approval-requests)
-    - [Approval Method: AUTHY_PUSH](#approval-method-authy_push)
+    - [Group](#group)
       - [Setup](#setup-4)
+  - [ApprovalRequests](#approvalrequests)
+    - [ApprovalMethod: AUTHY_PUSH](#approvalmethod-authy_push)
+      - [Setup](#setup-5)
       - [Challenge](#challenge)
       - [Fetching the state of the ApprovalRequest](#fetching-the-state-of-the-approvalrequest)
-    - [Approval Method: SMS](#approval-method-sms)
-      - [Setup](#setup-5)
+    - [ApprovalMethod: SMS](#approvalmethod-sms)
+      - [Setup](#setup-6)
       - [Challenge](#challenge-1)
       - [Response](#response)
       - [Fetching the state of the ApprovalRequest](#fetching-the-state-of-the-approvalrequest-1)
     - [Approval method: DSA_ED25519](#approval-method-dsa_ed25519)
-      - [Setup](#setup-6)
+      - [Setup](#setup-7)
       - [Challenge](#challenge-2)
         - [Example](#example-12)
       - [Response](#response-1)
         - [Example](#example-13)
+    - [Approval method: Group](#approval-method-group)
+      - [Setup](#setup-8)
+      - [Requesting Approval by members of the Approval Group](#requesting-approval-by-members-of-the-approval-group)
   - [Ledger Entries](#ledger-entries)
     - [Example](#example-14)
   - [Callbacks](#callbacks)
@@ -628,9 +633,9 @@ Before a partner can offer their customers the full feature set of solaris Digit
 ### solaris Digital Assets API
 
 1. Partner should create an Entity for the person (see: Entity)
-2. Partner should create an approval method for the Entity (see: Approval Methods)
+2. Partner should create an approval method for the Entity (see: ApprovalMethods)
 
-- Approval Method should be activated by the Entity
+- ApprovalMethod should be activated by the Entity
 
 3. Partner should create an Account for the Entity (see: Accounts)
 
@@ -655,6 +660,11 @@ Before a partner can offer their customers the full feature set of solaris Digit
 During the setup phase we only create one Entity of type `PARTNER`, which represents the partner as an Account holder.
 
 To be able to create Accounts on behalf of end customers, the partner MUST beforehand create corresponding Entities of type `PERSON`. During this process the partner MUST provide a `person_id` — a unique identifier of an individual provided by solarisBank KYC product.
+
+
+Entities of type `REPRESENTATIVE_PERSON` represent Entities which can approve ApprovalRequests on a
+Transaction which belongs to another Entity. Several Entities of type `REPRESENTATIVE_PERSON` can have the same `person_id` as long as that
+`person_id` is not in use by another Entity of type `PERSON`.
 
 ### Entities can have multiple states which are:
 
@@ -746,10 +756,9 @@ The contractual relationship between a customer and Solaris Digital Assets can b
 To initiate the termination of the contract, a ClosureRequest must be created by the initiating party. This ClosureRequest
 represents the processing of the termination. A ClosureRequest has a lifecycle and will traverse through multiple states.
 A ClosureRequest starts in state `PENDING` directly after initialization. After the ClosureRequest has been approved it will transition to
-state `APPROVED` (this happens automatically for ClosureRequests of type `CUSTOMER_WISH`) setting the Entity's state to `LEGALLY_CLOSED`.
-After a ClosureRequest has been processed it will end in it's final state: `COMPLETED` which will set the Entity's state to `CLOSED`. After a ClosureRequest
-has been completed, the contractual realtionship between Solaris Digital Assets and the customer has ended. Solaris Digital Assets will then
-stop to offer it's services to this customer. I.e. the customer's Accounts can not be used anymore.
+state `APPROVED` (this happens automatically for ClosureRequests of type `CUSTOMER_WISH`). After a ClosureRequest has been processed it will
+end in it's final state: `COMPLETED`. After a ClosureRequest has been completed, the contractual realtionship between Solaris Digital Assets and the
+customer has ended. Solaris Digital Assets will then stop to offer it's services to this customer. I.e. the customer's Accounts can not be used anymore.
 The creation of a ClosureRequest can fail, e.g. when there already is an existing ClosureRequest for this customer. In this case the ClosureRequest's
 state will be `FAILED`.
 
@@ -1381,27 +1390,28 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b5
 }
 ```
 
-## Approval Methods
+## ApprovalMethods
 
-Approval Method defines the particular MFA mechanism that the Account holder (Entity) can use
+ApprovalMethod defines the particular MFA mechanism that the Account holder (Entity) can use
 to approve their Transactions.
 
-Currently there are following Approval Method types supported by the platform:
+Currently there are following ApprovalMethod types supported by the platform:
 
 - `AUTHY_PUSH` -- represents a Authy push notifications based MFA
 - `SMS` -- represenets an SMS message
 - `DSA_ED25519` -- represents an ECDSA based MFA mechanism
+- `GROUP` -- represents a group of approvers with a quorum
 
 In order to be able to approve Transactions by the corresponding Account holder (an Entity
-of type `PERSON`, `PARTNER` or `BUSINESS`), there MUST be a registered and activated Approval Method
+of type `PERSON`, `PARTNER` or `BUSINESS`), there MUST be a registered and activated ApprovalMethod
 for this Entity.
 
-When first registered, an Approval Method is in a `PENDING` state. Then, depending on
-Approval Method type, it can be activated by the platform operator or by the customer.
+When first registered, an ApprovalMethod is in a `PENDING` state. Then, depending on
+ApprovalMethod type, it can be activated by the platform operator or by the customer.
 
-Only the Approval Method in `ACTIVATED` state can be used to approve Transactions.
+Only the ApprovalMethod in `ACTIVATED` state can be used to approve Transactions.
 
-Currently there can be only one Approval Method of each type registered for an Entity.
+Currently there can be only one ApprovalMethod of each type registered for an Entity.
 
 See:
 
@@ -1413,16 +1423,16 @@ GET /v1/entities/{entity_id}/approval_methods/{approval_method_id}
 
 ### Authy push notifications
 
-This Approval Method is aimed at customers (individual people) as Account holders,
+This ApprovalMethod is aimed at customers (individual people) as Account holders,
 and can only be registered for Entities of type `PERSON`.
 
 #### Setup
 
 The corresponding Entity of type `PERSON` MUST be registered.
 
-#### Register this Approval Method for an Entity
+#### Register this ApprovalMethod for an Entity
 
-To register this Approval Method for an Entity, only `type` attribute is required.
+To register this ApprovalMethod for an Entity, only `type` attribute is required.
 
 Example:
 
@@ -1449,12 +1459,12 @@ POST /v1/entities/df8bd407b3dfbd37f8ff3e5efbd4e8acenty/approval_methods
 
 #### Activation
 
-Registering an Approval Method of type `AUTHY_PUSH` for an Entity will automatically trigger
+Registering an ApprovalMethod of type `AUTHY_PUSH` for an Entity will automatically trigger
 this customer's enrollment at Authy service, provided they have successfully completed their KYC
 process. If the KYC process for this customer is not complete, the automatic enrollment
 at Authy will be delayed until it is.
 
-The activation of this Approval Method is controlled by the customer and may or may not
+The activation of this ApprovalMethod is controlled by the customer and may or may not
 require additional setup on their part, depending on whether they have already registered
 at Authy with the phone number they provided during the KYC process or not.
 
@@ -1468,7 +1478,7 @@ at Authy with the phone number they provided during the KYC process or not.
    they MUST install an Authy app on their (mobile) device and
    bind it to the same phone number they have provided during the KYC process.
 
-This Approval Method is automatically activated as soon as the customer successfully registers
+This ApprovalMethod is automatically activated as soon as the customer successfully registers
 at Authy, installs and configures the Authy app on their (mobile) device.
 
 Example:
@@ -1490,16 +1500,16 @@ GET /v1/entities/df8bd407b3dfbd37f8ff3e5efbd4e8acenty/approval_methods/b2046aec7
 
 ### SMS
 
-This Approval Method is aimed at customers (individual people) as Account holders,
+This ApprovalMethod is aimed at customers (individual people) as Account holders,
 and can only be registered for Entities of type `PERSON`
 
 #### Setup
 
 The corresponding Entity of type `PERSON` MUST be registered.
 
-#### Register this Approval Method for an Entity
+#### Register this ApprovalMethod for an Entity
 
-To register this Approval Method for an Entity, only `type` attribute is required.
+To register this ApprovalMethod for an Entity, only `type` attribute is required.
 
 Example:
 
@@ -1526,7 +1536,7 @@ POST /v1/entities/df8bd407b3dfbd37f8ff3e5efbd4e8acenty/approval_methods
 
 #### Activation
 
-Registering an Approval Method of type `SMS` for an Entity will complete automatically, provided the
+Registering an ApprovalMethod of type `SMS` for an Entity will complete automatically, provided the
 entity has succesffully completed their KYC process.
 
 Example:
@@ -1548,8 +1558,8 @@ GET /v1/entities/df8bd407b3dfbd37f8ff3e5efbd4e8acenty/approval_methods/b2046aec7
 
 ### DSA_ED25519
 
-This Approval Method is designed for automated systems or custom integrations
-(e.g. custom mobile apps). Currently this Approval Method is only available
+This ApprovalMethod is designed for automated systems or custom integrations
+(e.g. custom mobile apps). Currently this ApprovalMethod is only available
 for Entity of type `PARTNER` and `BUSINESS`.
 
 Approving a Transaction using this method works in the following way:
@@ -1566,15 +1576,15 @@ The corresponding Entity of type `PARTNER` or `BUSINESS` MUST be registered.
 
 To utilize this method, the partner MUST generate an _Approval key_ and store it.
 
-The public part of this key is to be submitted to the platform with the Approval Method
+The public part of this key is to be submitted to the platform with the ApprovalMethod
 registration request.
 
 **Approval key** -- an Ed25519 key pair which Partner is going to use for approving Transactions.
 This key SHOULD be different from Partner's API key.
 
-#### Register this Approval Method for an Entity
+#### Register this ApprovalMethod for an Entity
 
-To register this Approval Method, partner submits a request with `type` and `pub_key` attributes,
+To register this ApprovalMethod, partner submits a request with `type` and `pub_key` attributes,
 where `pub_key` is the public key part of the _Approval key_ as a 32-byte hexadecimal string.
 
 Example:
@@ -1604,7 +1614,7 @@ POST /v1/entities/bda8720b93a2daf3ffac5a6fefaa87aaenty/approval_methods
 
 #### Activation
 
-This Approval Method is activated by a manual process, controlled by the platform operator.
+This ApprovalMethod is activated by a manual process, controlled by the platform operator.
 
 During this process the platform operator MAY contact the partner representatives
 using other communication channels to confirm the validity of the public key.
@@ -1627,7 +1637,18 @@ GET /v1/entities/bda8720b93a2daf3ffac5a6fefaa87aaenty/approval_methods/6d4e8abba
 }
 ```
 
-## Approval Requests
+### GROUP
+
+This ApprovalMethod is aimed at customers that are represented by a group of representatives and
+require several approvers to confirm a Transaction.
+
+#### Setup
+
+The ApprovalMethod of type GROUP is connected to an ApprovalGroup which defines a group with a list of members and a quorum (minimum number of members required to approve a Transaction).
+
+The ApprovalGroup and its members will be configured by the platform. The members of the ApprovalGroup are to be Entities of type `REPRESENTATIVE_PERSON` and should be KYC'd.
+
+## ApprovalRequests
 
 Any Transaction initiated by an API request (i.e. Withdrawal or Transfer) MUST be approved
 by the corresponding Account holder (an Entity owning the Transaction's Account),
@@ -1638,8 +1659,8 @@ Transaction Approval process consists of two steps:
 - Creating a new ApprovalRequest for a Transaction
 - Approving the ApprovalRequest
 
-There are different Approval Methods supported which determine how an ApprovalRequest will
-be used to approve a Transaction. Different Approval Methods are available for different types
+There are different ApprovalMethods supported which determine how an ApprovalRequest will
+be used to approve a Transaction. Different ApprovalMethods are available for different types
 of Account holders:
 
 - Entity of type PERSON -- an ApprovalRequest of type `AUTHY_PUSH`
@@ -1650,7 +1671,7 @@ of Account holders:
 The method of approval for an ApprovalRequest depends on the type of the ApprovalMethod
 which is associated with the ApprovalRequest.
 
-### Approval Method: AUTHY_PUSH
+### ApprovalMethod: AUTHY_PUSH
 
 This appproval method is aimed at customers (individual people) as Account holders.
 In order to approve an ApprovalRequest of type `AUTHY_PUSH` a customer must have the Authy app installed and activated on their smartphone.
@@ -1665,16 +1686,19 @@ In order to approve an ApprovalRequest of type `AUTHY_PUSH` a customer must have
 
 #### Setup
 
-see Approval Method `AUTHY_PUSH` to see how this Approval Method is set up.
+see ApprovalMethod `AUTHY_PUSH` to see how this ApprovalMethod is set up.
 
 #### Challenge
 
 The Challenge for an ApprovalMethod of type `AUTHY_PUSH` will be sent to the customer's smartphone via a secure channel and thus will bypass the Partner for added security.
 
 ```
-POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request
+POST /v1/approval_requests
 {
-  "type": "AUTHY_PUSH"
+  "entity_id": "10ef67dc895d6c19c273b1ffba0c1692enty",
+  "approval_method_id": "b2046aec77bdd03dc0db46e57e0a722bapmt",
+  "resource_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
+  "resource_type": "TRANSACTION"
 }
 ```
 
@@ -1683,7 +1707,8 @@ POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id
 
 {
   "id": "bd4c882738787267cdf849fcb799b45eaprq",
-  "transaction_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
+  "resource_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
+  "resource_type": "TRANSACTION",
   "type": "AUTHY_PUSH",
   "state": "PENDING",
   "created_at": "2019-11-23T13:05:51Z",
@@ -1696,7 +1721,7 @@ POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id
 To see the state of an ApprovalRequest the Partner can use the following endpoint:
 
 ```
-GET /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request
+GET /v1/approval_requests/{approval_request_id}
 
 ```
 
@@ -1705,7 +1730,8 @@ GET /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}
 
 {
   "id": "bd4c882738787267cdf849fcb799b45eaprq",
-  "transaction_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
+  "resource_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
+  "resource_type": "TRANSACTION",
   "type": "AUTHY_PUSH",
   "state": "APPROVED",
   "created_at": "2019-11-23T13:05:51Z",
@@ -1713,7 +1739,7 @@ GET /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}
 }
 ```
 
-### Approval Method: SMS
+### ApprovalMethod: SMS
 
 This appproval method is aimed at customers (individual people) as Account holders.
 In order to approve an ApprovalRequest of type `SMS` a customer must be KYCd.
@@ -1727,16 +1753,19 @@ In order to approve an ApprovalRequest of type `SMS` a customer must be KYCd.
 
 #### Setup
 
-see Approval Method `SMS` to see how this Approval Method is set up.
+see ApprovalMethod `SMS` to see how this ApprovalMethod is set up.
 
 #### Challenge
 
 The Challenge for an ApprovalMethod of type `SMS` will be sent to the customer's mobile phone via SMS and thus will bypass the Partner.
 
 ```
-POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request
+POST /v1/approval_requests
 {
-  "type": "SMS"
+  "approval_method_id": "b2046aec77bdd03dc0db46e57e0a722bapmt",
+  "entity_id": "10ef67dc895d6c19c273b1ffba0c1692enty",
+  "resource_type": "TRANSACTION",
+  "resource_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx"
 }
 ```
 
@@ -1745,7 +1774,8 @@ POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id
 
 {
   "id": "bd4c882738787267cdf849fcb799b45eaprq",
-  "transaction_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
+  "resource_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
+  "resource_type": "TRANSACTION",
   "type": "SMS",
   "state": "PENDING",
   "created_at": "2019-11-23T13:05:51Z",
@@ -1759,7 +1789,7 @@ For the approval method SMS, the Customer should send the Response to the The pl
 In order to prevent prevent potential brute force attacks, we only allow one attempt to submit the Response once per each ApprovalRequest.
 
 ```
-POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request/approve
+POST /v1/approval_requests/{approval_request_id}/approve
 
 {
   "response": "012345" # The challenge that the customer received via SMS
@@ -1771,7 +1801,7 @@ POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id
 To see the state of an ApprovalRequest the Partner can use the following endpoint:
 
 ```
-GET /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request
+GET /v1/approval_requests/{approval_request_id}
 
 ```
 
@@ -1780,7 +1810,8 @@ GET /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}
 
 {
   "id": "bd4c882738787267cdf849fcb799b45eaprq",
-  "transaction_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
+  "resource_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
+  "resource_type": "TRANSACTION",
   "type": "SMS",
   "state": "APPROVED",
   "created_at": "2019-11-23T13:05:51Z",
@@ -1807,7 +1838,7 @@ by the platform operator, approving a Transaction using this method works in the
 
 #### Setup
 
-see Approval Method `DSA_ED25519` to see how this Approval Method is set up.
+see ApprovalMethod `DSA_ED25519` to see how this ApprovalMethod is set up.
 
 #### Challenge
 
@@ -1815,10 +1846,13 @@ The challenge for the DSA_ED25519 method is represented by a _Challenge message_
 that the holder of Approval key should sign and send the signature as the response.
 
 ```
-POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request
+POST /v1/approval_requests
 
 {
-  "type": "DSA_ED25519"
+  "approval_method_id": "b2046aec77bdd03dc0db46e57e0a722bapmt",
+  "entity_id": "10ef67dc895d6c19c273b1ffba0c1692enty",
+  "resource_id": "fc069dcbb6649ad7b5afb7210ef4d9d2atrx",
+  "resource_type": "TRANSACTION"
 }
 ```
 
@@ -1827,7 +1861,8 @@ POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id
 
 {
   "id": "ba9e224ba82ea200114803e5ce3ee839aprq",
-  "transaction_id": "fc069dcbb6649ad7b5afb7210ef4d9d2atrx",
+  "resource_id": "fc069dcbb6649ad7b5afb7210ef4d9d2atrx",
+  "resource_type": "TRANSACTION",
   "type": "DSA_ED25519",
   "state": "PENDING",
   "challenge": {
@@ -1871,7 +1906,7 @@ Suppose there is a Withdrawal Transaction:
 And the Approval request contains the following challenge:
 
 ```
-GET /v1/.../f4342c75f714405d89007ef13ce68688atrx/approval_request
+GET /v1/approval_requests/{approval_request_id}
 ```
 
 ```
@@ -1879,7 +1914,8 @@ GET /v1/.../f4342c75f714405d89007ef13ce68688atrx/approval_request
 
 {
   "id": "ba9e224ba82ea200114803e5ce3ee839aprq",
-  "transaction_id": "f4342c75f714405d89007ef13ce68688atrx",
+  "resource_id": "f4342c75f714405d89007ef13ce68688atrx",
+  "resource_type": "TRANSACTION",
   "type": "DSA_ED25519",
   "state": "PENDING",
   "challenge": {
@@ -1917,7 +1953,7 @@ of the Ed25519 signature of the _Challenge message_ constructed above, produced 
 private key part of _Approval key_.
 
 ```
-POST /v1/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request/approve
+POST /v1/approval_requests/{approval_request_id}/approve
 
 {
   "challenge": {
@@ -1963,7 +1999,7 @@ The signature is:
 Then the request to approve the Transaction is:
 
 ```
-POST /v1/.../f4342c75f714405d89007ef13ce68688atrx/approval_request/approve
+POST /v1/approval_requests/{approval_request_id}/approve
 
 {
   "challenge": {
@@ -1977,6 +2013,83 @@ POST /v1/.../f4342c75f714405d89007ef13ce68688atrx/approval_request/approve
 201 Created
 
 {}
+```
+
+### ApprovalMethod: GROUP
+
+This ApprovalMethod is aimed at groups of representatives, which are required to approve
+ApprovalRequests on behalf of the Entity that owns the Account.
+
+- The ApprovalGroup configured in the ApprovalMethod of type `GROUP` is to be set up by the Platform.
+- The Partner initiates a request to the Platform's API requesting the creation of an ApprovalRequest
+- An ApprovalRequest of type `GROUP` is created
+- The Partner initiates ApprovalRequests for the members of the group
+- The members of the group approve the ApprovalRequest with their ACTIVE ApprovalMethod
+
+#### Setup
+
+see ApprovalMethod `GROUP` to see how this ApprovalMethod is set up.
+
+#### Creating an ApprovalRequest of type GROUP
+
+```
+POST /v1/approval_requests
+{
+  "approval_method_id": "b2046aec77bdd03dc0db46e57e0a722bapmt",
+  "entity_id": "10ef67dc895d6c19c273b1ffba0c1692enty",
+  "resource_type": "TRANSACTION",
+  "resource_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx"
+}
+```
+
+```
+201 Created
+
+{
+  "id": "bd4c882738787267cdf849fcb799b45eaprq",
+  "resource_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
+  "resource_type": "TRANSACTION",
+  "type": "GROUP",
+  "state": "PENDING",
+  "created_at": "2019-11-23T13:05:51Z",
+  "updated_at": "2019-11-23T13:05:52Z"
+}
+```
+
+#### Requesting approval by members of the ApprovalGroup
+
+To initiate an approval by a member of the ApprovalGroup, an ApprovalRequest for the resource of
+type `APPROVAL_REQUESTS` should be created, selecting the desired ApprovalMethod for the member
+Entity.
+
+see the description for each ApprovalMethod type for instructions on how those requests are
+approved
+
+The ApprovalRequest of type `GROUP` will be `APPROVED` once enough ApprovalRequests linked to it
+have been `APPROVED` in order to satisfy the quorum set in the ApprovalGroup
+
+```
+POST /v1/approval_requests
+{
+  "approval_method_id": "9c41ec8a82fb99b57cb5078ae0a8b569apmt", # ID of the ApprovalMethod to be used for of ApprovalRequest that the ApprovalGroup member should perform
+  "entity_id": "10ef67dc895d6c19c273b1ffba0c1692enty", # The Entity member of the Approval Group
+  "resource_type": "APPROVAL_REQUEST",
+  "resource_id": "bd4c882738787267cdf849fcb799b45eaprq"
+}
+```
+
+```
+201 Created
+
+{
+  "id": "bd4c882738787267cdf849fcb799b45eaprq",
+  "type": "SMS",
+  "resource_id": "bd4c882738787267cdf849fcb799b45eaprq",
+  "resource_type": "APPROVAL_REQUEST",
+  "state": "PENDING",
+  "created_at": "2019-11-23T13:05:51Z",
+  "updated_at": "2019-11-23T13:05:52Z"
+}
 ```
 
 ## Ledger Entries
