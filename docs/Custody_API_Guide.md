@@ -755,9 +755,13 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/terms_and_conditions
 The contractual relationship between a customer and Solaris Digital Assets can be terminated by both parties.
 To initiate the termination of the contract, a ClosureRequest must be created by the initiating party. This ClosureRequest
 represents the processing of the termination. A ClosureRequest has a lifecycle and will traverse through multiple states.
-A ClosureRequest starts in state `PENDING` directly after initialization. After the ClosureRequest has been approved it will transition to
-state `APPROVED` (this happens automatically for ClosureRequests of type `CUSTOMER_WISH`). After a ClosureRequest has been processed it will
-end in it's final state: `COMPLETED`. After a ClosureRequest has been completed, the contractual realtionship between Solaris Digital Assets and the
+
+A ClosureRequest starts in state `PENDING` directly after initialization:
+ - ClosureRequests of type `COMPLIANCE_IMMEDIATE_INTERNAL` will transition to state `PROCESSING` once the partner has confirmed.
+ - ClosureRequests of type `CUSTOMMER_WISH` will transition immediately to state `PROCESSING`.
+ - ClosureRequests of type `ORDINARY_INTERNAL` will transition to state `APPROVED` once the partner has confirmed, after 60 days the ClosureRequests transition to state `PROCESSING`.
+
+ClosureRequests in state `PROCESSING`, and once processed, the ClosureRequests will reach their final state: `COMPLETED`. After a ClosureRequest has been completed, the contractual relationship between Solaris Digital Assets and the
 customer has ended. Solaris Digital Assets will then stop to offer it's services to this customer. I.e. the customer's Accounts can not be used anymore.
 The creation of a ClosureRequest can fail, e.g. when there already is an existing ClosureRequest for this customer. In this case the ClosureRequest's
 state will be `FAILED`.
@@ -800,7 +804,7 @@ POST /v1/entities/5a991ba917c829ca2ab6ce9a4ee3f9fcenty/closure_requests
   "id": "6138143133c91f3235a108d31dc90805creq",
   "entity_id": "5a991ba917c829ca2ab6ce9a4ee3f9fcenty",
   "reason": "CUSTOMER_WISH",
-  "state": "APPROVED",
+  "state": "PROCESSING",
   "valid_until": "2021-01-01T12:35:38Z",
   "created_at": "2020-12-02T12:35:38Z",
   "updated_at": "2020-12-02T12:35:38Z"
@@ -836,6 +840,44 @@ POST /v1/entities/5a991ba917c829ca2ab6ce9a4ee3f9fcenty/closure_requests/30381431
   "id": "3038143133c91f3235a108d31dc00211creq",
   "entity_id": "5a991ba917c829ca2ab6ce9a4ee3f9fcenty",
   "reason": "COMPLIANCE_IMMEDIATE_INTERNAL",
+  "state": "PROCESSING",
+  "valid_until": "2021-01-01T12:35:38Z",
+  "created_at": "2020-12-02T12:35:38Z",
+  "updated_at": "2020-12-02T12:35:38Z"
+}
+
+### Reason: `ORDINARY_INTERNAL`
+
+A platform's compliance, customer support or seizures officer can initiate the of end of the platform's relationship with the end customer. After the account closure has been
+initiated, the partner will receive a callback for a ClosureRequest with reason `ORDINARY_INTERNAL` (see: [Callbacks](#callbacks)).
+Upon receiving the callback with the ClosureRequest the partner must inform the end customer of the closure, the partner must later confirm to the platform (via API) that the end customer has acknowledged the account closure.
+
+```
+
+To approve the ClosureRequest:
+
+```
+POST /v1/entities/{entity_id}/closure_requests/{closure_request_id}/confirm
+```
+
+After a ClosureRequest has been confirmed, the customer will have 60 more days of regular, unrestricted usage.
+Following the initial 60 days, the customer will have 30 more days to withdraw their Assets from their Accounts.
+For that we allow one final Withdrawal per Account. For those final Withdrawals the `total_amount` MUST be specified and the full available balance of the Account MUST be withdrawn.
+
+Example:
+
+```
+POST /v1/entities/5a991ba917c829ca2ab6ce9a4ee3f9fcenty/closure_requests/3038143133c91f3235a108d31dc00211creq/confirm
+
+```
+
+```
+200 OK
+
+{
+  "id": "3038143133c91f3235a108d31dc00211creq",
+  "entity_id": "5a991ba917c829ca2ab6ce9a4ee3f9fcenty",
+  "reason": "ORDINARY_INTERNAL",
   "state": "APPROVED",
   "valid_until": "2021-01-01T12:35:38Z",
   "created_at": "2020-12-02T12:35:38Z",

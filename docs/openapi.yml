@@ -1218,8 +1218,9 @@ paths:
                 id: ae93e4dcb3d0f5d0e36a227a94ff39e5creq
                 reason: CUSTOMER_WISH
                 entity_id: 275cf8f7559fd88710b4c919f85777aaenty
-                state: APPROVED
+                state: PROCESSING
                 valid_until: '2019-04-01T22:31:06Z'
+                legal_closure_scheduled_at: '2019-03-01T22:31:06Z'
                 created_at: '2019-03-01T22:31:06Z'
                 updated_at: '2019-03-01T22:31:06Z'
         '400':
@@ -1260,8 +1261,9 @@ paths:
                 id: ae93e4dcb3d0f5d0e36a227a94ff39e5creq
                 reason: CUSTOMER_WISH
                 entity_id: 275cf8f7559fd88710b4c919f85777aaenty
-                state: APPROVED
+                state: PROCESSING
                 valid_until: '2019-04-01T22:31:06Z'
+                legal_closure_scheduled_at: '2019-03-01T22:31:06Z'
                 created_at: '2019-03-01T22:31:06Z'
                 updated_at: '2019-03-01T22:31:06Z'
         '401':
@@ -1276,7 +1278,7 @@ paths:
       - ClosureRequest
       summary: Confirm a ClosureRequest with `closure_request_id`
       description: |
-        After the partner got notified of a ClosureRequest of type `COMPLIANCE_IMMEDIATE_INTERNAL` the parter
+        After the partner got notified of a ClosureRequest of type `COMPLIANCE_IMMEDIATE_INTERNAL` or `ORDINARY_INTERNAL` the partner
         must confirm this ClosureRequest to the SDA platform.
       parameters:
       - name: entity_id
@@ -1302,8 +1304,9 @@ paths:
                 id: ae93e4dcb3d0f5d0e36a227a94ff39e5creq
                 reason: COMPLIANCE_IMMEDIATE_INTERNAL
                 entity_id: 275cf8f7559fd88710b4c919f85777aaenty
-                state: APPROVED
+                state: PROCESSING
                 valid_until: '2019-04-01T22:31:06Z'
+                legal_closure_scheduled_at: '2019-03-01T22:31:06Z'
                 created_at: '2019-03-01T22:31:06Z'
                 updated_at: '2019-03-01T22:31:06Z'
         '400':
@@ -1987,7 +1990,7 @@ paths:
       summary: Returns the trade price for a given Trading Pair.
       description: |
         The Price endpoint provides an indicative trade price for a given Trading Pair.
-        The "amount" attribute is optional and the default value is 1.
+        The "amount" attribute is optional and defaults to "min_amount" attribute of a chosen "Trading Pair".
         The provided result can only be used as an estimation and does not guarantee the price during the actual trade on the platform.
       parameters:
       - name: trading_pair_id
@@ -2011,9 +2014,12 @@ paths:
                 "$ref": "#/components/schemas/Price"
               example:
                 trading_pair_id: 00000000000000000000000000000001trpr
-                price: '7970.68'
-                amount: '1.12300000'
-                value: '8951.07'
+                from_amount: '1.12300000'
+                traded_from_amount: '1.12300000'
+                traded_to_amount: '9956.64'
+                to_amount: '9857.07'
+                price: '8866.11'
+                fee_amount: '99.57'
                 created_at: '2020-07-16T11:26:41Z'
                 updated_at: '2020-07-16T11:26:41Z'
         '401':
@@ -2106,18 +2112,18 @@ paths:
               example:
                 id: edd1838468d2b4afc207a26b92785b50trad
                 from_amount: '50.15'
-                traded_from_amount:
-                traded_to_amount:
-                to_amount:
-                fee_amount:
-                price:
+                traded_from_amount: 
+                traded_to_amount: 
+                to_amount: 
+                fee_amount: 
+                price: 
                 state: PENDING
                 reference: abc
                 entity_id: e943ee28ef2774e6479073ad401df390enty
                 trading_pair_id: 00000000000000000000000000000002trpr
                 from_account_id: bf20ca9ab2723fef688c510e694f7ac3cacc
                 to_account_id: a3727e756783a45b7350aa197bbf26cfacct
-                failure_reason:
+                failure_reason: 
                 created_at: '2020-09-10T14:31:32Z'
                 updated_at: '2020-09-10T14:31:32Z'
         '400':
@@ -2151,18 +2157,18 @@ paths:
               example:
                 id: edd1838468d2b4afc207a26b92785b50trad
                 from_amount: '50.15'
-                traded_from_amount:
-                traded_to_amount:
-                to_amount:
-                fee_amount:
-                price:
+                traded_from_amount: 
+                traded_to_amount: 
+                to_amount: 
+                fee_amount: 
+                price: 
                 state: PENDING
                 reference: abc
                 entity_id: e943ee28ef2774e6479073ad401df390enty
                 trading_pair_id: 00000000000000000000000000000002trpr
                 from_account_id: bf20ca9ab2723fef688c510e694f7ac3cacc
                 to_account_id: a3727e756783a45b7350aa197bbf26cfacct
-                failure_reason:
+                failure_reason: 
                 created_at: '2020-09-10T14:31:32Z'
                 updated_at: '2020-09-10T14:31:32Z'
         '401':
@@ -2198,18 +2204,18 @@ paths:
               example:
                 id: edd1838468d2b4afc207a26b92785b50trad
                 from_amount: '50.15'
-                traded_from_amount:
-                traded_to_amount:
-                to_amount:
-                fee_amount:
-                price:
+                traded_from_amount: 
+                traded_to_amount: 
+                to_amount: 
+                fee_amount: 
+                price: 
                 state: CANCELLED
                 reference: abc
                 entity_id: e943ee28ef2774e6479073ad401df390enty
                 trading_pair_id: 00000000000000000000000000000002trpr
                 from_account_id: bf20ca9ab2723fef688c510e694f7ac3cacc
                 to_account_id: a3727e756783a45b7350aa197bbf26cfacct
-                failure_reason:
+                failure_reason: 
                 created_at: '2020-09-10T14:31:32Z'
                 updated_at: '2020-09-10T14:31:32Z'
         '400':
@@ -3435,7 +3441,7 @@ components:
         code: EUR
         precision: 2
         description: Euro
-        address_validation:
+        address_validation: 
         tx_min_amount: '30.0'
         created_at: '2020-11-24T12:56:55Z'
         updated_at: '2020-11-24T12:57:09Z'
@@ -3447,6 +3453,7 @@ components:
       - reason
       - state
       - valid_until
+      - legal_closure_scheduled_at
       - created_at
       - updated_at
       properties:
@@ -3456,12 +3463,18 @@ components:
         reason:
           type: string
           description: Reason for Account closure
-          example: CUSTOMER_WISH
+          example: ORDINARY_INTERNAL
           enum:
           - CUSTOMER_WISH
+          - ORDINARY_INTERNAL
+          - COMPLIANCE_IMMEDIATE_INTERNAL
         valid_until:
           type: string
           description: Time until which the Entity can empty their Accounts
+          format: date-time
+        legal_closure_scheduled_at:
+          type: string
+          description: Time in which the Entity will be Legally Closed
           format: date-time
         state:
           type: string
@@ -3470,6 +3483,7 @@ components:
           enum:
           - PENDING
           - APPROVED
+          - PROCESSING
           - FAILED
           - COMPLETED
         created_at:
@@ -3482,10 +3496,11 @@ components:
           format: date-time
       example:
         id: ae93e4dcb3d0f5d0e36a227a94ff39e5creq
-        reason: CUSTOMER_WISH
+        reason: ORDINARY_INTERNAL
         entity_id: 275cf8f7559fd88710b4c919f85777aaenty
         state: APPROVED
-        valid_until: '2019-04-01T22:31:06Z'
+        valid_until: '2019-07-01T22:31:06Z'
+        legal_closure_scheduled_at: '2019-05-01T22:31:06Z'
         created_at: '2019-03-01T22:31:06Z'
         updated_at: '2019-03-01T22:31:06Z'
     Entity:
@@ -4099,16 +4114,25 @@ components:
         trading_pair_id:
           type: string
           description: A unique ID of the Trading Pair
+        from_amount:
+          type: string
+          description: The amount of the Trade
+        traded_from_amount:
+          type: string
+          description: The amount traded on the Exchange(minus Platform fees for fiat->crypto)
+        traded_to_amount:
+          type: string
+          description: The amount received from the Exchange(minus Exchange fees)
+        to_amount:
+          type: string
+          description: The final amount sent to the to_account_id(minus Platform fees
+            for crypto->fiat)
+        fee_amount:
+          type: string
+          description: Collected Platform fees
         price:
           type: string
-          description: The estimated price of the counter asset (currency) on the
-            Trading Pair
-        amount:
-          type: string
-          description: The amount available
-        value:
-          type: string
-          description: The value considering price * amount
+          description: Price, calculated as traded_to_amount / traded_from_amount
         created_at:
           type: string
           description: Time at which the Price was created
@@ -4119,9 +4143,12 @@ components:
           format: date-time
       example:
         trading_pair_id: 00000000000000000000000000000001trpr
-        price: '7970.68'
-        amount: '1.12300000'
-        value: '8951.07'
+        from_amount: '1.12300000'
+        traded_from_amount: '1.12300000'
+        traded_to_amount: '9956.64'
+        to_amount: '9857.07'
+        price: '8866.11'
+        fee_amount: '99.57'
         created_at: '2020-07-16T11:26:41Z'
         updated_at: '2020-07-16T11:26:41Z'
     Trade:
@@ -4201,18 +4228,18 @@ components:
       example:
         id: edd1838468d2b4afc207a26b92785b50trad
         from_amount: '50.15'
-        traded_from_amount:
-        traded_to_amount:
-        to_amount:
-        fee_amount:
-        price:
+        traded_from_amount: 
+        traded_to_amount: 
+        to_amount: 
+        fee_amount: 
+        price: 
         state: PENDING
         reference: abc
         entity_id: e943ee28ef2774e6479073ad401df390enty
         trading_pair_id: 00000000000000000000000000000002trpr
         from_account_id: bf20ca9ab2723fef688c510e694f7ac3cacc
         to_account_id: a3727e756783a45b7350aa197bbf26cfacct
-        failure_reason:
+        failure_reason: 
         created_at: '2020-09-10T14:31:32Z'
         updated_at: '2020-09-10T14:31:32Z'
     Transaction:
@@ -4823,4 +4850,3 @@ components:
                 type: string
             example:
               message: Internal server error
-
