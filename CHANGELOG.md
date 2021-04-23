@@ -1,5 +1,11 @@
 # Changelog
 
+## 23-04-2021
+
+- Document reason `ORDINARY_INTERNAL` on ClosureRequests
+- Add documentation on `PROCESSING` state for ClosureRequests
+- Add documentation on `legal_closure_scheduled_at` field for ClosureRequests
+
 ## 24-03-2021
 
 - Document Entities of type `REPRESENTATIVE_PERSON`
