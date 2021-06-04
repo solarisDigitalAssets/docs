@@ -1,5 +1,12 @@
 # Changelog
 
+## 01-06-2021
+
+API updated to v0.26.0
+
+- Update ClosureRequests flows
+- Add recommendations about withdrawing full balance of the Account
+
 ## 23-04-2021
 
 - Document reason `ORDINARY_INTERNAL` on ClosureRequests
