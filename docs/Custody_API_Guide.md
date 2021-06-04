@@ -2,8 +2,8 @@
 
 An API platform that provides a managed custody solution for storing digital assets.
 
-- Version: [0.25.0]
-- Updated: [2021-03-24]
+- Version: [0.26.0]
+- Updated: [2021-06-01]
 
 ## Table of Contents
 
@@ -30,44 +30,54 @@ An API platform that provides a managed custody solution for storing digital ass
   - [Assets](#assets)
     - [Assets of type BASE](#assets-of-type-base)
     - [Assets of type TOKEN](#assets-of-type-token)
+    - [Assets of type FIAT](#assets-of-type-fiat)
     - [Example](#example-2)
       - [Asset of type BASE](#asset-of-type-base)
       - [Asset of type TOKEN](#asset-of-type-token)
+      - [Asset of type FIAT](#asset-of-type-fiat)
   - [solaris Digital Assets recommendation: End customer onboarding](#solaris-digital-assets-recommendation-end-customer-onboarding)
     - [solarisBank Identity API](#solarisbank-identity-api)
     - [solaris Digital Assets API](#solaris-digital-assets-api)
-      - [Requirements for the end customer to be able to perform transactions:](#requirements-for-the-end-customer-to-be-able-to-perform-transactions)
+      - [Requirements for the end customer to be able to perform transactions](#requirements-for-the-end-customer-to-be-able-to-perform-transactions)
   - [Entities](#entities)
+    - [Entity states](#entity-states)
     - [Example](#example-3)
     - [Terms and Conditions](#terms-and-conditions)
       - [Example](#example-4)
+    - [ClosureRequests (Entity and Account Closures)](#closurerequests-entity-and-account-closures)
+      - [Reason: `CUSTOMER_WISH`](#reason-customer_wish)
+        - [Example](#example-5)
+      - [Reason: `COMPLIANCE_IMMEDIATE_INTERNAL`](#reason-compliance_immediate_internal)
+        - [Example](#example-6)
+      - [Reason: `ORDINARY_INTERNAL`](#reason-ordinary_internal)
+        - [Example](#example-7)
   - [Accounts](#accounts)
     - [Pooled Accounts (default)](#pooled-accounts-default)
     - [Segregated Accounts](#segregated-accounts)
     - [Account Balance](#account-balance)
     - [Account Available Balance](#account-available-balance)
     - [Account type](#account-type)
-      - [Example](#example-5)
+      - [Example](#example-8)
   - [Addresses](#addresses)
-    - [Example](#example-6)
+    - [Example](#example-9)
   - [Transactions](#transactions)
-    - [Example](#example-7)
+    - [Example](#example-10)
     - [Transaction Processing Workflow](#transaction-processing-workflow)
   - [Deposits](#deposits)
     - [Token Deposits](#token-deposits)
-      - [Example](#example-8)
+      - [Example](#example-11)
   - [Withdrawals](#withdrawals)
     - [Withdrawal Fee Model](#withdrawal-fee-model)
     - [Withdrawals from TOKEN Accounts](#withdrawals-from-token-accounts)
     - [Processing a Withdrawal](#processing-a-withdrawal)
-    - [Example](#example-9)
+    - [Example](#example-12)
     - [Example setting an end_to_end_id](#example-setting-an-end_to_end_id)
   - [Transfers](#transfers)
     - [Processing a Transfer](#processing-a-transfer)
-    - [Example](#example-10)
+    - [Example](#example-13)
     - [Example setting an end_to_end_id](#example-setting-an-end_to_end_id-1)
   - [Canceling a Transaction](#canceling-a-transaction)
-    - [Example](#example-11)
+    - [Example](#example-14)
   - [ApprovalMethods](#approvalmethods)
     - [Authy push notifications](#authy-push-notifications)
       - [Setup](#setup-1)
@@ -81,7 +91,7 @@ An API platform that provides a managed custody solution for storing digital ass
       - [Setup](#setup-3)
       - [Register this ApprovalMethod for an Entity](#register-this-approvalmethod-for-an-entity-2)
       - [Activation](#activation-2)
-    - [Group](#group)
+    - [GROUP](#group)
       - [Setup](#setup-4)
   - [ApprovalRequests](#approvalrequests)
     - [ApprovalMethod: AUTHY_PUSH](#approvalmethod-authy_push)
@@ -96,16 +106,17 @@ An API platform that provides a managed custody solution for storing digital ass
     - [Approval method: DSA_ED25519](#approval-method-dsa_ed25519)
       - [Setup](#setup-7)
       - [Challenge](#challenge-2)
-        - [Example](#example-12)
+        - [Example](#example-15)
       - [Response](#response-1)
-        - [Example](#example-13)
-    - [Approval method: Group](#approval-method-group)
+        - [Example](#example-16)
+    - [ApprovalMethod: GROUP](#approvalmethod-group)
       - [Setup](#setup-8)
-      - [Requesting Approval by members of the Approval Group](#requesting-approval-by-members-of-the-approval-group)
+      - [Creating an ApprovalRequest of type GROUP](#creating-an-approvalrequest-of-type-group)
+      - [Requesting approval by members of the ApprovalGroup](#requesting-approval-by-members-of-the-approvalgroup)
   - [Ledger Entries](#ledger-entries)
-    - [Example](#example-14)
+    - [Example](#example-17)
   - [Callbacks](#callbacks)
-    - [Example](#example-15)
+    - [Example](#example-18)
 
 ## Introduction
 
@@ -545,7 +556,6 @@ Assets of this type represent fiat assets. An example is Euro. Those Assets are 
 
 No Accounts can be created for Assets of this type.
 
-
 The API provides a way to list all Assets supported by the platform:
 
 See:
@@ -645,7 +655,7 @@ Before a partner can offer their customers the full feature set of solaris Digit
 > Certain functionalities, like creating Account and Addresses is possible without successful KYC of an end customer. Although, for example in an event of a detected
 > Deposit, funds will never be unlocked until the KYC has been successfully completed. Hence, Withdrawals or Transfers will be not possible either.
 
-#### Requirements for the end customer to be able to perform transactions:
+#### Requirements for the end customer to be able to perform transactions
 
 - Person created (sB Identity API)
 - KYC successfully completed (sB Identity API)
@@ -661,12 +671,13 @@ During the setup phase we only create one Entity of type `PARTNER`, which repres
 
 To be able to create Accounts on behalf of end customers, the partner MUST beforehand create corresponding Entities of type `PERSON`. During this process the partner MUST provide a `person_id` — a unique identifier of an individual provided by solarisBank KYC product.
 
-
 Entities of type `REPRESENTATIVE_PERSON` represent Entities which can approve ApprovalRequests on a
 Transaction which belongs to another Entity. Several Entities of type `REPRESENTATIVE_PERSON` can have the same `person_id` as long as that
 `person_id` is not in use by another Entity of type `PERSON`.
 
-### Entities can have multiple states which are:
+### Entity states
+
+Entities can have multiple states which are:
 
 `ACTIVE` - The Entity can use the platform without restrictions.
 `CLOSING` - A ClosureRequest has been created for the Entity; awaiting confirmation by the partner.
@@ -746,6 +757,7 @@ POST /v1/entities/{entity_id}/terms_and_conditions
 ```
 
 #### Example
+
 ```
 POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/terms_and_conditions
 ```
@@ -757,24 +769,31 @@ To initiate the termination of the contract, a ClosureRequest must be created by
 represents the processing of the termination. A ClosureRequest has a lifecycle and will traverse through multiple states.
 
 A ClosureRequest starts in state `PENDING` directly after initialization:
- - ClosureRequests of type `COMPLIANCE_IMMEDIATE_INTERNAL` will transition to state `PROCESSING` once the partner has confirmed.
- - ClosureRequests of type `CUSTOMMER_WISH` will transition immediately to state `PROCESSING`.
- - ClosureRequests of type `ORDINARY_INTERNAL` will transition to state `APPROVED` once the partner has confirmed, after 60 days the ClosureRequests transition to state `PROCESSING`.
 
-ClosureRequests in state `PROCESSING`, and once processed, the ClosureRequests will reach their final state: `COMPLETED`. After a ClosureRequest has been completed, the contractual relationship between Solaris Digital Assets and the
-customer has ended. Solaris Digital Assets will then stop to offer it's services to this customer. I.e. the customer's Accounts can not be used anymore.
+- ClosureRequests of type `COMPLIANCE_IMMEDIATE_INTERNAL` will transition to state `PROCESSING` once the partner has confirmed
+- ClosureRequests of type `CUSTOMER_WISH` will transition immediately to state `PROCESSING`
+- ClosureRequests of type `ORDINARY_INTERNAL` will transition to state `APPROVED` once the partner has confirmed, after 60 days the ClosureRequests transition to state `PROCESSING`
+
+ClosureRequests in state `PROCESSING`, and once processed, the ClosureRequests will reach their final state: `COMPLETED`. After a ClosureRequest has been completed, the contractual relationship between Solaris Digital Assets and the customer has ended. Solaris Digital Assets will then stop to offer it's services to this customer. I.e. the customer's Accounts can not be used anymore.
+
 The creation of a ClosureRequest can fail, e.g. when there already is an existing ClosureRequest for this customer. In this case the ClosureRequest's
 state will be `FAILED`.
 
 ClosureRequests can have different `reasons` depending on which party initiates the termination of the contract and under which circumstances the contract is
 terminated. Only ClosureRequests of `reason: CUSTOMER_WISH` can be created by a partner.
 
+After a ClosureRequest has been created the customer will have 30 days for `CUSTOMER_WISH` & `COMPLIANCE_IMMEDIATE_INTERNAL` reasons and 90 days for `ORDINARY_INTERNAL` reason to withdraw their Assets from their Accounts.
+
+To withdraw full balance of the Account there are 2 options:
+
+1. Create a withdrawal with `total_amount` attribute which equals the full balance of the Account. The transacted amount will equals `total_amount` minus `fee_amount` (Example: Withdraw 1 BTC. Fee computed at 0.01 BTC. Withdrawal leaves 0 BTC in the Account. The end customer receives 0.99 BTC in the external wallet)
+2. Create a withdrawal with `amount` attribute which equals the full balance of the Account and specify a different fee paying account by `fee_account_id` attribute. The transacted amount will equal the full balance of the Account (Example: Withdraw 1 BTC. Fee computed at 0.01 BTC. Withdrawal leaves 0 BTC in the Account. The end customer receives 1 BTC in the external wallet. The fee is deducted from a different Account that belongs to the same Partner)
+
 #### Reason: `CUSTOMER_WISH`
 
 An end customer can end their contractual relationship with Solaris Digital Assets. To enable end customers to do that, our API offers endpoints for requesting, listing and showing ClosureRequests.
-After a the relationship between the customer and Solaris Digital Assets has ended, the customer will not longer be able to use their Account.
+
 After a ClosureRequest has been submitted the customer will have 30 days to withdraw their Assets from their Accounts.
-For that we allow one final Withdrawal per Account. For those final Withdrawals the `total_amount` MUST be specified and the full available balance of the Account MUST be withdrawn.
 
 See:
 
@@ -784,7 +803,7 @@ GET /v1/entities/{entity_id}/closure_requests
 GET /v1/entities/{entity_id}/closure_requests/{closure_request_id}
 ```
 
-### Example
+##### Example
 
 Creating a ClosureRequest: `CUSTOMER_WISH`
 
@@ -811,10 +830,11 @@ POST /v1/entities/5a991ba917c829ca2ab6ce9a4ee3f9fcenty/closure_requests
 }
 ```
 
-### Reason: `COMPLIANCE_IMMEDIATE_INTERNAL`
+#### Reason: `COMPLIANCE_IMMEDIATE_INTERNAL`
 
 A platform's compliance officer can initiate the of end of the platform's relationship with the end customer. After the compliance officer has
 initiated the account closure the partner will receive a callback for a ClosureRequest with reason `COMPLIANCE_IMMEDIATE_INTERNAL` (see: [Callbacks](#callbacks)).
+
 Upon receiving the callback with the ClosureRequest the partner must inform the end customer of the closure, the partner must later confirm to the platform (via API) that the end customer has acknowledged the account closure.
 
 To approve the ClosureRequest:
@@ -824,9 +844,8 @@ POST /v1/entities/{entity_id}/closure_requests/{closure_request_id}/confirm
 ```
 
 After a ClosureRequest has been confirmed the customer will have 30 days to withdraw their Assets from their Accounts.
-For that we allow one final Withdrawal per Account. For those final Withdrawals the `total_amount` MUST be specified and the full available balance of the Account MUST be withdrawn.
 
-Example:
+##### Example
 
 ```
 POST /v1/entities/5a991ba917c829ca2ab6ce9a4ee3f9fcenty/closure_requests/3038143133c91f3235a108d31dc00211creq/confirm
@@ -845,14 +864,13 @@ POST /v1/entities/5a991ba917c829ca2ab6ce9a4ee3f9fcenty/closure_requests/30381431
   "created_at": "2020-12-02T12:35:38Z",
   "updated_at": "2020-12-02T12:35:38Z"
 }
+```
 
-### Reason: `ORDINARY_INTERNAL`
+#### Reason: `ORDINARY_INTERNAL`
 
 A platform's compliance, customer support or seizures officer can initiate the of end of the platform's relationship with the end customer. After the account closure has been
 initiated, the partner will receive a callback for a ClosureRequest with reason `ORDINARY_INTERNAL` (see: [Callbacks](#callbacks)).
 Upon receiving the callback with the ClosureRequest the partner must inform the end customer of the closure, the partner must later confirm to the platform (via API) that the end customer has acknowledged the account closure.
-
-```
 
 To approve the ClosureRequest:
 
@@ -860,11 +878,9 @@ To approve the ClosureRequest:
 POST /v1/entities/{entity_id}/closure_requests/{closure_request_id}/confirm
 ```
 
-After a ClosureRequest has been confirmed, the customer will have 60 more days of regular, unrestricted usage.
-Following the initial 60 days, the customer will have 30 more days to withdraw their Assets from their Accounts.
-For that we allow one final Withdrawal per Account. For those final Withdrawals the `total_amount` MUST be specified and the full available balance of the Account MUST be withdrawn.
+After a ClosureRequest has been confirmed the customer will have 90 days to withdraw their Assets from their Accounts.
 
-Example:
+##### Example
 
 ```
 POST /v1/entities/5a991ba917c829ca2ab6ce9a4ee3f9fcenty/closure_requests/3038143133c91f3235a108d31dc00211creq/confirm
@@ -1315,7 +1331,6 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b5
   "transaction_id": "bede420fae7624091f337c22f9714fc0atrx"
 }
 ```
-
 
 ## Transfers
 
@@ -1921,7 +1936,7 @@ attribute names returned in `challenge.attrs` in the following way:
 1. For each _attribute_name_ from the `challenge.attrs` list, construct the _attribute_string_
    in the following way: concatenate the _attribute_name_, ASCII colon `:`, ASCII space ``
    and the value of corresponding Transaction attribute
-1. Construct the _Challenge message_ by concatenating _attribute_string_'s in the same
+2. Construct the _Challenge message_ by concatenating _attribute_string_'s in the same
    order as the corresponding attributes in `challenge.attrs`,
    using ASCII newline `\n` as the delimiter.
    NOTE: the resulting string does NOT end with `\n`.
