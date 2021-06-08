@@ -1,4 +1,4 @@
-# (DRAFT) solaris Digital Assets Platform - Brokerage API Guide
+# solaris Digital Assets Platform - Brokerage API Guide
 
 ## Trading Pairs
 
