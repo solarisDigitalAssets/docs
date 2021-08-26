@@ -1,4 +1,4 @@
-# (DRAFT) solaris Digital Assets Platform - Brokerage API Guide
+# solaris Digital Assets Platform - Brokerage API Guide
 
 ## Trading Pairs
 
@@ -61,7 +61,7 @@ GET /v1/trading/pairs
 ```
 
 ```
-GET /v1/trading/pairs/00000000000000000000000000000001trpr/
+GET /v1/trading/pairs/00000000000000000000000000000001trpr
 ```
 
 ```
@@ -83,7 +83,7 @@ GET /v1/trading/pairs/00000000000000000000000000000001trpr/
 
 The Price endpoint provides an indicative trade price for a given Trading Pair.
 
-The "amount" attribute is optional and the default value is 1.
+The `amount` attribute is optional and defaults to `min_amount` attribute of a chosen `Trading Pair`.
 
 The example below represents a request to estimate an approximate value of 1.123 BTC in EUR. The response contains a corresponding "value" in EUR. Both "price" and "value" attributes use a quote currency precision.
 
@@ -107,11 +107,130 @@ GET /v1/trading/pairs/00000000000000000000000000000001trpr/price?amount=1.123
 
 {
   trading_pair_id: "00000000000000000000000000000001trpr",
-  price: "7970.68",
-  amount: "1.12300000",
-  value: "8951.07",
+  from_amount: "1.12300000",
+  traded_from_amount: "1.12300000",
+  traded_to_amount: "9956.64",
+  to_amount: "9857.07",
+  price: "8866.11",
+  fee_amount: "99.57",
   created_at: "2020-07-16T11:26:41Z",
   updated_at: "2020-07-16T11:26:41Z"
+}
+```
+
+## Exchange Rates
+
+### Daily Exchange Rates
+
+A GET request to `v1/trading/pairs/{trading_pair_id}/daily_rates` endpoint returns historical daily exchange rates for a given `Trading Pair`.
+
+See:
+
+```
+GET /v1/trading/pairs/{trading_pair_id}/daily_rates
+```
+
+### Example
+
+```
+GET /v1/trading/pairs/00000000000000000000000000000001trpr/daily_rates
+```
+
+```
+200 OK
+
+{
+  "items": [
+    {
+      trading_pair_id: "00000000000000000000000000000001trpr",
+      price: "7728.19",
+      starts_at": "2021-01-01T01:00:00Z",
+      ends_at": "2021-01-02T01:00:00Z"
+    },
+    {
+      trading_pair_id: "00000000000000000000000000000001trpr",
+      price: "7728.19",
+      starts_at": "2021-01-02T01:00:00Z",
+      ends_at": "2021-01-03T01:00:00Z"
+    },
+    ...
+  ]
+}
+```
+
+### Hourly Exchange Rates
+
+A GET request to `v1/trading/pairs/{trading_pair_id}/hourly_rates` endpoint returns historical hourly exchange rates for a given `Trading Pair`.
+
+See:
+
+```
+GET /v1/trading/pairs/{trading_pair_id}/hourly_rates
+```
+
+### Example
+
+```
+GET /v1/trading/pairs/00000000000000000000000000000001trpr/hourly_rates
+```
+
+```
+200 OK
+
+{
+  "items": [
+    {
+      trading_pair_id: "00000000000000000000000000000001trpr",
+      price: "7728.19",
+      starts_at": "2021-01-01T01:00:00Z",
+      ends_at": "2021-01-01T02:00:00Z"
+    },
+    {
+      trading_pair_id: "00000000000000000000000000000001trpr",
+      price: "7728.19",
+      starts_at": "2021-01-01T02:00:00Z",
+      ends_at": "2021-01-01T03:00:00Z"
+    },
+    ...
+  ]
+}
+```
+
+### Minute Exchange Rates
+
+A GET request to `v1/trading/pairs/{trading_pair_id}/minute_rates` endpoint returns historical minute exchange rates for a given `Trading Pair`.
+
+See:
+
+```
+GET /v1/trading/pairs/{trading_pair_id}/minute_rates
+```
+
+### Example
+
+```
+GET /v1/trading/pairs/00000000000000000000000000000001trpr/minute_rates
+```
+
+```
+200 OK
+
+{
+  "items": [
+    {
+      trading_pair_id: "00000000000000000000000000000001trpr",
+      price: "7728.19",
+      starts_at": "2021-01-01T00:01:00Z",
+      ends_at": "2021-01-01T00:02:00Z"
+    },
+    {
+      trading_pair_id: "00000000000000000000000000000001trpr",
+      price: "7728.19",
+      starts_at": "2021-01-01T00:02:00Z",
+      ends_at": "2021-01-01T00:03:00Z"
+    },
+    ...
+  ]
 }
 ```
 
@@ -123,7 +242,7 @@ The request body must contain the following parameters:
 
 - `reference` - a unique identifier of the Trade, chosen by the API client
 - `trading_pair_id` - represents the direction of the Trade
-- `amount` - must be available on `from_account` account and be greater than `min_amount` specified by the trading pair
+- `from_amount` - must be available on `from_account` account and be greater than `min_amount` specified by the trading pair
 - `entity_id` - Solaris Digital Assets entity
 - `from_account_id` - Solarisbank or Solaris Digital Assets account
 - `to_account_id` - Solarisbank or Solaris Digital Assets account
@@ -135,7 +254,7 @@ Note: Solarisbank account must meet the following requirements:
 3. `locking_status` is `NO_BLOCK`
 4. `status` is `ACTIVE`
 
-In case of successful execution the endpoint responds with `201 Created` status and an initial state of the Trade which is `CREATED`.
+In case of successful execution the endpoint responds with `201 Created` status and an initial state of the Trade which is `PENDING`.
 
 Example below shows a creation of the `EUR/BTC` Trade(buying BTC) with the amount of 50.15 EUR, where `from_account_id` belongs to Solarisbank and `to_account_id` belongs to Solaris Digital Assets.
 
@@ -152,7 +271,7 @@ GET /v1/trading/trades/{trade_id}
 ```
 POST /v1/trading/trades
 {
-  "amount": "50.15",
+  "from_amount": "50.15",
   "entity_id": "e943ee28ef2774e6479073ad401df390enty",
   "trading_pair_id": "00000000000000000000000000000002trpr",
   "from_account_id": "bf20ca9ab2723fef688c510e694f7ac3cacc",
@@ -166,13 +285,18 @@ POST /v1/trading/trades
 
 {
   "id": "edd1838468d2b4afc207a26b92785b50trad",
-  "amount": "50.15",
-  "state": "CREATED",
+  "from_amount": "50.15",
+  "traded_from_amount": null,
+  "traded_to_amount": null,
+  "to_amount": null,
+  "fee_amount": null,
+  "state": "PENDING",
   "reference": "abc",
   "entity_id": "e943ee28ef2774e6479073ad401df390enty",
   "trading_pair_id": "00000000000000000000000000000002trpr",
   "from_account_id": "bf20ca9ab2723fef688c510e694f7ac3cacc",
   "to_account_id": "a3727e756783a45b7350aa197bbf26cfacct",
+  "failure_reason": null,
   "created_at": "2020-09-10T14:31:32Z",
   "updated_at": "2020-09-10T14:31:32Z"
 }
@@ -180,7 +304,7 @@ POST /v1/trading/trades
 
 ### Cancelling a Trade
 
-A Trade can be cancelled by the Partner given it is still on the `CREATED` state. In case the Trade cannot be found the endpoint replies with `404 Not Found` status code.
+A Trade can be cancelled by the Partner given it's state is `PENDING`. In case the Trade cannot be found the endpoint replies with `404 Not Found` status code.
 
 See:
 
@@ -195,17 +319,22 @@ POST /v1/trading/trades/{trade_id}/cancel
 ```
 
 ```
-200 Created
+200 OK
 
 {
   "id": "edd1838468d2b4afc207a26b92785b50trad",
-  "amount": "50.15",
+  "from_amount": "50.15",
+  "traded_from_amount": null,
+  "traded_to_amount": null,
+  "to_amount": null,
+  "fee_amount": null,
   "state": "CANCELLED",
   "reference": "abc",
   "entity_id": "e943ee28ef2774e6479073ad401df390enty",
   "trading_pair_id": "00000000000000000000000000000002trpr",
   "from_account_id": "bf20ca9ab2723fef688c510e694f7ac3cacc",
   "to_account_id": "a3727e756783a45b7350aa197bbf26cfacct",
+  "failure_reason": null,
   "created_at": "2020-09-10T14:31:32Z",
   "updated_at": "2020-09-10T14:31:32Z"
 }
@@ -312,5 +441,40 @@ POST /v1/trading/trades/{:trade_id}/approval_request/approve
   "state": "APPROVED",
   "created_at": "2020-10-02T15:10:12Z",
   "updated_at": "2020-10-02T15:10:12Z"
+}
+```
+
+### Trading Limits
+
+This endpoint is used to show current trading limits configuration for an Entity and the remaining amount they are allowed to trade.
+
+The Trading Limit object includes the following attributes:
+
+- `interval` an Integer, which represents a time interval `amount` is applied within, in seconds
+- `amount` a String, which represents maximum cumulative amount of Trades within `interval`, in EUR with EUR asset precision
+- `remaining_amount` a String, which represents remaining amount available within `interval`, in EUR with EUR asset precision
+
+See:
+
+```
+GET /entities/{entity_id}/trading_limits
+```
+
+### Example
+
+```
+GET /entities/{entity_id}/trading_limits
+```
+
+```
+200 OK
+
+{
+  "entity_id": "e0a26b1b54a6009d9ad9c6efd3aa5c77enty",
+  "interval": 604800,
+  "amount": "50000.00",
+  "remaining_amount": "49686.69",
+  "created_at": "2021-02-11T22:40:59Z",
+  "updated_at": "2021-02-11T22:40:59Z"
 }
 ```

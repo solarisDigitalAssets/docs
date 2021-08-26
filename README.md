@@ -10,7 +10,7 @@ In this project you will find code examples, tools and documentation related to 
 ## Documents
 
 * API specification for Custody API: [Custody_API_Guide.md](docs/Custody_API_Guide.md)
-* API specification for (DRAFT) Brokerage API: [DRAFT_Brokerage_API_Guide.md](docs/DRAFT_Brokerage_API_Guide.md)
+* API specification for Brokerage API: [Brokerage_API_Guide.md](docs/Brokerage_API_Guide.md)
 * OpenAPI specification: [openapi.yml](docs/openapi.yml)
 
 ## Changelog

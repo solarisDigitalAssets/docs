@@ -1,5 +1,11 @@
 # Changelog
 
+## 26-08-2021
+
+- Removes `business_id` duplicates from `openapi.yml`
+- Removes `DRAFT` mentions to `Brokerage_API_Guide.md`.
+- Updates `Brokerage_API_Guide.md` to the latest version.
+
 ## 01-06-2021
 
 API updated to v0.26.0
