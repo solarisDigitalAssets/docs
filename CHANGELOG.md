@@ -1,10 +1,11 @@
 # Changelog
 
-## 26-08-2021
+## 30-08-2021
 
-- Removes `business_id` duplicates from `openapi.yml`
-- Removes `DRAFT` mentions to `Brokerage_API_Guide.md`.
-- Updates `Brokerage_API_Guide.md` to the latest version.
+- Update `openapi.yml` `info.contact.email` attribute to `sda-tech@solarisbank.de`
+- Remove `business_id` duplicates from `openapi.yml`
+- Remove `DRAFT` mentions from `Brokerage_API_Guide.md`
+- Update `Brokerage_API_Guide.md` to the latest version
 
 ## 01-06-2021
 

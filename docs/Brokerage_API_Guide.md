@@ -37,24 +37,24 @@ GET /v1/trading/pairs
 {
   "items": [
     {
-      id: "00000000000000000000000000000001trpr",
-      from_asset_id: "00000000000000000000000000000001asst",
-      to_asset_id: "f0000000000000000000000000000001asst",
-      code: "BTC/EUR",
-      precision: 2,
-      min_amount: "0.0001",
-      created_at: "2020-07-16T11:26:41Z",
+      "id": "00000000000000000000000000000001trpr",
+      "from_asset_id": "00000000000000000000000000000001asst",
+      "to_asset_id": "f0000000000000000000000000000001asst",
+      "code": "BTC/EUR",
+      "precision": 2,
+      "min_amount": "0.0001",
+      "created_at": "2020-07-16T11:26:41Z",
       updated_at: "2020-07-16T11:26:41Z"
     },
     {
-      id: "00000000000000000000000000000002trpr",
-      from_asset_id: "f0000000000000000000000000000001asst",
-      to_asset_id: "00000000000000000000000000000001asst",
-      code: "EUR/BTC",
-      precision: 8,
-      min_amount: "10",
-      created_at: "2020-07-16T11:26:41Z",
-      updated_at: "2020-07-16T11:26:41Z"
+      "id": "00000000000000000000000000000002trpr",
+      "from_asset_id": "f0000000000000000000000000000001asst",
+      "to_asset_id": "00000000000000000000000000000001asst",
+      "code": "EUR/BTC",
+      "precision": 8,
+      "min_amount": "10",
+      "created_at": "2020-07-16T11:26:41Z",
+      "updated_at": "2020-07-16T11:26:41Z"
     }...
   ]
 }
@@ -68,14 +68,14 @@ GET /v1/trading/pairs/00000000000000000000000000000001trpr
 200 OK
 
 {
-  id: "00000000000000000000000000000001trpr",
-  from_asset_id: "00000000000000000000000000000001asst",
-  to_asset_id: "f0000000000000000000000000000001asst",
-  code: "BTC/EUR",
-  precision: 2,
-  min_amount: "0.0001",
-  created_at: "2020-07-16T11:26:41Z",
-  updated_at: "2020-07-16T11:26:41Z"
+  "id": "00000000000000000000000000000001trpr",
+  "from_asset_id": "00000000000000000000000000000001asst",
+  "to_asset_id": "f0000000000000000000000000000001asst",
+  "code": "BTC/EUR",
+  "precision": 2,
+  "min_amount": "0.0001",
+  "created_at": "2020-07-16T11:26:41Z",
+  "updated_at": "2020-07-16T11:26:41Z"
 }
 ```
 
@@ -106,15 +106,15 @@ GET /v1/trading/pairs/00000000000000000000000000000001trpr/price?amount=1.123
 200 OK
 
 {
-  trading_pair_id: "00000000000000000000000000000001trpr",
-  from_amount: "1.12300000",
-  traded_from_amount: "1.12300000",
-  traded_to_amount: "9956.64",
-  to_amount: "9857.07",
-  price: "8866.11",
-  fee_amount: "99.57",
-  created_at: "2020-07-16T11:26:41Z",
-  updated_at: "2020-07-16T11:26:41Z"
+  "trading_pair_id: "00000000000000000000000000000001trpr",
+  "from_amount": "1.12300000",
+  "traded_from_amount": "1.12300000",
+  "traded_to_amount": "9956.64",
+  "to_amount": "9857.07",
+  "price": "8866.11",
+  "fee_amount": "99.57",
+  "created_at": "2020-07-16T11:26:41Z",
+  "updated_at": "2020-07-16T11:26:41Z"
 }
 ```
 
@@ -122,7 +122,7 @@ GET /v1/trading/pairs/00000000000000000000000000000001trpr/price?amount=1.123
 
 ### Daily Exchange Rates
 
-A GET request to `v1/trading/pairs/{trading_pair_id}/daily_rates` endpoint returns historical daily exchange rates for a given `Trading Pair`.
+A GET request to `/v1/trading/pairs/{trading_pair_id}/daily_rates` endpoint returns historical daily exchange rates for a given `Trading Pair`.
 
 See:
 
@@ -142,16 +142,16 @@ GET /v1/trading/pairs/00000000000000000000000000000001trpr/daily_rates
 {
   "items": [
     {
-      trading_pair_id: "00000000000000000000000000000001trpr",
-      price: "7728.19",
-      starts_at": "2021-01-01T01:00:00Z",
-      ends_at": "2021-01-02T01:00:00Z"
+      "trading_pair_id": "00000000000000000000000000000001trpr",
+      "price": "7728.19",
+      "starts_at": "2021-01-01T01:00:00Z",
+      "ends_at": "2021-01-02T01:00:00Z"
     },
     {
-      trading_pair_id: "00000000000000000000000000000001trpr",
-      price: "7728.19",
-      starts_at": "2021-01-02T01:00:00Z",
-      ends_at": "2021-01-03T01:00:00Z"
+      "trading_pair_id": "00000000000000000000000000000001trpr",
+      "price": "7728.19",
+      "starts_at": "2021-01-02T01:00:00Z",
+      "ends_at": "2021-01-03T01:00:00Z"
     },
     ...
   ]
@@ -160,7 +160,7 @@ GET /v1/trading/pairs/00000000000000000000000000000001trpr/daily_rates
 
 ### Hourly Exchange Rates
 
-A GET request to `v1/trading/pairs/{trading_pair_id}/hourly_rates` endpoint returns historical hourly exchange rates for a given `Trading Pair`.
+A GET request to `/v1/trading/pairs/{trading_pair_id}/hourly_rates` endpoint returns historical hourly exchange rates for a given `Trading Pair`.
 
 See:
 
@@ -180,16 +180,16 @@ GET /v1/trading/pairs/00000000000000000000000000000001trpr/hourly_rates
 {
   "items": [
     {
-      trading_pair_id: "00000000000000000000000000000001trpr",
-      price: "7728.19",
-      starts_at": "2021-01-01T01:00:00Z",
-      ends_at": "2021-01-01T02:00:00Z"
+      "trading_pair_id": "00000000000000000000000000000001trpr",
+      "price": "7728.19",
+      "starts_at": "2021-01-01T01:00:00Z",
+      "ends_at": "2021-01-01T02:00:00Z"
     },
     {
-      trading_pair_id: "00000000000000000000000000000001trpr",
-      price: "7728.19",
-      starts_at": "2021-01-01T02:00:00Z",
-      ends_at": "2021-01-01T03:00:00Z"
+      "trading_pair_id": "00000000000000000000000000000001trpr",
+      "price": "7728.19",
+      "starts_at": "2021-01-01T02:00:00Z",
+      "ends_at": "2021-01-01T03:00:00Z"
     },
     ...
   ]
@@ -198,7 +198,7 @@ GET /v1/trading/pairs/00000000000000000000000000000001trpr/hourly_rates
 
 ### Minute Exchange Rates
 
-A GET request to `v1/trading/pairs/{trading_pair_id}/minute_rates` endpoint returns historical minute exchange rates for a given `Trading Pair`.
+A GET request to `/v1/trading/pairs/{trading_pair_id}/minute_rates` endpoint returns historical minute exchange rates for a given `Trading Pair`.
 
 See:
 
@@ -218,16 +218,16 @@ GET /v1/trading/pairs/00000000000000000000000000000001trpr/minute_rates
 {
   "items": [
     {
-      trading_pair_id: "00000000000000000000000000000001trpr",
-      price: "7728.19",
-      starts_at": "2021-01-01T00:01:00Z",
-      ends_at": "2021-01-01T00:02:00Z"
+      "trading_pair_id": "00000000000000000000000000000001trpr",
+      "price": "7728.19",
+      "starts_at": "2021-01-01T00:01:00Z",
+      "ends_at": "2021-01-01T00:02:00Z"
     },
     {
-      trading_pair_id: "00000000000000000000000000000001trpr",
-      price: "7728.19",
-      starts_at": "2021-01-01T00:02:00Z",
-      ends_at": "2021-01-01T00:03:00Z"
+      "trading_pair_id": "00000000000000000000000000000001trpr",
+      "price": "7728.19",
+      "starts_at": "2021-01-01T00:02:00Z",
+      "ends_at": "2021-01-01T00:03:00Z"
     },
     ...
   ]
@@ -236,7 +236,7 @@ GET /v1/trading/pairs/00000000000000000000000000000001trpr/minute_rates
 
 ## Trades
 
-Making a POST request to `v1/trading/trades` endpoint results in registering a new `Trade` on the platform.
+Making a POST request to `/v1/trading/trades` endpoint results in registering a new `Trade` on the platform.
 
 The request body must contain the following parameters:
 
@@ -304,7 +304,7 @@ POST /v1/trading/trades
 
 ### Cancelling a Trade
 
-A Trade can be cancelled by the Partner given it's state is `PENDING`. In case the Trade cannot be found the endpoint replies with `404 Not Found` status code.
+A Trade can be cancelled by the Partner given its state is `PENDING`. In case the Trade cannot be found the endpoint replies with `404 Not Found` status code.
 
 See:
 
@@ -351,7 +351,7 @@ The Trade Approval process consists of two steps:
 
 ### Create an Approval Request
 
-A POST request to `v1/trading/trades/{trade_id}/approval_request ` endpoint creates a new `Approval Request` for a `Trade` on the platform.
+A POST request to `/v1/trading/trades/{trade_id}/approval_request ` endpoint creates a new `Approval Request` for a `Trade` on the platform.
 
 The request body must contain the following parameters:
 
@@ -393,7 +393,7 @@ POST /v1/trading/trades/{trade_id}/approval_request
 
 ### Fetch the current state of an Approval Request
 
-A GET request to `v1/trading/trades/{trade_id}/approval_request` endpoint returns the current state of an `Approval Request` of a given `Trade` on the platform.
+A GET request to `/v1/trading/trades/{trade_id}/approval_request` endpoint returns the current state of an `Approval Request` of a given `Trade` on the platform.
 
 In case of successful execution the endpoint responds with `200 OK` status and the current state from the `Approval Request`.
 
@@ -418,7 +418,7 @@ GET /v1/trading/trades/{trade_id}/approval_request
 
 ### Approves an Approval Request
 
-A POST request to `v1/trading/trades/{trade_id}/approval_request/approve` endpoint approves the current `Approval Request` of a given `Trade` on the platform.
+A POST request to `/v1/trading/trades/{trade_id}/approval_request/approve` endpoint approves the current `Approval Request` of a given `Trade` on the platform.
 
 In case of successful execution the endpoint responds with `200 OK` status and the current state from the `Approval Request`.
 
