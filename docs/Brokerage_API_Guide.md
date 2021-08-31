@@ -44,7 +44,7 @@ GET /v1/trading/pairs
       "precision": 2,
       "min_amount": "0.0001",
       "created_at": "2020-07-16T11:26:41Z",
-      updated_at: "2020-07-16T11:26:41Z"
+      "updated_at": "2020-07-16T11:26:41Z"
     },
     {
       "id": "00000000000000000000000000000002trpr",
@@ -357,7 +357,7 @@ The request body must contain the following parameters:
 
 - `entity_id` - Solaris Digital Assets entity
 - `account_id` - Solarisbank or Solaris Digital Assets account
-- `type` - The [MFA mechanism](https://github.com/solarisDigitalAssets/docs/blob/master/docs/API_Guide.md#approval-methods) that the Account holder (Entity) can use to approve their Trades.
+- `type` - The [MFA mechanism](https://github.com/solarisDigitalAssets/docs/blob/master/docs/Custody_API_Guide.md#approvalmethods) that the Account holder (Entity) can use to approve their Trades.
 
 In case of successful execution the endpoint responds with `201 Created` status and an initial state of the `Approval Request` which is `PENDING`.
 

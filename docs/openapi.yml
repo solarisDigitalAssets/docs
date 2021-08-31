@@ -1682,11 +1682,11 @@ paths:
       - Trade Approval Request
       summary: Approve an ApprovalRequest of a Trade
       description: |
-        To approve a Trade � using an ApprovalRequest of type `DSA_ED25519` �
+        To approve a Trade using an ApprovalRequest of type `DSA_ED25519`
         the Account holder (an Entity owning the Account), MUST compute a response
         based on the previously retrieved challenge. The response is posted with this request.
 
-        Trade Approvals works the same way as Transaction Approvals. The description on the [API Guide](https://github.com/solarisDigitalAssets/docs/blob/master/docs/API_Guide.md#approval-method-dsa_ed25519)
+        Trade Approvals works the same way as Transaction Approvals. The description on the [API Guide](https://github.com/solarisDigitalAssets/docs/blob/master/docs/Custody_API_Guide.md#dsa_ed25519)
         shows how to compute the response for a particular approval method.
       parameters:
       - name: trade_id
@@ -1955,7 +1955,7 @@ paths:
       tags:
       - TradingPair
       summary: Get a single Trading Pair
-      description: 'Returns a single Trading Paiir identified by its ID.
+      description: 'Returns a single Trading Pair identified by its ID.
 
 '
       parameters:
@@ -2187,7 +2187,7 @@ paths:
       - Trade
       summary: Cancel an existing Trade
       description: 'A Trade can be cancelled by the Partner given it is still on the
-        `CREATED` state. In case the Trade cannot be found the endpoint replies with
+        `PENDING` state. In case the Trade cannot be found the endpoint replies with
         `404 Not Found` status code.
 
 '
