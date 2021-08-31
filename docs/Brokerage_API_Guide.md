@@ -352,7 +352,7 @@ The Trade Approval process consists of two steps:
 
 ### Create an Approval Request
 
-A POST request to `/v1/trading/trades/{trade_id}/approval_request ` endpoint creates a new `Approval Request` for a `Trade` on the platform.
+A POST request to `/v1/trading/trades/{trade_id}/approval_request` endpoint creates a new `Approval Request` for a `Trade` on the platform.
 
 The request body must contain the following parameters:
 
@@ -458,13 +458,13 @@ The Trading Limit object includes the following attributes:
 See:
 
 ```
-GET /entities/{entity_id}/trading_limits
+GET /v1/entities/{entity_id}/trading_limits
 ```
 
 ### Example
 
 ```
-GET /entities/{entity_id}/trading_limits
+GET /v1/entities/{entity_id}/trading_limits
 ```
 
 ```
