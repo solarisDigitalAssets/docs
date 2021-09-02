@@ -55,7 +55,7 @@ GET /v1/trading/pairs
       "min_amount": "10",
       "created_at": "2020-07-16T11:26:41Z",
       "updated_at": "2020-07-16T11:26:41Z"
-    }
+    },
     ...
   ]
 }
