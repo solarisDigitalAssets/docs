@@ -991,7 +991,7 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
-  "/approval_request/{approval_request_id}/approve":
+  "/approval_requests/{approval_request_id}/approve":
     post:
       tags:
       - ApprovalRequest
@@ -3012,6 +3012,9 @@ components:
       - "$ref": "#/components/schemas/ApprovalRequestSMS"
       - "$ref": "#/components/schemas/ApprovalRequestDSA_ED25519"
       - "$ref": "#/components/schemas/ApprovalRequestGROUP"
+      - "$ref": "#/components/schemas/ApprovalRequestAUTHY_PUSH_DEPRECATED"
+      - "$ref": "#/components/schemas/ApprovalRequestSMS_DEPRECATED"
+      - "$ref": "#/components/schemas/ApprovalRequestDSA_ED25519_DEPRECATED"
     ApprovalRequestAUTHY_PUSH:
       description: |
         An ApprovalRequest for ApprovalMethod of type `AUTHY_PUSH`.
@@ -3020,8 +3023,11 @@ components:
       type: object
       required:
       - id
+      - entity_id
+      - approval_method_id
+      - resource_id
+      - resource_type
       - state
-      - transaction_id
       - type
       - created_at
       - updated_at
@@ -3029,6 +3035,18 @@ components:
         id:
           type: string
           description: The ID of the ApprovalRequest
+        entity_id:
+          type: string
+          description: The ID of the Entity that owns the ApprovalRequest
+        approval_method_id:
+          type: string
+          description: The ID of the associated ApprovalMethod
+        resource_id:
+          type: string
+          description: The ID of the resource that will be approved with this ApprovalRequest
+        resource_type:
+          type: string
+          description: The type of the resource that will be approved with this ApprovalRequest.
         state:
           type: string
           description: The state of the ApprovalRequest
@@ -3037,9 +3055,6 @@ components:
           - APPROVED
           - CANCELLED
           - FAILED
-        transaction_id:
-          type: string
-          description: A reference to the corresponding Transaction
         type:
           type: string
           description: Approval method
@@ -3057,7 +3072,10 @@ components:
       example:
         id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
         state: PENDING
-        transaction_id: afa4bcc92adaad64fdaad3c48b8cb840tran
+        entity_id: c7cbbb0930f21e1525257cac1fc97e54enty
+        approval_method_id: aa28b780ec044732f2a02ab44e6275cfapmt
+        resource_id: d8ffb93a9269086393e271cf564dc1a7atrx
+        resource_type: TRANSACTION
         type: AUTHY_PUSH
         created_at: '2019-11-03T13:05:51Z'
         updated_at: '2019-11-03T13:05:51Z'
@@ -3069,8 +3087,11 @@ components:
       type: object
       required:
       - id
+      - entity_id
+      - approval_method_id
+      - resource_id
+      - resource_type
       - state
-      - transaction_id
       - type
       - created_at
       - updated_at
@@ -3086,9 +3107,18 @@ components:
           - APPROVED
           - CANCELLED
           - FAILED
-        transaction_id:
+        entity_id:
           type: string
-          description: A reference to the corresponding Transaction
+          description: The ID of the Entity that owns the ApprovalRequest
+        approval_method_id:
+          type: string
+          description: The ID of the associated ApprovalMethod
+        resource_id:
+          type: string
+          description: The ID of the resource that will be approved with this ApprovalRequest
+        resource_type:
+          type: string
+          description: The type of the resource that will be approved with this ApprovalRequest.
         type:
           type: string
           description: Approval method
@@ -3106,7 +3136,10 @@ components:
       example:
         id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
         state: PENDING
-        transaction_id: afa4bcc92adaad64fdaad3c48b8cb840tran
+        entity_id: c7cbbb0930f21e1525257cac1fc97e54enty
+        approval_method_id: aa28b780ec044732f2a02ab44e6275cfapmt
+        resource_id: d8ffb93a9269086393e271cf564dc1a7atrx
+        resource_type: TRANSACTION
         type: SMS
         created_at: '2019-11-03T13:05:51Z'
         updated_at: '2019-11-03T13:05:51Z'
@@ -3121,8 +3154,11 @@ components:
       type: object
       required:
       - id
+      - entity_id
+      - approval_method_id
+      - resource_id
+      - resource_type
       - state
-      - transaction_id
       - type
       - challenge
       - created_at
@@ -3140,9 +3176,18 @@ components:
           - APPROVED
           - CANCELLED
           - FAILED
-        transaction_id:
+        entity_id:
           type: string
-          description: A reference to the corresponding Transaction
+          description: The ID of the Entity that owns the ApprovalRequest
+        approval_method_id:
+          type: string
+          description: The ID of the associated ApprovalMethod
+        resource_id:
+          type: string
+          description: The ID of the resource that will be approved with this ApprovalRequest
+        resource_type:
+          type: string
+          description: The type of the resource that will be approved with this ApprovalRequest.
         type:
           type: string
           description: Approval method
@@ -3171,7 +3216,240 @@ components:
       example:
         id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
         state: PENDING
-        transaction_id: afa4bcc92adaad64fdaad3c48b8cb840tran
+        entity_id: c7cbbb0930f21e1525257cac1fc97e54enty
+        approval_method_id: aa28b780ec044732f2a02ab44e6275cfapmt
+        resource_id: d8ffb93a9269086393e271cf564dc1a7atrx
+        resource_type: TRANSACTION
+        type: DSA_ED25519
+        challenge:
+          attrs:
+          - id
+          - account_id
+          - type
+          - reference
+          - amount
+          - fee_amount
+          - address
+        created_at: '2019-11-03T13:05:51Z'
+        updated_at: '2019-11-03T13:05:51Z'
+    ApprovalRequestAUTHY_PUSH_DEPRECATED:
+      description: |
+        -- THIS SCHEMA IS DEPRECATED AND MIGHT BE REMOVED IN THE FUTURE --
+        An ApprovalRequest for ApprovalMethod of type `AUTHY_PUSH`.
+
+        This ApprovalMethod is provided for Entities of type `PERSON` as Account holder.
+      type: object
+      required:
+      - id
+      - entity_id
+      - approval_method_id
+      - resource_id
+      - resource_type
+      - state
+      - type
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: The ID of the ApprovalRequest
+        entity_id:
+          type: string
+          description: The ID of the Entity that owns the ApprovalRequest
+        approval_method_id:
+          type: string
+          description: The ID of the associated ApprovalMethod
+        resource_id:
+          type: string
+          description: The ID of the resource that will be approved with this ApprovalRequest
+        resource_type:
+          type: string
+          description: The type of the resource that will be approved with this ApprovalRequest.
+        transaction_id:
+          type: string
+          description: The ID of the Transaction that will be approved with this ApprovalRequest
+        state:
+          type: string
+          description: The state of the ApprovalRequest
+          enum:
+          - PENDING
+          - APPROVED
+          - CANCELLED
+          - FAILED
+        type:
+          type: string
+          description: Approval method
+          example: AUTHY_PUSH
+          enum:
+          - AUTHY_PUSH
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was last updated
+          format: date-time
+      example:
+        id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
+        state: PENDING
+        entity_id: c7cbbb0930f21e1525257cac1fc97e54enty
+        approval_method_id: aa28b780ec044732f2a02ab44e6275cfapmt
+        resource_id: d8ffb93a9269086393e271cf564dc1a7atrx
+        transaction_id: d8ffb93a9269086393e271cf564dc1a7atrx
+        resource_type: TRANSACTION
+        type: AUTHY_PUSH
+        created_at: '2019-11-03T13:05:51Z'
+        updated_at: '2019-11-03T13:05:51Z'
+    ApprovalRequestSMS_DEPRECATED:
+      description: |
+        An ApprovalRequest for ApprovalMethod of type `SMS`.
+
+        This ApprovalMethod is provided for Entities of type `PERSON` as Account holder.
+      type: object
+      required:
+      - id
+      - entity_id
+      - approval_method_id
+      - transaction_id
+      - resource_id
+      - resource_type
+      - state
+      - type
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: The ID of the ApprovalRequest
+        state:
+          type: string
+          description: The state of the ApprovalRequest
+          enum:
+          - PENDING
+          - APPROVED
+          - CANCELLED
+          - FAILED
+        entity_id:
+          type: string
+          description: The ID of the Entity that owns the ApprovalRequest
+        approval_method_id:
+          type: string
+          description: The ID of the associated ApprovalMethod
+        transaction_id:
+          type: string
+          description: The ID of the Transaction that will be approved with this ApprovalRequest
+        resource_id:
+          type: string
+          description: The ID of the resource that will be approved with this ApprovalRequest
+        resource_type:
+          type: string
+          description: The type of the resource that will be approved with this ApprovalRequest.
+        type:
+          type: string
+          description: Approval method
+          example: SMS
+          enum:
+          - SMS
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was last updated
+          format: date-time
+      example:
+        id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
+        state: PENDING
+        entity_id: c7cbbb0930f21e1525257cac1fc97e54enty
+        approval_method_id: aa28b780ec044732f2a02ab44e6275cfapmt
+        resource_id: d8ffb93a9269086393e271cf564dc1a7atrx
+        resource_type: TRANSACTION
+        type: SMS
+        created_at: '2019-11-03T13:05:51Z'
+        updated_at: '2019-11-03T13:05:51Z'
+    ApprovalRequestDSA_ED25519_DEPRECATED:
+      description: |
+        An ApprovalRequest for ApprovalMethod of type `DSA_ED25519`.
+
+        This method is provided for Entities of type `PARTNER`, as Account holder.
+
+        When requested, the ApprovalRequest will contain a challenge that MUST be
+        solved by the Account holder in order for the Transaction to be processed.
+      type: object
+      required:
+      - id
+      - entity_id
+      - approval_method_id
+      - resource_id
+      - resource_type
+      - transaction_id
+      - state
+      - type
+      - challenge
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: The ID of the ApprovalRequest
+        state:
+          type: string
+          description: The state of the ApprovalRequest
+          enum:
+          - CREATING
+          - PENDING
+          - APPROVED
+          - CANCELLED
+          - FAILED
+        transaction_id:
+          type: string
+          description: The ID of the Transaction that will be approved with this ApprovalRequest
+        entity_id:
+          type: string
+          description: The ID of the Entity that owns the ApprovalRequest
+        approval_method_id:
+          type: string
+          description: The ID of the associated ApprovalMethod
+        resource_id:
+          type: string
+          description: The ID of the resource that will be approved with this ApprovalRequest
+        resource_type:
+          type: string
+          description: The type of the resource that will be approved with this ApprovalRequest.
+        type:
+          type: string
+          description: Approval method
+        challenge:
+          type: object
+          description: |
+            An array containing a list of attributes that are used to construct a
+            signature as a solution to the challenge message
+          properties:
+            attrs:
+              type: array
+              description: 'An array containing the keys used to construct the challenge
+                message
+
+'
+              items:
+                type: string
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was last updated
+          format: date-time
+      example:
+        id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
+        state: PENDING
+        entity_id: c7cbbb0930f21e1525257cac1fc97e54enty
+        approval_method_id: aa28b780ec044732f2a02ab44e6275cfapmt
+        resource_id: d8ffb93a9269086393e271cf564dc1a7atrx
+        resource_type: TRANSACTION
         type: DSA_ED25519
         challenge:
           attrs:
@@ -3192,6 +3470,8 @@ components:
       required:
       - id
       - state
+      - entity_id
+      - approval_method_id
       - resource_type
       - resource_id
       - type
@@ -3205,10 +3485,17 @@ components:
           type: string
           description: The state of the ApprovalRequest
           enum:
+          - CREATING
           - PENDING
           - APPROVED
           - CANCELLED
           - FAILED
+        entity_id:
+          type: string
+          description: The ID of the Entity that owns the ApprovalRequest
+        approval_method_id:
+          type: string
+          description: The ID of the associated ApprovalMethod
         resource_id:
           type: string
           description: A reference to the corresponding resource
@@ -3233,6 +3520,8 @@ components:
         id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
         state: PENDING
         resource_type: TRANSACTION
+        entity_id: c7cbbb0930f21e1525257cac1fc97e54enty
+        approval_method_id: aa28b780ec044732f2a02ab44e6275cfapmt
         resource_id: afa4bcc92adaad64fdaad3c48b8cb840tran
         type: GROUP
         created_at: '2019-11-03T13:05:51Z'
