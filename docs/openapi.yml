@@ -3496,6 +3496,9 @@ components:
         approval_method_id:
           type: string
           description: The ID of the associated ApprovalMethod
+        approval_group_id:
+          type: string
+          description: The ID of the associated ApprovalGroup
         resource_id:
           type: string
           description: A reference to the corresponding resource
@@ -3522,6 +3525,7 @@ components:
         resource_type: TRANSACTION
         entity_id: c7cbbb0930f21e1525257cac1fc97e54enty
         approval_method_id: aa28b780ec044732f2a02ab44e6275cfapmt
+        approval_group_id: c05c94a9e4e511df38d345e0642b86b6apgr
         resource_id: afa4bcc92adaad64fdaad3c48b8cb840tran
         type: GROUP
         created_at: '2019-11-03T13:05:51Z'

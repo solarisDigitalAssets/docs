@@ -1,5 +1,10 @@
 # Changelog
 
+## 07-09-2021
+
+- Update `openapi.yml` `ApprovalRequests` to reflect latest state
+- Update `Custody_API_Guide.md` to correct examples for ApprovalRequests
+
 ## 31-08-2021
 
 - Update `openapi.yml` `info.contact.email` attribute to `sda-tech@solarisbank.de`
