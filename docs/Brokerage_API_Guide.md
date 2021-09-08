@@ -453,7 +453,9 @@ The Trading Limit object includes the following attributes:
 
 - `interval` an Integer, which represents a time interval `amount` is applied within, in seconds
 - `amount` a String, which represents maximum cumulative amount of Trades within `interval`, in EUR with EUR asset precision
-- `remaining_amount` a String, which represents remaining amount available within `interval`, in EUR with EUR asset precision
+- `remaining_amount` a String, which represents remaining amount available within `interval`, in EUR with EUR asset precision.
+  It is calculated as `amount - sum(Traded amounts in EUR)` where the sum represents a cumulative trade amount during a given time window
+  that has its `start time` defined as `DATE NOW - interval` and its `end time` as `DATE NOW`.
 
 See:
 

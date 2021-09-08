@@ -1,5 +1,9 @@
 # Changelog
 
+## 08-09-2021
+
+- Update `Trading Limits#remaing_amount` description on `Brokerage_API_Guide.md`
+
 ## 07-09-2021
 
 - Update `openapi.yml` `ApprovalRequests` to reflect latest state
