@@ -257,6 +257,9 @@ Note: Solarisbank account must meet the following requirements:
 
 In case of successful execution the endpoint responds with `201 Created` status and an initial state of the Trade which is `PENDING`.
 
+`traded_from_amount`, `traded_to_amount`, `to_amount` and `fee_amount` are populated with estimations as soon as Trade is created. Those fields are recalculated
+during the Trade processing and show final values only when the Trade reaches a `COMPLETED` state.
+
 Example below shows a creation of the `EUR/BTC` Trade(buying BTC) with the amount of 50.15 EUR, where `from_account_id` belongs to Solarisbank and `to_account_id` belongs to Solaris Digital Assets.
 
 See:
@@ -287,10 +290,11 @@ POST /v1/trading/trades
 {
   "id": "edd1838468d2b4afc207a26b92785b50trad",
   "from_amount": "50.15",
-  "traded_from_amount": null,
-  "traded_to_amount": null,
-  "to_amount": null,
-  "fee_amount": null,
+  "traded_from_amount": "49.64",
+  "traded_to_amount": "0.00548782",
+  "to_amount": "0.00548782",
+  "fee_amount": "0.51",
+  "price": "0.00011055",
   "state": "PENDING",
   "reference": "abc",
   "entity_id": "e943ee28ef2774e6479073ad401df390enty",
@@ -325,10 +329,11 @@ POST /v1/trading/trades/{trade_id}/cancel
 {
   "id": "edd1838468d2b4afc207a26b92785b50trad",
   "from_amount": "50.15",
-  "traded_from_amount": null,
-  "traded_to_amount": null,
-  "to_amount": null,
-  "fee_amount": null,
+  "traded_from_amount": "49.64",
+  "traded_to_amount": "0.00548782",
+  "to_amount": "0.00548782",
+  "fee_amount": "0.51",
+  "price": "0.00011055",
   "state": "CANCELLED",
   "reference": "abc",
   "entity_id": "e943ee28ef2774e6479073ad401df390enty",
@@ -352,30 +357,33 @@ The Trade Approval process consists of two steps:
 
 ### Create an Approval Request
 
-A POST request to `/v1/trading/trades/{trade_id}/approval_request` endpoint creates a new `Approval Request` for a `Trade` on the platform.
+A POST request to `/v1/approval_requests` endpoint creates a new `Approval Request` for a `Trade` on the platform.
 
 The request body must contain the following parameters:
 
-- `entity_id` - Solaris Digital Assets entity
-- `account_id` - Solarisbank or Solaris Digital Assets account
-- `type` - The [MFA mechanism](https://github.com/solarisDigitalAssets/docs/blob/master/docs/Custody_API_Guide.md#approvalmethods) that the Account holder (Entity) can use to approve their Trades.
+- `entity_id` - Solaris Digital Assets entity that owns the resource (TRADE)
+- `approval_method_id` - The [ApprovalMethod](https://github.com/solarisDigitalAssets/docs/blob/master/docs/Custody_API_Guide.md#approvalmethods) ID to be used by the ApprovalRequest
+- `resource_id` - The Trade ID
+- `resource_type` - The resource type to be approved. In this case, "TRADE".
 
 In case of successful execution the endpoint responds with `201 Created` status and an initial state of the `Approval Request` which is `PENDING`.
 
 See:
 
 ```
-POST /v1/trading/trades/{trade_id}/approval_request
+POST /v1/approval_requests
 ```
 
 ### Example
 
 ```
-POST /v1/trading/trades/{trade_id}/approval_request
+POST /v1/approval_requests
+
 {
-  "entity_id": "e943ee28ef2774e6479073ad401df390enty",
-  "account_id": "bf20ca9ab2723fef688c510e694f7ac3cacc",
-  "type": "AUTHY_PUSH"
+  "entity_id": "cb497f98027ce6274d49ca6718d2735eenty",
+  "approval_method_id": "d4e4f4459b71e369c87fcb3c99b070daapmt",
+  "resource_id": "0ecb606c653eb248b195640cbe06ebd5trad",
+  "resource_type": "TRADE"
 }
 ```
 
@@ -383,65 +391,43 @@ POST /v1/trading/trades/{trade_id}/approval_request
 201 Created
 
 {
-  "id": "bd4c882738787267cdf849fcb799b45eaprq",
-  "trade_id": "00000000000000000000000000000001trad",
+  "id": "6a164d859ea8061b8b086a956d7d81b9aprq",
+  "approval_method_id": "d4e4f4459b71e369c87fcb3c99b070daapmt",
+  "entity_id": "cb497f98027ce6274d49ca6718d2735eenty",
+  "resource_id": "0ecb606c653eb248b195640cbe06ebd5trad",
+  "resource_type": "TRADE",
   "type": "AUTHY_PUSH",
   "state": "PENDING",
-  "created_at": "2020-10-02T15:10:12Z",
-  "updated_at": "2020-10-02T15:10:12Z"
+  "created_at": "2021-11-10T13:43:59Z",
+  "updated_at": "2021-11-10T13:43:59Z"
 }
 ```
 
 ### Fetch the current state of an Approval Request
 
-A GET request to `/v1/trading/trades/{trade_id}/approval_request` endpoint returns the current state of an `Approval Request` of a given `Trade` on the platform.
+A GET request to `/v1/approval_requests/{approval_request_id}` endpoint returns the current state of an `Approval Request` of a given `Trade` on the platform.
 
 In case of successful execution the endpoint responds with `200 OK` status and the current state from the `Approval Request`.
 
 ### Example
 
 ```
-GET /v1/trading/trades/{trade_id}/approval_request
+GET /v1/approval_requests/{approval_request_id}
 ```
 
 ```
 200 OK
 
 {
-  "id": "bd4c882738787267cdf849fcb799b45eaprq",
-  "trade_id": "00000000000000000000000000000001trad",
+  "id": "ef5c38b1564d18fa302fe0d5f988518eaprq",
+  "approval_method_id": "d4e4f4459b71e369c87fcb3c99b070daapmt",
+  "entity_id": "cb497f98027ce6274d49ca6718d2735eenty",
+  "resource_id": "0ecb606c653eb248b195640cbe06ebd5trad",
+  "resource_type": "TRADE",
   "type": "AUTHY_PUSH",
   "state": "APPROVED",
-  "created_at": "2020-10-02T15:10:12Z",
-  "updated_at": "2020-10-02T15:10:12Z"
-}
-```
-
-### Approves an Approval Request
-
-A POST request to `/v1/trading/trades/{trade_id}/approval_request/approve` endpoint approves the current `Approval Request` of a given `Trade` on the platform.
-
-In case of successful execution the endpoint responds with `200 OK` status and the current state from the `Approval Request`.
-
-### Example
-
-```
-POST /v1/trading/trades/{:trade_id}/approval_request/approve
-{
-  "response": "012345" # The challenge that the customer received via SMS
-}
-```
-
-```
-200 OK
-
-{
-  "id": "bd4c882738787267cdf849fcb799b45eaprq",
-  "trade_id": "00000000000000000000000000000001trad",
-  "type": "SMS",
-  "state": "APPROVED",
-  "created_at": "2020-10-02T15:10:12Z",
-  "updated_at": "2020-10-02T15:10:12Z"
+  "created_at": "2021-11-10T13:47:28Z",
+  "updated_at": "2021-11-10T13:47:29Z"
 }
 ```
 
