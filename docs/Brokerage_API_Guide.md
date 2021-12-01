@@ -1,4 +1,4 @@
-# solaris Digital Assets Platform - Brokerage API Guide
+# Solaris Digital Assets Platform - Brokerage API Guide
 
 ## Trading Pairs
 
@@ -242,8 +242,8 @@ Making a POST request to `/v1/trading/trades` endpoint results in registering a 
 The request body must contain the following parameters:
 
 - `reference` - a unique identifier of the Trade, chosen by the API client
-- `trading_pair_id` - represents the direction of the Trade
-- `from_amount` - must be available on `from_account` account and be greater than `min_amount` specified by the trading pair
+- `trading_pair_id` - represents a currency pair and a direction of the Trade
+- `from_amount` - must be available on `from_account` account and be greater than `min_amount` specified by the TradingPair
 - `entity_id` - Solaris Digital Assets entity
 - `from_account_id` - Solarisbank or Solaris Digital Assets account
 - `to_account_id` - Solarisbank or Solaris Digital Assets account
@@ -251,16 +251,21 @@ The request body must contain the following parameters:
 Note: Solarisbank account must meet the following requirements:
 
 1. `bic` is `SOBKDEB2XXX` (Solarisbank Corona)
-2. `type` is `CHECKING_PERSONAL`
+2. `type` is `CHECKING_PERSONAL` or `CHECKING_BUSINESS`
 3. `locking_status` is `NO_BLOCK`
 4. `status` is `ACTIVE`
 
 In case of successful execution the endpoint responds with `201 Created` status and an initial state of the Trade which is `PENDING`.
 
-`traded_from_amount`, `traded_to_amount`, `to_amount` and `fee_amount` are populated with estimations as soon as Trade is created. Those fields are recalculated
-during the Trade processing and show final values only when the Trade reaches a `COMPLETED` state.
+The newly created Trade has a `PENDING` state and contains trade estimations within a corresponding field. The next step is Trade approval(see Approval Requests). Once the Trade is approved it is being executed and eventually reaches a `COMPLETED` state. When it happens the following fields, which are initially empty, will be populated:
 
-Example below shows a creation of the `EUR/BTC` Trade(buying BTC) with the amount of 50.15 EUR, where `from_account_id` belongs to Solarisbank and `to_account_id` belongs to Solaris Digital Assets.
+- `fee_amount` - a fee amount, collected by the Platform. This amount is always denominated in EUR(`f0000000000000000000000000000001asst`) and collected prior to the exchange for FIAT -> CRYPTO trades and after the exchange for CRYPTO -> FIAT trades.
+- `traded_from_amount` - an amount which was traded on the exchange
+- `traded_to_amount` - an amount received from the exchange
+- `to_amount` - an amount which `entity_id` has received
+- `price` - `traded_to_amount / traded_from_amount` rounded to the precision of the TradingPair
+
+Example below shows a creation of the `EUR/BTC` Trade(buying BTC for EUR) with the amount of 209.1 EUR, where `from_account_id` belongs to Solarisbank and `to_account_id` belongs to Solaris Digital Assets.
 
 See:
 
@@ -275,12 +280,12 @@ GET /v1/trading/trades/{trade_id}
 ```
 POST /v1/trading/trades
 {
-  "from_amount": "50.15",
-  "entity_id": "e943ee28ef2774e6479073ad401df390enty",
+  "from_amount": "209.1",
+  "entity_id": "b6ef80668690fa4dfbb51a3bc49a1fb7enty",
   "trading_pair_id": "00000000000000000000000000000002trpr",
-  "from_account_id": "bf20ca9ab2723fef688c510e694f7ac3cacc",
-  "to_account_id": "a3727e756783a45b7350aa197bbf26cfacct",
-  "reference": "abc"
+  "from_account_id": "57e837a08685eff2cee29e82b6b09857cacc",
+  "to_account_id": "d4f01daea26362d0de5fe89cb0f8d905acct",
+  "reference": "9bcf5ffa4bb4d4ebbf92fb74f3a61f85"
 }
 ```
 
@@ -288,22 +293,29 @@ POST /v1/trading/trades
 201 Created
 
 {
-  "id": "edd1838468d2b4afc207a26b92785b50trad",
-  "from_amount": "50.15",
-  "traded_from_amount": "49.64",
-  "traded_to_amount": "0.00548782",
-  "to_amount": "0.00548782",
-  "fee_amount": "0.51",
-  "price": "0.00011055",
+  "id": "82d19e27542a21c950eaae13059cf5f5trad",
+  "from_amount": "209.10",
+  "traded_from_amount": null,
+  "traded_to_amount": null,
+  "to_amount": null,
+  "fee_amount": "2.10",
+  "price": null,
   "state": "PENDING",
-  "reference": "abc",
-  "entity_id": "e943ee28ef2774e6479073ad401df390enty",
+  "reference": "9bcf5ffa4bb4d4ebbf92fb74f3a61f85",
+  "entity_id": "b6ef80668690fa4dfbb51a3bc49a1fb7enty",
   "trading_pair_id": "00000000000000000000000000000002trpr",
-  "from_account_id": "bf20ca9ab2723fef688c510e694f7ac3cacc",
-  "to_account_id": "a3727e756783a45b7350aa197bbf26cfacct",
+  "from_account_id": "57e837a08685eff2cee29e82b6b09857cacc",
+  "to_account_id": "d4f01daea26362d0de5fe89cb0f8d905acct",
   "failure_reason": null,
-  "created_at": "2020-09-10T14:31:32Z",
-  "updated_at": "2020-09-10T14:31:32Z"
+  "estimations": {
+    "traded_from_amount": "207.00",
+    "traded_to_amount": "0.02288435",
+    "to_amount": "0.02288435",
+    "fee_amount": "2.10",
+    "price": "0.00011055"
+  },
+  "created_at": "2021-11-26T14:35:45Z",
+  "updated_at": "2021-11-26T14:35:45Z"
 }
 ```
 
@@ -327,109 +339,42 @@ POST /v1/trading/trades/{trade_id}/cancel
 200 OK
 
 {
-  "id": "edd1838468d2b4afc207a26b92785b50trad",
-  "from_amount": "50.15",
-  "traded_from_amount": "49.64",
-  "traded_to_amount": "0.00548782",
-  "to_amount": "0.00548782",
-  "fee_amount": "0.51",
-  "price": "0.00011055",
+  "id": "82d19e27542a21c950eaae13059cf5f5trad",
+  "from_amount": "209.10",
+  "traded_from_amount": null,
+  "traded_to_amount": null,
+  "to_amount": null,
+  "fee_amount": "2.10",
+  "price": null,
   "state": "CANCELLED",
-  "reference": "abc",
-  "entity_id": "e943ee28ef2774e6479073ad401df390enty",
+  "reference": "9bcf5ffa4bb4d4ebbf92fb74f3a61f85",
+  "entity_id": "b6ef80668690fa4dfbb51a3bc49a1fb7enty",
   "trading_pair_id": "00000000000000000000000000000002trpr",
-  "from_account_id": "bf20ca9ab2723fef688c510e694f7ac3cacc",
-  "to_account_id": "a3727e756783a45b7350aa197bbf26cfacct",
+  "from_account_id": "57e837a08685eff2cee29e82b6b09857cacc",
+  "to_account_id": "d4f01daea26362d0de5fe89cb0f8d905acct",
   "failure_reason": null,
-  "created_at": "2020-09-10T14:31:32Z",
-  "updated_at": "2020-09-10T14:31:32Z"
+  "estimations": {
+    "traded_from_amount": "207.00",
+    "traded_to_amount": "0.02288435",
+    "to_amount": "0.02288435",
+    "fee_amount": "2.10",
+    "price": "0.00011055"
+  },
+  "created_at": "2021-11-26T14:35:45Z",
+  "updated_at": "2021-11-26T14:35:45Z"
 }
 ```
 
 ## Approval Requests
 
-In order to start the execution of a Trade, it must be approved by the corresponding Account holder (an Entity owning the Account).
+All Trades created by the API request MUST be approved by the corresponding Account holder (an Entity owning the accounts specified in the Trade), before it will be processed and executed by the Platform.
 
-The Trade Approval process consists of two steps:
+The Trade approval process consists of two steps:
 
 - Creating a new ApprovalRequest for a Trade
-- Approving the ApprovalRequest for a Trade
+- Approving the ApprovalRequest
 
-### Create an Approval Request
-
-A POST request to `/v1/approval_requests` endpoint creates a new `Approval Request` for a `Trade` on the platform.
-
-The request body must contain the following parameters:
-
-- `entity_id` - Solaris Digital Assets entity that owns the resource (TRADE)
-- `approval_method_id` - The [ApprovalMethod](https://github.com/solarisDigitalAssets/docs/blob/master/docs/Custody_API_Guide.md#approvalmethods) ID to be used by the ApprovalRequest
-- `resource_id` - The Trade ID
-- `resource_type` - The resource type to be approved. In this case, "TRADE".
-
-In case of successful execution the endpoint responds with `201 Created` status and an initial state of the `Approval Request` which is `PENDING`.
-
-See:
-
-```
-POST /v1/approval_requests
-```
-
-### Example
-
-```
-POST /v1/approval_requests
-
-{
-  "entity_id": "cb497f98027ce6274d49ca6718d2735eenty",
-  "approval_method_id": "d4e4f4459b71e369c87fcb3c99b070daapmt",
-  "resource_id": "0ecb606c653eb248b195640cbe06ebd5trad",
-  "resource_type": "TRADE"
-}
-```
-
-```
-201 Created
-
-{
-  "id": "6a164d859ea8061b8b086a956d7d81b9aprq",
-  "approval_method_id": "d4e4f4459b71e369c87fcb3c99b070daapmt",
-  "entity_id": "cb497f98027ce6274d49ca6718d2735eenty",
-  "resource_id": "0ecb606c653eb248b195640cbe06ebd5trad",
-  "resource_type": "TRADE",
-  "type": "AUTHY_PUSH",
-  "state": "PENDING",
-  "created_at": "2021-11-10T13:43:59Z",
-  "updated_at": "2021-11-10T13:43:59Z"
-}
-```
-
-### Fetch the current state of an Approval Request
-
-A GET request to `/v1/approval_requests/{approval_request_id}` endpoint returns the current state of an `Approval Request` of a given `Trade` on the platform.
-
-In case of successful execution the endpoint responds with `200 OK` status and the current state from the `Approval Request`.
-
-### Example
-
-```
-GET /v1/approval_requests/{approval_request_id}
-```
-
-```
-200 OK
-
-{
-  "id": "ef5c38b1564d18fa302fe0d5f988518eaprq",
-  "approval_method_id": "d4e4f4459b71e369c87fcb3c99b070daapmt",
-  "entity_id": "cb497f98027ce6274d49ca6718d2735eenty",
-  "resource_id": "0ecb606c653eb248b195640cbe06ebd5trad",
-  "resource_type": "TRADE",
-  "type": "AUTHY_PUSH",
-  "state": "APPROVED",
-  "created_at": "2021-11-10T13:47:28Z",
-  "updated_at": "2021-11-10T13:47:29Z"
-}
-```
+The complete guide on how to create and approve ApprovalRequests and a list of ApprovalMethods available on the platform is available under [Custody API](https://github.com/solarisDigitalAssets/docs/blob/master/docs/Custody_API_Guide.md#approvalmethods). The `resource_type` must be `TRADE` and the `resource_id` must be an id of the Trade.
 
 ### Trading Limits
 
