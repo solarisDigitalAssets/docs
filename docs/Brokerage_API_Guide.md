@@ -1,5 +1,22 @@
 # Solaris Digital Assets Platform - Brokerage API Guide
 
+### Terms and Conditions
+
+Entities are required to accept SDA's trading terms and conditions in order to request trades on the platform. This is done by issuing a POST request to `/v1/entities/{entity_id}/trading_terms_and_conditions`.
+It is the partner's responsibility to present SDA's trading terms and conditions to the customer. The partner MUST NOT call this endpoint otherwise.
+
+See:
+
+```
+POST /v1/entities/{entity_id}/trading_terms_and_conditions
+```
+
+### Example
+
+```
+POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/trading_terms_and_conditions
+```
+
 ## Trading Pairs
 
 Any Trading Pair has a unique identifier, a human readable code, corresponding identifiers of the assets and timestamps.

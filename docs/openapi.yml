@@ -1465,6 +1465,32 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/trading_terms_and_conditions":
+    post:
+      tags:
+      - Entity
+      summary: Accept terms and conditions for trading
+      description: |
+        By posting to this endpoint the partner signifies the acceptance of SDA's trading terms and conditions by the Entity.
+        A call to this enpoint will update the Entity identified by `entity_id` with a timestamp of when this endpoint was first called.
+      parameters:
+      - name: entity_id
+        in: path
+        description: ID of the Entity that should update the trading terms and conditions.
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Successfully accepted the trading terms and conditions
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
   "/entities/{entity_id}/accounts/{account_id}/ledger_entries":
     get:
       tags:
@@ -3621,6 +3647,7 @@ components:
       - type
       - state
       - business_id
+      - trading_terms_conditions_signed_at
       - created_at
       - updated_at
       properties:
@@ -3639,6 +3666,11 @@ components:
         business_id:
           type: string
           description: The ID of the business, provided by Solarisbank API
+        trading_terms_conditions_signed_at:
+          type: string
+          description: Time at which the customer acknowledged the T&Cs for trading
+          format: date-time
+          nullable: true
         created_at:
           type: string
           description: Time at which the Entity was created
@@ -3652,6 +3684,7 @@ components:
         type: PARTNER
         state: ACTIVE
         business_id: 880bbac68a34add190786b9c74f4c82fcbiz
+        trading_terms_conditions_signed_at: '2019-03-01T22:45:06Z'
         created_at: '2019-03-01T22:31:06Z'
         updated_at: '2019-03-01T22:31:06Z'
     EntityPerson:
@@ -3662,6 +3695,7 @@ components:
       - state
       - person_id
       - terms_conditions_signed_at
+      - trading_terms_conditions_signed_at
       - created_at
       - updated_at
       properties:
@@ -3705,6 +3739,11 @@ components:
           description: Time at which the Entity's state was set to `CLOSED`
           format: date-time
           nullable: true
+        trading_terms_conditions_signed_at:
+          type: string
+          description: Time at which the customer acknowledged the T&Cs for trading
+          format: date-time
+          nullable: true
         created_at:
           type: string
           description: Time at which the Entity was created
@@ -3721,6 +3760,7 @@ components:
         terms_conditions_signed_at: '2019-03-01T22:45:06Z'
         legally_closed_at: '2021-02-01T13:22:12Z'
         closed_at: '2021-03-01T16:54:16Z'
+        trading_terms_conditions_signed_at: '2019-03-01T22:45:06Z'
         created_at: '2019-03-01T22:31:06Z'
         updated_at: '2019-03-01T22:45:06Z'
     EntityRepresentativePerson:
@@ -3731,6 +3771,7 @@ components:
       - state
       - entity_id
       - person_id
+      - trading_terms_conditions_signed_at
       - created_at
       - updated_at
       properties:
@@ -3759,6 +3800,11 @@ components:
           - PENDING
           - LOCKED
           - ACTIVE
+        trading_terms_conditions_signed_at:
+          type: string
+          description: Time at which the customer acknowledged the T&Cs for trading
+          format: date-time
+          nullable: true
         created_at:
           type: string
           description: Time at which the Entity was created
@@ -3776,6 +3822,7 @@ components:
         terms_conditions_signed_at: '2019-03-01T22:45:06Z'
         legally_closed_at: '2021-02-01T13:22:12Z'
         closed_at: '2021-03-01T16:54:16Z'
+        trading_terms_conditions_signed_at: '2019-03-01T22:45:06Z'
         created_at: '2019-03-01T22:31:06Z'
         updated_at: '2019-03-01T22:45:06Z'
     EntityBusiness:
@@ -3787,6 +3834,7 @@ components:
       - state
       - terms_conditions_signed_at
       - business_id
+      - trading_terms_conditions_signed_at
       - created_at
       - updated_at
       properties:
@@ -3814,6 +3862,11 @@ components:
         business_id:
           type: string
           description: The ID of the business, provided by Solarisbank API
+        trading_terms_conditions_signed_at:
+          type: string
+          description: Time at which the customer acknowledged the T&Cs for trading
+          format: date-time
+          nullable: true
         created_at:
           type: string
           description: Time at which the Entity was created
@@ -3824,10 +3877,11 @@ components:
           format: date-time
       example:
         id: 7d57be2d17a328150abd28daaae76d47enty
-        type: PERSON
+        type: BUSINESS
         state: ACTIVE
-        person_id: e3c4bc7bdfeaed3c0a3cebd2addcd5accper
+        business_id: 880bbac68a34add190786b9c74f4c82fcbiz
         terms_conditions_signed_at: '2019-03-01T22:45:06Z'
+        trading_terms_conditions_signed_at: '2019-03-01T22:45:06Z'
         created_at: '2019-03-01T22:31:06Z'
         updated_at: '2019-03-01T22:45:06Z'
     LedgerEntry:
