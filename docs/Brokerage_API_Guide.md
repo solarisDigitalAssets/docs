@@ -2,8 +2,8 @@
 
 ### Terms and Conditions
 
-Entities are required to accept SDA's trading terms and conditions in order to request trades on the platform. This is done by issuing a POST request to `/v1/entities/{entity_id}/trading_terms_and_conditions`.
-It is the partner's responsibility to present SDA's trading terms and conditions to the customer. The partner MUST NOT call this endpoint otherwise.
+Entities are required to accept Solarisbank's trading terms and conditions in order to request trades on the platform. This is done by issuing a POST request to `/v1/entities/{entity_id}/trading_terms_and_conditions`.
+It is the partner's responsibility to present Solarisbank's trading terms and conditions to the customer. The partner MUST NOT call this endpoint otherwise.
 
 See:
 
