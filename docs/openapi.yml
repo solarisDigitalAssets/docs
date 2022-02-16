@@ -1935,7 +1935,7 @@ paths:
                 traded_from_amount: 
                 traded_to_amount: 
                 to_amount: 
-                fee_amount: '2.10'
+                fee_amount: 
                 price: 
                 state: PENDING
                 reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
@@ -1986,7 +1986,7 @@ paths:
                 traded_from_amount: 
                 traded_to_amount: 
                 to_amount: 
-                fee_amount: '2.10'
+                fee_amount: 
                 price: 
                 state: PENDING
                 reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
@@ -2039,7 +2039,7 @@ paths:
                 traded_from_amount: 
                 traded_to_amount: 
                 to_amount: 
-                fee_amount: '2.10'
+                fee_amount: 
                 price: 
                 state: CANCELLED
                 reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
@@ -4222,7 +4222,7 @@ components:
         traded_from_amount: 
         traded_to_amount: 
         to_amount: 
-        fee_amount: '2.10'
+        fee_amount: 
         price: 
         state: PENDING
         reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85

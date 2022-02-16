@@ -274,13 +274,25 @@ Note: Solarisbank account must meet the following requirements:
 
 In case of successful execution the endpoint responds with `201 Created` status and an initial state of the Trade which is `PENDING`.
 
-The newly created Trade has a `PENDING` state and contains trade estimations within a corresponding field. The next step is Trade approval(see Approval Requests). Once the Trade is approved it is being executed and eventually reaches a `COMPLETED` state. When it happens the following fields, which are initially empty, will be populated:
+The newly created Trade has a `PENDING` state and contains the trade estimations within a corresponding field. The next step is Trade approval(see Approval Requests). Once the Trade is approved it is being executed and eventually reaches a `COMPLETED` state. When it happens the following fields, which are initially empty, will be populated:
 
 - `fee_amount` - a fee amount, collected by the Platform. This amount is always denominated in EUR(`f0000000000000000000000000000001asst`) and collected prior to the exchange for FIAT -> CRYPTO trades and after the exchange for CRYPTO -> FIAT trades.
 - `traded_from_amount` - an amount which was traded on the exchange
 - `traded_to_amount` - an amount received from the exchange
 - `to_amount` - an amount which `entity_id` has received
 - `price` - `traded_to_amount / traded_from_amount` rounded to the precision of the TradingPair
+
+List of the Trade states:
+
+| State     | Meaning |
+|-----------|---------|
+| PENDING   | The Trade has been created and awaits an approval |
+| APPROVED  | The Trade has been approved, the Platform will now collect the payment of `from_amount` from the `from_account` and perform the order execution |
+| EXECUTED  | The Trade has been executed and can no longer be failed, the Platform will now proceed with the settlement of `to_amount` to the `to_account` |
+| COMPLETED | The Trade has been successfully completed |
+| CANCELLED | The Trade has been cancelled by the client(see Cancelling a Trade) |
+| FAILING   | The Trade has been approved, but could not get executed, so the Platform is in a process of reversing the progress |
+| FAILED    | The Trade has been successfully failed, the payment for the Trade, if happened, has been refunded |
 
 Example below shows a creation of the `EUR/BTC` Trade(buying BTC for EUR) with the amount of 209.1 EUR, where `from_account_id` belongs to Solarisbank and `to_account_id` belongs to Solaris Digital Assets.
 
@@ -315,7 +327,7 @@ POST /v1/trading/trades
   "traded_from_amount": null,
   "traded_to_amount": null,
   "to_amount": null,
-  "fee_amount": "2.10",
+  "fee_amount": null,
   "price": null,
   "state": "PENDING",
   "reference": "9bcf5ffa4bb4d4ebbf92fb74f3a61f85",
@@ -361,7 +373,7 @@ POST /v1/trading/trades/{trade_id}/cancel
   "traded_from_amount": null,
   "traded_to_amount": null,
   "to_amount": null,
-  "fee_amount": "2.10",
+  "fee_amount": null,
   "price": null,
   "state": "CANCELLED",
   "reference": "9bcf5ffa4bb4d4ebbf92fb74f3a61f85",
