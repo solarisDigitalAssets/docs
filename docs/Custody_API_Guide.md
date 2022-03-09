@@ -2219,8 +2219,10 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
 
 ## Callbacks
 
-The partner can use callbacks to get notifications regarding updates on the Resources (Transactions & ClosureRequests)
-on the platform. Every time a new Transaction is created or an existing one is updated
+The partner can use callbacks to get notifications regarding updates on the Resources (Transactions, ClosureRequests and Trades)
+on the platform. Every time a 
+* new Transaction is created or an existing one is updated
+* existing Trade or ClosureRequest is updated 
 a Callback with a reference to the Resource will be issued. Then the partner can
 fetch the current state of the Resource using an ordinary authenticated request
 to the corresponding API endpoint.
@@ -2232,7 +2234,7 @@ the platform will retry with increasing intervals until the callback is delivere
 ### Example
 
 ```
-Callback Payload
+Transaction Callback Payload
 
 X-Resource-Type: TRANSACTION
 X-Resource-Location: /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57cb5078ae0a8b569acct/transactions/bf20c716075ea82a4b1f3f0b49657161atrx
@@ -2242,10 +2244,19 @@ X-Resource-Location: /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/
 }
 ```
 
+```
+Trade Callback Payload
+
+X-Resource-Type: TRADE
+X-Resource-Location: /v1/trading/trades/10ef67dc895d6c19c273b1ffba0c1692trad
+{
+  "id": "10ef67dc895d6c19c273b1ffba0c1692trad"
+}
+```
+
 | Field Name          | Location | Description                                     |
 | ------------------- | -------- | ----------------------------------------------- |
 | X-Resource-Type     | Headers  | Type of the created/updated Resource            |
 | X-Resource-Location | Headers  | Absolute path to fetch created/updated Resource |
 | id                  | Body     | ID of the created/updated Resource              |
-
 ---
