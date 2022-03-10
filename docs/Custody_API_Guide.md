@@ -2223,8 +2223,9 @@ The partner can use callbacks to get notifications regarding updates on the Reso
 on the platform. Every time a 
 * new Transaction is created or an existing one is updated
 * existing Trade or ClosureRequest is updated 
-a Callback with a reference to the Resource will be issued. Then the partner can
-fetch the current state of the Resource using an ordinary authenticated request
+
+a Callback with a reference to the Resource will be issued.
+Then the partner can fetch the current state of the Resource using an ordinary authenticated request
 to the corresponding API endpoint.
 
 During onboarding partner needs to provide a URL for callbacks endpoint, that can
