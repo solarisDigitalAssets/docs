@@ -1,11 +1,30 @@
 # Solaris Digital Assets Platform - Brokerage API Guide
 
-### Terms and Conditions
+##Table of Contents
+- [Brokerage API Guide](#solaris-digital-assets-platform---brokerage-api-guide)
+  - [Table of Contents](#table-of-contents)
+  - [Entities](#entities)
+    - [Example](#example)
+  - [Trading Pairs](#trading-pairs)
+    - [Example](#example)
+  - [Price](#price)
+    - [Example](#example)
+  - [Exchange Rates](#exchange-rates)
+    - [Daily Exchange Rates](#daily-exchange-rates)
+      - [Example](#example)       
+    - [Hourly Exchange Rates](#hourly-exchange-rates)
+      - [Example](#example)
+    - [Minute Exchange Rates](#minute-exchange-rates)
+      - [Example](#example)
+  - [Trades](#trades)
+    - [Example](#example)
 
+
+## Entities
 Entities are required to accept trading terms and conditions in order to request trades on the platform. This is done by issuing a POST request to `/v1/entities/{entity_id}/trading_terms_and_conditions`.
 It is the partner's responsibility to present trading terms and conditions to the customer. The partner MUST NOT call this endpoint otherwise.
 
-See:
+Format:
 
 ```
 POST /v1/entities/{entity_id}/trading_terms_and_conditions
@@ -35,7 +54,7 @@ The possible trading directions are:
 
 The Trading Pair identifiers are the only way to refer a specific trading pair on our platform. Any other forms of reference, like a code, are not considered immutable and/or unique.
 
-See:
+Format:
 
 ```
 GET /v1/trading/pairs
@@ -107,7 +126,7 @@ The example below represents a request to estimate an approximate value of 1.123
 
 The provided result can only be used as an estimation and does not guarantee the price during the actual trade on the platform.
 
-See:
+Format:
 
 ```
 GET /v1/trading/pairs/{trading_pair_id}/price
@@ -142,13 +161,13 @@ GET /v1/trading/pairs/00000000000000000000000000000001trpr/price?amount=1.123
 
 A GET request to `/v1/trading/pairs/{trading_pair_id}/daily_rates` endpoint returns historical daily exchange rates for a given `Trading Pair`.
 
-See:
+Format:
 
 ```
 GET /v1/trading/pairs/{trading_pair_id}/daily_rates
 ```
 
-### Example
+#### Example
 
 ```
 GET /v1/trading/pairs/00000000000000000000000000000001trpr/daily_rates
@@ -180,13 +199,13 @@ GET /v1/trading/pairs/00000000000000000000000000000001trpr/daily_rates
 
 A GET request to `/v1/trading/pairs/{trading_pair_id}/hourly_rates` endpoint returns historical hourly exchange rates for a given `Trading Pair`.
 
-See:
+Format:
 
 ```
 GET /v1/trading/pairs/{trading_pair_id}/hourly_rates
 ```
 
-### Example
+#### Example
 
 ```
 GET /v1/trading/pairs/00000000000000000000000000000001trpr/hourly_rates
@@ -218,13 +237,13 @@ GET /v1/trading/pairs/00000000000000000000000000000001trpr/hourly_rates
 
 A GET request to `/v1/trading/pairs/{trading_pair_id}/minute_rates` endpoint returns historical minute exchange rates for a given `Trading Pair`.
 
-See:
+Format:
 
 ```
 GET /v1/trading/pairs/{trading_pair_id}/minute_rates
 ```
 
-### Example
+#### Example
 
 ```
 GET /v1/trading/pairs/00000000000000000000000000000001trpr/minute_rates
@@ -254,6 +273,7 @@ GET /v1/trading/pairs/00000000000000000000000000000001trpr/minute_rates
 
 ## Trades
 
+### Creating trade
 Making a POST request to `/v1/trading/trades` endpoint results in registering a new `Trade` on the platform.
 
 The request body must contain the following parameters:
@@ -296,7 +316,7 @@ List of the Trade states:
 
 Example below shows a creation of the `EUR/BTC` Trade(buying BTC for EUR) with the amount of 209.1 EUR, where `from_account_id` belongs to Solarisbank and `to_account_id` belongs to Solaris Digital Assets.
 
-See:
+Format:
 
 ```
 POST /v1/trading/trades
@@ -304,7 +324,7 @@ GET /v1/trading/trades
 GET /v1/trading/trades/{trade_id}
 ```
 
-### Example
+#### Example
 
 ```
 POST /v1/trading/trades
@@ -352,13 +372,13 @@ POST /v1/trading/trades
 
 A Trade can be cancelled by the Partner given its state is `PENDING`. In case the Trade cannot be found the endpoint replies with `404 Not Found` status code.
 
-See:
+Format:
 
 ```
 POST /v1/trading/trades/{trade_id}/cancel
 ```
 
-### Example
+#### Example
 
 ```
 POST /v1/trading/trades/{trade_id}/cancel
@@ -393,6 +413,10 @@ POST /v1/trading/trades/{trade_id}/cancel
   "updated_at": "2021-11-26T14:35:45Z"
 }
 ```
+### Trade callbacks
+All the trade state transitions that affect external parties
+generate callbacks which is documented in [Callbacks section](https://github.com/solarisDigitalAssets/docs/blob/master/docs/Custody_API_Guide.md#callbacks)
+of Custody documentation.
 
 ## Approval Requests
 
@@ -405,7 +429,7 @@ The Trade approval process consists of two steps:
 
 The complete guide on how to create and approve ApprovalRequests and a list of ApprovalMethods available on the platform is available under [Custody API](https://github.com/solarisDigitalAssets/docs/blob/master/docs/Custody_API_Guide.md#approvalmethods). The `resource_type` must be `TRADE` and the `resource_id` must be an id of the Trade.
 
-### Trading Limits
+## Trading Limits
 
 This endpoint is used to show current trading limits configuration for an Entity and the remaining amount they are allowed to trade.
 
@@ -417,13 +441,13 @@ The Trading Limit object includes the following attributes:
   It is calculated as `amount - sum(Traded amounts in EUR)` where the sum represents a cumulative trade amount during a given time window
   that has its `start time` defined as `DATE NOW - interval` and its `end time` as `DATE NOW`.
 
-See:
+Format:
 
 ```
 GET /v1/entities/{entity_id}/trading_limits
 ```
 
-### Example
+#### Example
 
 ```
 GET /v1/entities/{entity_id}/trading_limits
