@@ -1,6 +1,8 @@
 # Solaris Digital Assets Platform - Brokerage API Guide
 
-##Table of Contents
+
+## Table of Contents
+
 - [Brokerage API Guide](#solaris-digital-assets-platform---brokerage-api-guide)
   - [Table of Contents](#table-of-contents)
   - [Entities](#entities)
