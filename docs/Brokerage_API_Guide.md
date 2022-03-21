@@ -20,6 +20,10 @@
       - [Example](#example-5)
   - [Trades](#trades)
     - [Example](#example-6)
+    - [Trade Callbacks](#trade-callbacks)
+  - [Approval Requests](#approval-requests)
+  - [Trading limits](#trading-limits)
+    - [Example](#example-7)
 
 
 ## Entities
