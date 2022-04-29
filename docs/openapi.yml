@@ -1,0 +1,4864 @@
+openapi: 3.0.3
+info:
+  title: Solarisbank Digital Assets Platform API
+  contact:
+    email: sda-tech@solarisbank.de
+  version: 0.25.1
+  description: |
+    This is a draft for Solarisbank Digital Assets Platform API
+
+    ## Authentication
+
+    We require our partners to generate a pair of private & public keys.
+    Partners MUST register the public key with the Platform and sign every request to our API
+    using their private key.
+
+    We are using *HTTP Signatures* IETF draft as the base for our authentication mechanism.
+    As the digital signature algorithm in HTTP Signatures we are using *Ed25519*.
+
+    Every HTTP request to the API MUST have following headers in addition to
+    standard ones:
+
+    * Digest
+    * X-Nonce
+    * Signature
+
+    ### Digest Header
+
+    The `Digest` header ensures integrity of the HTTP request body. It MUST be constructed
+    following the HTTP Instance Digests RFC using SHA-256 algorithm.
+
+    In case of GET request, the `Digest` header still must be constructed, assuming the request
+    body is an empty string.
+
+    See:
+
+    * Instance Digests in HTTP <https://tools.ietf.org/html/rfc3230>
+    * Additional Hash Algorithms for HTTP Instance Digests <https://tools.ietf.org/html/rfc5843>
+
+    Example:
+    ```
+    Digest: SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=
+    ```
+
+    ### X-Nonce Header
+
+    The `X-Nonce` header is supposed to uniquely identify the HTTP request
+    and serves to protect against replay/playback attacks.
+    The `X-Nonce` header value MUST be a string of up to 32 characters,
+    which MUST be  unique across all the requests generated using the same
+    API key.
+
+    As an example, `X-Nonce` header value may be generated as 16-bytes
+    random integer in hexadecimal representation.
+
+    Example:
+    ```
+    X-Nonce: 514bdd41b15f6b1a0443f8c673adc9db
+    ```
+
+    ### Signature Header
+
+    Signature Header string is used to provide authentication and integrity assurances
+    without the need for shared secrets. It also does not require an additional round-trip
+    in order to authenticate the client and allows the integrity of a message to be verified
+    independently of the transport.
+
+    Signature Parameters:
+
+    * **keyId**
+
+      Unique ID which is assigned to the Partner's API key.
+
+    * **algorithm**
+
+      The value for the `algorithm` parameter MUST be `"hs2019"`.
+
+    * **created**
+
+      The value of the `created` parameter MUST be the time at which
+      the HTTP request was constructed as an integer Unix timestamp.
+
+    * **headers**
+
+      The `headers` parameter identifies how the canonical Signature String is constructed.
+      Its value consists of a list of actual and pseudo- HTTP headers which will form
+      the Signature String according to the HTTP Signatures draft v11.
+
+      The `headers` parameter MUST include following
+      headers: `(request-target)`, `(created)`, `digest`, `x-nonce`.
+
+      The recommended value of the `headers` parameter is:
+      `(request-target) (created) digest x-nonce`.
+
+      See:
+
+      * Signature String Construction
+        <https://tools.ietf.org/html/draft-cavage-http-signatures-11#section-2.3>
+
+      Example of Signature String for `headers="(request-target) (created) digest x-nonce"`:
+
+      ```
+
+      (request-target): get /foo?bar=123\n
+      (created): 1557855475\n
+      digest: SHA-256=47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=\n
+      x-nonce: 7c44d38b63f5e398af62d603b1155f5c
+
+      ```
+
+      Here `\n` indicate the ASCII newline character. Note the absence of it on the last line.
+
+    * **signature**
+
+      The value of the `signature` parameter is the digital signature of the HTTP request produced
+      by the partner's private key.
+
+      In order to create the `signature` parameter:
+
+      * Construct the canonical Signature String according to the value of the `headers` parameter
+      * Using the private key that corresponds to the provided `keyId` generate an Ed25519
+        signature of the Signature String obtained on a previous step
+      * Base64-encode the signature
+
+    ### Examples
+
+    ```
+    POST /foo/bar
+    Digest: SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=
+    X-Nonce: 514bdd41b15f6b1a0443f8c673adc9db
+    Signature: keyId="foobar",algorithm="hs2019",created=1557855475,headers="(request-target) (created) digest x-nonce",signature="IKGyxGiUFm3luudWGkTzf0TYQD2Fnkb6ed6BTfuXuDq/U9q6gQk6KxBSPx33ME1O2RLlH5HKG2WZnO8PgRGiDA=="
+
+    {"hello": "world"}
+    ```
+
+    ```
+    GET /foo?bar=123
+    Digest: SHA-256=47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=
+    X-Nonce: 7c44d38b63f5e398af62d603b1155f5c
+    Signature: keyId="foobar",algorithm="hs2019",created=1557855475,headers="(request-target) (created) digest x-nonce",signature="d0Wzjlpt2Y++DJtxKnD1ipkkwF5eU43jwtybqsy3tFqa5P3kYYIJa4TTQyMUZ62i58jwN7gK6q2MVJBDGQ6tDg=="
+    ```
+
+    See:
+
+    * HTTP Signatures, <https://tools.ietf.org/html/draft-cavage-http-signatures-11>
+    * Ed25519, <https://ed25519.cr.yp.to/>
+
+    --
+servers:
+- url: https://api.solarisdigitalassets.com/v1
+  description: Production
+- url: https://api.sb-cryptocustody-sandbox.aws.solarisbank.io/v1
+  description: Sandbox
+tags:
+- name: Account
+  description: Accounts controlled by the Partner
+- name: Address
+  description: Digital Asset Addresses linked with the Accounts
+- name: ApprovalMethod
+  description: ApprovalMethods registered for Entities
+- name: ApprovalRequest
+  description: ApprovalRequests for approving an outgoing Transaction via a second
+    factor
+- name: Asset
+  description: Digital Assets supported by the platform
+- name: ClosureRequest
+  description: The request to end the contractual relationship between SDA and the
+    customer
+- name: Entity
+  description: Entities registered and controlled by the Partner
+- name: LedgerEntry
+  description: Ledger Entries of an Account
+- name: TradingExchangeRate
+  description: Exchange Rates
+- name: TradingLimit
+  description: |
+    Current trading limits configuration
+    for an Entity and the remaining amount they are allowed to trade.
+- name: TradingPair
+  description: Pair of tradeable assets
+- name: TradingPrice
+  description: An indicative trade price for a given Trading Pair
+- name: Trade
+  description: Trades
+- name: Transaction
+  description: Transactions of an Account
+- name: Transfer
+  description: Transfers between Accounts
+- name: Withdrawal
+  description: Creating a Withdrawal
+paths:
+  "/entities/{entity_id}/accounts":
+    get:
+      tags:
+      - Account
+      summary: List all Accounts of an Entity
+      description: 'Returns a list of all Accounts owned by the given Entity
+
+'
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - "$ref": "#/components/parameters/filterParams"
+      - "$ref": "#/components/parameters/sortParams"
+      - "$ref": "#/components/parameters/limitOffsetParams"
+      responses:
+        '200':
+          description: A list of Accounts
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/Account"
+                  pagination:
+                    "$ref": "#/components/schemas/paginationResponse"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+    post:
+      tags:
+      - Account
+      summary: Create an Account
+      description: |
+        Creates a new Account owned by the given Entity.
+
+        When creating an Account a valid Asset ID must be provided.
+      parameters:
+      - name: entity_id
+        in: path
+        description: ID of the Entity the new Account belongs to
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        description: 'An `asset_id` attribute must be specified, linking the new Account
+          with an existing Asset.
+
+'
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - asset_id
+              properties:
+                asset_id:
+                  type: string
+                  description: The ID of an existing Asset
+                  example: 00000000000000000000000000000001asst
+                isolation:
+                  type: string
+                  description: "(deprecated) The isolation level of the Account is
+                    now determined by the Asset"
+                  example: POOLED
+                  enum:
+                  - POOLED
+                  - SEGREGATED
+            example:
+              asset_id: 00000000000000000000000000000001asst
+      responses:
+        '201':
+          description: Successfully created Account
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Account"
+        '400':
+          "$ref": "#/components/responses/InvalidRequest"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/accounts/{account_id}":
+    get:
+      tags:
+      - Account
+      summary: Get a single Account
+      description: 'Returns an Account identified by its ID, owned by the given Entity
+
+'
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A single Account
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Account"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/accounts/{account_id}/addresses":
+    get:
+      tags:
+      - Address
+      summary: List all Addresses of an Account
+      description: 'Returns a list of all Addresses linked with the given Account,
+        owned by the given Entity
+
+'
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      - "$ref": "#/components/parameters/filterParams"
+      - "$ref": "#/components/parameters/sortParams"
+      - "$ref": "#/components/parameters/limitOffsetParams"
+      responses:
+        '200':
+          description: A list of Addresses
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/Address"
+                  pagination:
+                    "$ref": "#/components/schemas/paginationResponse"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+    post:
+      tags:
+      - Address
+      summary: Create an Address
+      description: |
+        Creates a new Address linked with the given Account, owned by the given Entity.
+
+        As the Account is associated with a single Asset the new Address is created for this particular Asset.
+
+        No additional parameters are required to create a new Address. This Address
+        can immediately be used to receive funds on the blockchain.
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Successfully created Address
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Address"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/accounts/{account_id}/addresses/{address_id}":
+    get:
+      tags:
+      - Address
+      summary: Get a single Address
+      description: |
+        Returns a single Address identified by its ID, linked with the given Account,
+        owned by the given Entity.
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      - name: address_id
+        in: path
+        description: Address ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A single Address
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Address"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/approval_methods":
+    get:
+      tags:
+      - ApprovalMethod
+      summary: List ApprovalMethods registered for this Entity
+      description: |
+        Retrieves a list of ApprovalMethods that were registered for
+        an Entity with a given ID.
+
+        ApprovalMethods in `ACTIVATED` state can be used to
+        approve Transactions initiated by this Entity.
+
+        There are different types of ApprovalMethods that can be used:
+
+        * AUTHY_PUSH
+        * SMS
+        * DSA_ED25519
+        * GROUP
+
+        Entities of type `PERSON` can use ApprovalMethods of type `AUTHY_PUSH`
+        and `SMS`.
+        Entities of type `PARTNER` can use ApprovalMethods of type `DSA_ED25519`.
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - "$ref": "#/components/parameters/filterParams"
+      - "$ref": "#/components/parameters/sortParams"
+      - "$ref": "#/components/parameters/limitOffsetParams"
+      responses:
+        '200':
+          description: A list of ApprovalMethods registered for this Entity
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/ApprovalMethod"
+                  pagination:
+                    "$ref": "#/components/schemas/paginationResponse"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+    post:
+      tags:
+      - ApprovalMethod
+      summary: Register a new ApprovalMethod for this Entity
+      description: |
+        Registers a new ApprovalMethod for an Entity with a given ID.
+
+        There are different ApprovalMethod types available:
+
+        * AUTHY_PUSH -- Authy push notifications based MFA method,
+          it can only be registered for Entities of type PERSON
+        * DSA_ED25519 -- an ECDSA based MFA method,
+          it can only be registered for Entities of type PARTNER
+
+        There can be no more that one ApprovalMethod of each type
+        registered for one particular Entity.
+
+        After being registered, the ApprovalMethod is in `PENDING` state
+        until it is activated by the platform operator, or by an external
+        service, e.g. Authy.
+
+        ApprovalMethod in `ACTIVATED` state can be used to approve
+        Transactions initiated by this Entity.
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+              - type
+              type: object
+              properties:
+                type:
+                  type: string
+                  description: Type of ApprovalMethod
+                  example: AUTHY_PUSH
+                  enum:
+                  - AUTHY_PUSH
+                  - DSA_ED25519
+                pub_key:
+                  type: string
+                  description: |
+                    Public key part of Entity's Approval key *(required if `type` is `DSA_ED25519`)*.
+
+                    A 32-byte Ed25519 public key in a hexadecimal representation.
+            example:
+              type: DSA_ED25519
+              pub_key: f7bdb63a96ecee424a821d1a5e1f7d582eaabac453ba0560d4e05ff67ece2f20
+      responses:
+        '201':
+          description: ApprovalMethod is successfully registered
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ApprovalMethod"
+        '400':
+          "$ref": "#/components/responses/InvalidRequest"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/approval_methods/{approval_method_id}":
+    get:
+      tags:
+      - ApprovalMethod
+      summary: Get a single ApprovalMethod
+      description: 'Returns an ApprovalMethod identified by its ID, owned by the given
+        Entity
+
+'
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: approval_method_id
+        in: path
+        description: ApprovalMethod ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A single ApprovalMethod
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ApprovalMethod"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request":
+    post:
+      deprecated: true
+      tags:
+      - ApprovalRequest
+      summary: Requests an ApprovalRequest for a Transaction
+      description: |
+        Requests the creation of an AppprovalRequest for the given Transaction.
+
+        To approve a Transaction, the Account holder (the Entity owning the Account)
+        MUST provide a second factor approval before the Transaction is processed.
+
+        The second factor approval depends on the ApprovalMethod and the type of
+        the Transaction.
+
+        The ApprovalMethod depends directly on the type of the Entity which
+        owns the Transaction's Account:
+
+        * for Entities of type PERSON  -- the approval method is either `AUTHY_PUSH` or `SMS`
+        * for Entities of type PARTNER -- the approval method is `DSA_ED25519`
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      - name: transaction_id
+        in: path
+        description: Transaction ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        description: |
+          A `type` MUST be specified when creating a new ApprovalRequest.
+          * WHEN Account holding Entity is of type `PERSON` THEN type is either `AUTHY_PUSH` or `SMS`
+          * WHEN Account holding Entity is of type `PARTNER` THEN type is `DSA_ED25519`
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - type
+              properties:
+                type:
+                  type: string
+                  description: The type of the to be created ApprovalRequest
+                  enum:
+                  - AUTHY_PUSH
+                  - SMS
+                  - DSA_ED25519
+            example:
+              type: DSA_ED25519
+      responses:
+        '201':
+          description: An ApprovalRequest
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ApprovalRequest"
+              example:
+                id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
+                type: DSA_ED25519
+                state: PENDING
+                transaction_id: f59e8c8188500efce5be51eb71e9db08tran
+                challenge:
+                  attrs:
+                  - id
+                  - account_id
+                  - type
+                  - reference
+                  - amount
+                  - fee_amount
+                  - address
+                created_at: '2019-11-23T22:46:38Z'
+                updated_at: '2019-11-23T22:46:38Z'
+        '400':
+          "$ref": "#/components/responses/InvalidRequest"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+    get:
+      deprecated: true
+      tags:
+      - ApprovalRequest
+      summary: Retrieves the ApprovalRequest for the given Transaction
+      description: |
+        Fetches the ApprovalRequest for an outgoing Transaction identified by given
+        `transaction_id`.
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      - name: transaction_id
+        in: path
+        description: Transaction ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: An ApprovalRequest
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ApprovalRequest"
+              example:
+                id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
+                type: DSA_ED25519
+                state: PENDING
+                transaction_id: f59e8c8188500efce5be51eb71e9db08tran
+                challenge:
+                  attrs:
+                  - id
+                  - account_id
+                  - type
+                  - reference
+                  - amount
+                  - fee_amount
+                  - address
+                created_at: '2019-11-23T22:46:38Z'
+                updated_at: '2019-11-23T22:46:38Z'
+        '400':
+          "$ref": "#/components/responses/InvalidRequest"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request/approve":
+    post:
+      deprecated: true
+      tags:
+      - ApprovalRequest
+      summary: Approve an ApprovalRequest of type `DSA_ED25519`
+      description: |
+        To approve a Transaction – using an ApprovalRequest of type `DSA_ED25519` –
+        the Account holder (an Entity owning the Account), MUST compute a response
+        based on the previously retrieved challenge. The response is posted with this request.
+
+        See Transaction Approvals description [API Guide](API_Guide.md)
+        on how to compute the response for a particular ApprovalMethod.
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      - name: transaction_id
+        in: path
+        description: Transaction ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        description: 'A response to the ApprovalRequest''s challenge when type is
+          `DSA_ED25519`
+
+'
+        content:
+          application/json:
+            schema:
+              description: |
+                The Payload that contains the response to the challenge of the
+                ApprovalRequest
+              type: object
+              required:
+              - response
+              properties:
+                challenge:
+                  type: object
+                  description: 'Optional, an object containing a SHA-256 hash of the
+                    challenge message that will be considered for validation
+
+'
+                  properties:
+                    sha256:
+                      type: string
+                      description: A SHA-256 hash of the challenge message
+                      example: f6deeecec4aa0cb77e7f2c6f3f44c28ec5ab3ab22d43441f56cbf0bf1ef80c81
+                response:
+                  type: string
+                  description: The response to the challenge. Here a DSA_ED25519 signature
+                  example: c5d5fac9e6fb6b7d27b141625f1c2c991aefc8b9f6e8a6eedb9cdbe9dd691ec310cbdc1bdd9fbd5fb4cfad72ee8fd51cc5f6e7198fecc92d5c465a61ef2c09a1
+            example:
+              type: DSA_ED25519
+              challenge:
+                sha256: f6deeecec4aa0cb77e7f2c6f3f44c28ec5ab3ab22d43441f56cbf0bf1ef80c81
+              response: c5d5fac9e6fb6b7d27b141625f1c2c991aefc8b9f6e8a6eedb9cdbe9dd691ec310cbdc1bdd9fbd5fb4cfad72ee8fd51cc5f6e7198fecc92d5c465a61ef2c09a1
+      responses:
+        '201':
+          description: Transaction is successfully approved
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ApprovalRequest"
+              example:
+                id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
+                type: DSA_ED25519
+                state: APPROVED
+                transaction_id: f59e8c8188500efce5be51eb71e9db08tran
+                challenge:
+                  attrs:
+                  - id
+                  - account_id
+                  - type
+                  - reference
+                  - amount
+                  - fee_amount
+                  - address
+                created_at: '2019-11-23T22:46:38Z'
+                updated_at: '2019-11-23T22:46:38Z'
+        '400':
+          "$ref": "#/components/responses/InvalidRequest"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/approval_requests":
+    post:
+      tags:
+      - ApprovalRequest
+      summary: Requests an ApprovalRequest for a Transaction
+      description: |
+        Requests the creation of an AppprovalRequest for the given Transaction.
+
+        To approve a Transaction, a Trade or an ApprovalRequest of type GROUP, the Account holder (the Entity owning the Account)
+        MUST provide a second factor approval before the Transaction or Trade is processed.
+
+        The second factor approval depends on the ApprovalMethod and the type of
+        the Transaction.
+
+        The ApprovalMethod depends directly on the type of the Entity which
+        owns the Transaction's Account:
+
+        * for Entities of type PERSON  -- the ApprovalMethod is either `AUTHY_PUSH` or `SMS`
+        * for Entities of type PARTNER -- the ApprovalMethod is `DSA_ED25519` or `GROUP`
+        * for Entities of type BUSINESS -- the ApprovalMethod is `DSA_ED25519` or `GROUP`
+        * for Entities of type REPRESENTATIVE_PERSON -- the ApprovalMethod is either `AUHTY_PUSH` or `SMS`
+      requestBody:
+        required: true
+        description: 'An ApprovalMethod ID is required, check the [Custody API Guide](Custody_API_Guide.md)
+          for more details
+
+'
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - entity_id
+              - approval_method_id
+              - resource_type
+              - resource_id
+              properties:
+                entity_id:
+                  type: string
+                  description: The Entity ID that owns the resource
+                approval_method_id:
+                  type: string
+                  description: ID for the ApprovalMethod to be used by the ApprovalRequest
+                resource_type:
+                  type: string
+                  description: Type of the resource to approve using the ApprovalRequest
+                  enum:
+                  - TRANSACTION
+                  - TRADE
+                  - APPROVAL_REQUEST
+                resource_id:
+                  type: string
+                  description: ID of the resource to be approved
+            example:
+              type: DSA_ED25519
+              resource_type: TRANSACTION
+              resource_id: 9c41ec8a82fb99b57cb5078ae0a8b569atrx
+              entity_id: 10ef67dc895d6c19c273b1ffba0c1692enty
+              account_id: 9c41ec8a82fb99b57cb5078ae0a8b569acct
+      responses:
+        '201':
+          description: An ApprovalRequest
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ApprovalRequest"
+              example:
+                id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
+                type: DSA_ED25519
+                state: PENDING
+                resource_type: TRANSACTION
+                resource_id: f59e8c8188500efce5be51eb71e9db08tran
+                challenge:
+                  attrs:
+                  - id
+                  - account_id
+                  - type
+                  - reference
+                  - amount
+                  - fee_amount
+                  - address
+                created_at: '2019-11-23T22:46:38Z'
+                updated_at: '2019-11-23T22:46:38Z'
+        '400':
+          "$ref": "#/components/responses/InvalidRequest"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/approval_requests/{approval_request_id}":
+    get:
+      tags:
+      - ApprovalRequest
+      summary: Retrieves the ApprovalRequest for the given Transaction
+      description: 'Fetches the ApprovalRequest for given ApprovalRequest ID
+
+'
+      parameters:
+      - name: approval_request_id
+        in: path
+        description: ApprovalRequest ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: An ApprovalRequest
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ApprovalRequest"
+              example:
+                id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
+                type: DSA_ED25519
+                state: PENDING
+                resource_type: TRANSACTION
+                resource_id: f59e8c8188500efce5be51eb71e9db08tran
+                challenge:
+                  attrs:
+                  - id
+                  - account_id
+                  - type
+                  - reference
+                  - amount
+                  - fee_amount
+                  - address
+                created_at: '2019-11-23T22:46:38Z'
+                updated_at: '2019-11-23T22:46:38Z'
+        '400':
+          "$ref": "#/components/responses/InvalidRequest"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/approval_requests/{approval_request_id}/approve":
+    post:
+      tags:
+      - ApprovalRequest
+      summary: Approve an ApprovalRequest of type `DSA_ED25519`
+      description: |
+        To approve a Transaction – using an ApprovalRequest of type `DSA_ED25519` or `SMS` –
+        the Account holder (an Entity owning the Account), MUST submit a response.
+
+        See ApprovalMethods description [Custody API Guide](Custody_API_Guide.md) for more details
+      parameters:
+      - name: approval_request_id
+        in: path
+        description: ApprovalRequest ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        description: 'A response to the ApprovalRequest''s challenge when type is
+          `DSA_ED25519` or `SMS`
+
+'
+        content:
+          application/json:
+            schema:
+              description: |
+                The Payload that contains the response to the challenge of the
+                ApprovalRequest
+              type: object
+              required:
+              - response
+              properties:
+                challenge:
+                  type: object
+                  description: 'Optional, an object containing a SHA-256 hash of the
+                    challenge message that will be considered for validation
+
+'
+                  properties:
+                    sha256:
+                      type: string
+                      description: A SHA-256 hash of the challenge message
+                      example: f6deeecec4aa0cb77e7f2c6f3f44c28ec5ab3ab22d43441f56cbf0bf1ef80c81
+                response:
+                  type: string
+                  description: The response to the challenge. Here a DSA_ED25519 signature
+                    or the SMS code in the case of an SMS ApprovalRequest
+                  example: c5d5fac9e6fb6b7d27b141625f1c2c991aefc8b9f6e8a6eedb9cdbe9dd691ec310cbdc1bdd9fbd5fb4cfad72ee8fd51cc5f6e7198fecc92d5c465a61ef2c09a1
+            example:
+              challenge:
+                sha256: f6deeecec4aa0cb77e7f2c6f3f44c28ec5ab3ab22d43441f56cbf0bf1ef80c81
+              response: c5d5fac9e6fb6b7d27b141625f1c2c991aefc8b9f6e8a6eedb9cdbe9dd691ec310cbdc1bdd9fbd5fb4cfad72ee8fd51cc5f6e7198fecc92d5c465a61ef2c09a1
+      responses:
+        '201':
+          description: Transaction is successfully approved
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ApprovalRequest"
+              example:
+                id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
+                type: DSA_ED25519
+                state: APPROVED
+                transaction_id: f59e8c8188500efce5be51eb71e9db08tran
+                challenge:
+                  attrs:
+                  - id
+                  - account_id
+                  - type
+                  - reference
+                  - amount
+                  - fee_amount
+                  - address
+                created_at: '2019-11-23T22:46:38Z'
+                updated_at: '2019-11-23T22:46:38Z'
+        '400':
+          "$ref": "#/components/responses/InvalidRequest"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/assets":
+    get:
+      tags:
+      - Asset
+      summary: List all Assets
+      description: 'Returns a list of all Digital Assets supported by the platform.
+
+'
+      parameters:
+      - "$ref": "#/components/parameters/filterParams"
+      - "$ref": "#/components/parameters/sortParams"
+      - "$ref": "#/components/parameters/limitOffsetParams"
+      responses:
+        '200':
+          description: A list of Assets
+          content:
+            application/json:
+              schema:
+                required:
+                - items
+                type: object
+                properties:
+                  items:
+                    type: array
+                    description: An array containing Assets
+                    items:
+                      "$ref": "#/components/schemas/Asset"
+                  pagination:
+                    "$ref": "#/components/schemas/paginationResponse"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/assets/{asset_id}":
+    get:
+      tags:
+      - Asset
+      summary: Get a single Asset
+      description: 'Returns a single Asset found by its ID
+
+'
+      parameters:
+      - name: asset_id
+        in: path
+        description: Asset ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A single Asset
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Asset"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/closure_requests":
+    get:
+      tags:
+      - ClosureRequests
+      summary: List all ClosureRequests
+      description: 'Returns a list of all ClosureRequests of the Entity identified
+        by `entity_id`
+
+'
+      parameters:
+      - "$ref": "#/components/parameters/filterParams"
+      - "$ref": "#/components/parameters/sortParams"
+      - "$ref": "#/components/parameters/limitOffsetParams"
+      - name: entity_id
+        in: path
+        description: ID of the Entity that should update the terms and conditions.
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A list of ClosureRequests
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/ClosureRequest"
+                  pagination:
+                    "$ref": "#/components/schemas/paginationResponse"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+    post:
+      tags:
+      - ClosureRequest
+      summary: Create a new ClosureRequest for Entity with `entity_id`
+      description: |
+        On behalf of the customer the partner can initiate the request to end the contractual realtionship between the customer and SDA.
+        A call to this endpoint will create a new ClosureRequest for the Entity identified by `entity_id`. This ClosureRequest will be
+        processed in the background.
+      parameters:
+      - name: entity_id
+        in: path
+        description: ID of the Entity that should update the terms and conditions.
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        description: A `reason` attribute must be specified. `reason` must be `CUSTOMER_WISH`.
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - reason
+              properties:
+                reason:
+                  type: string
+                  description: The reason for the termination of the contract between
+                    Entity and SDA
+                  example: CUSTOMER_WISH
+            example:
+              reason: CUSTOMER_WISH
+      responses:
+        '201':
+          description: Successfully created a ClosureRequest
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ClosureRequest"
+              example:
+                id: ae93e4dcb3d0f5d0e36a227a94ff39e5creq
+                reason: CUSTOMER_WISH
+                entity_id: 275cf8f7559fd88710b4c919f85777aaenty
+                state: PROCESSING
+                valid_until: '2019-04-01T22:31:06Z'
+                legal_closure_scheduled_at: '2019-03-01T22:31:06Z'
+                created_at: '2019-03-01T22:31:06Z'
+                updated_at: '2019-03-01T22:31:06Z'
+        '400':
+          "$ref": "#/components/responses/InvalidRequest"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/closure_requests/{closure_request_id}":
+    get:
+      tags:
+      - ClosureRequest
+      summary: Get a single ClosureRequest
+      description: 'Returns a single ClosureRequest found by its ID
+
+'
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: closure_request_id
+        in: path
+        description: ClosureRequest ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A single ClosureRequest
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ClosureRequest"
+              example:
+                id: ae93e4dcb3d0f5d0e36a227a94ff39e5creq
+                reason: CUSTOMER_WISH
+                entity_id: 275cf8f7559fd88710b4c919f85777aaenty
+                state: PROCESSING
+                valid_until: '2019-04-01T22:31:06Z'
+                legal_closure_scheduled_at: '2019-03-01T22:31:06Z'
+                created_at: '2019-03-01T22:31:06Z'
+                updated_at: '2019-03-01T22:31:06Z'
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/closure_requests/{closure_request_id}/confirm":
+    post:
+      tags:
+      - ClosureRequest
+      summary: Confirm a ClosureRequest with `closure_request_id`
+      description: |
+        After the partner got notified of a ClosureRequest of type `COMPLIANCE_IMMEDIATE_INTERNAL` or `ORDINARY_INTERNAL` the partner
+        must confirm this ClosureRequest to the SDA platform.
+      parameters:
+      - name: entity_id
+        in: path
+        description: ID of the Entity to which the ClosureRequest belongs to
+        required: true
+        schema:
+          type: string
+      - name: closure_request_id
+        in: path
+        description: ID of the ClosureRequest that should be confirmed
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successfully confirmed a ClosureRequest
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ClosureRequest"
+              example:
+                id: ae93e4dcb3d0f5d0e36a227a94ff39e5creq
+                reason: COMPLIANCE_IMMEDIATE_INTERNAL
+                entity_id: 275cf8f7559fd88710b4c919f85777aaenty
+                state: PROCESSING
+                valid_until: '2019-04-01T22:31:06Z'
+                legal_closure_scheduled_at: '2019-03-01T22:31:06Z'
+                created_at: '2019-03-01T22:31:06Z'
+                updated_at: '2019-03-01T22:31:06Z'
+        '400':
+          "$ref": "#/components/responses/InvalidRequest"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities":
+    get:
+      tags:
+      - Entity
+      summary: List all Entities
+      description: 'Returns a list of all Entities of this partner
+
+'
+      parameters:
+      - "$ref": "#/components/parameters/filterParams"
+      - "$ref": "#/components/parameters/sortParams"
+      - "$ref": "#/components/parameters/limitOffsetParams"
+      responses:
+        '200':
+          description: A list of Entities
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/Entity"
+                  pagination:
+                    "$ref": "#/components/schemas/paginationResponse"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+    post:
+      tags:
+      - Entity
+      summary: Create an Entity
+      description: 'Creates a new Entity of type PERSON or BUSINESS owned by the partner.
+
+'
+      requestBody:
+        required: true
+        description: |
+          A `person_id` attribute must be specified, when creating an Entity of type PERSON.
+          A `name` attribute must be specified, when creating an Entity of type BUSINESS.
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - type
+              - person_id
+              - name
+              properties:
+                person_id:
+                  type: string
+                  description: The ID of the person, provided by Solarisbank's KYC
+                    product (required for PERSON).
+                  example: b27a2b1c7b2ac61e3f0e7a1221ce816ecper
+                business_id:
+                  type: string
+                  description: The ID of the business, provided by solarisBank API
+                    (optional attribute for BUSINESS)
+                type:
+                  type: string
+                  description: The type of the Entity (`PERSON` or `BUSINESS`)
+                  example: PERSON
+                name:
+                  type: string
+                  description: The name of the Entity (required for BUSINESS)
+                  example: Mustermann GmbH
+            example:
+              person_id: f0af0d2164f3f8bcc44bf68d7beecce3cper
+              type: PERSON
+      responses:
+        '201':
+          description: Successfully created Entity
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Entity"
+              example:
+                id: 7d57be2d17a328150abd28daaae76d47enty
+                type: PERSON
+                person_id: e3c4bc7bdfeaed3c0a3cebd2addcd5accper
+                created_at: '2019-03-01T22:31:06Z'
+                updated_at: '2019-03-01T22:31:06Z'
+        '400':
+          "$ref": "#/components/responses/InvalidRequest"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}":
+    get:
+      tags:
+      - Entity
+      summary: Get a single Entity
+      description: 'Returns a single Entity found by its ID
+
+'
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A single Entity
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Entity"
+              example:
+                id: 7d57be2d17a328150abd28daaae76d47enty
+                type: PERSON
+                person_id: e3c4bc7bdfeaed3c0a3cebd2addcd5accper
+                created_at: '2019-03-01T22:31:06Z'
+                updated_at: '2019-03-01T22:31:06Z'
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/terms_and_conditions":
+    post:
+      tags:
+      - Entity
+      summary: Accept terms and conditions
+      description: |
+        By posting to this endpoint the partner signifies the acceptance of SDA's terms and conditions by the Entity.
+        A call to this enpoint will update the Entity identified by `entity_id` with a timestamp of when this endpoint was first called.
+      parameters:
+      - name: entity_id
+        in: path
+        description: ID of the Entity that should update the terms and conditions.
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Successfully accepted the terms and conditions
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/trading_terms_and_conditions":
+    post:
+      tags:
+      - Entity
+      summary: Accept terms and conditions for trading
+      description: |
+        By posting to this endpoint the partner signifies the acceptance of SDA's trading terms and conditions by the Entity.
+        A call to this enpoint will update the Entity identified by `entity_id` with a timestamp of when this endpoint was first called.
+      parameters:
+      - name: entity_id
+        in: path
+        description: ID of the Entity that should update the trading terms and conditions.
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Successfully accepted the trading terms and conditions
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/accounts/{account_id}/ledger_entries":
+    get:
+      tags:
+      - LedgerEntry
+      summary: List all Ledger Entries of an Account
+      description: 'Returns a list of all Ledger Entries of a given Account, owned
+        by the given Entity
+
+'
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      - "$ref": "#/components/parameters/filterParams"
+      - "$ref": "#/components/parameters/sortParams"
+      - "$ref": "#/components/parameters/limitOffsetParams"
+      responses:
+        '200':
+          description: A list of Ledger Entries
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/LedgerEntry"
+                  pagination:
+                    "$ref": "#/components/schemas/paginationResponse"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/accounts/{account_id}/ledger_entries/{ledger_entry_id}":
+    get:
+      tags:
+      - LedgerEntry
+      summary: Get a single Ledger Entry
+      description: |
+        Returns a single Ledger Entry identified by its ID of the given Account,
+        owned by the given Entity.
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      - name: ledger_entry_id
+        in: path
+        description: Ledger Entry ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A single Ledger Entry
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/LedgerEntry"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/trading/pairs/{trading_pair_id}/daily_rates":
+    get:
+      tags:
+      - TradingExchangeRate
+      summary: List the Daily Exchange Rates of a Trading Pair
+      description: 'Returns a list of all Daily Exchange Rates identified by a given
+        Trading Pair.
+
+'
+      parameters:
+      - "$ref": "#/components/parameters/filterParams"
+      - "$ref": "#/components/parameters/sortParams"
+      - "$ref": "#/components/parameters/limitOffsetParams"
+      - name: trading_pair_id
+        in: path
+        description: Trading Pair ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A list of Daily Exchange Rates
+          content:
+            application/json:
+              schema:
+                required:
+                - items
+                type: object
+                properties:
+                  items:
+                    type: array
+                    description: An array containing Daily Exhange Rates
+                    items:
+                      "$ref": "#/components/schemas/TradingDailyRate"
+                  pagination:
+                    "$ref": "#/components/schemas/paginationResponse"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/trading/pairs/{trading_pair_id}/hourly_rates":
+    get:
+      tags:
+      - TradingExchangeRate
+      summary: List the Hourly Exchange Rates of a Trading Pair
+      description: 'Returns a list of all Hourly Exchange Rates identified by a given
+        Trading Pair.
+
+'
+      parameters:
+      - "$ref": "#/components/parameters/filterParams"
+      - "$ref": "#/components/parameters/sortParams"
+      - "$ref": "#/components/parameters/limitOffsetParams"
+      - name: trading_pair_id
+        in: path
+        description: Trading Pair ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A list of Hourly Exchange Rates
+          content:
+            application/json:
+              schema:
+                required:
+                - items
+                type: object
+                properties:
+                  items:
+                    type: array
+                    description: An array containing Hourly Exchange Rates
+                    items:
+                      "$ref": "#/components/schemas/TradingHourlyRate"
+                  pagination:
+                    "$ref": "#/components/schemas/paginationResponse"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/trading/pairs/{trading_pair_id}/minute_rates":
+    get:
+      tags:
+      - TradingExchangeRate
+      summary: List the Minute Exchange Rates of a Trading Pair
+      description: 'Returns a list of all Minute Exchange Rates identified by a given
+        Trading Pair.
+
+'
+      parameters:
+      - "$ref": "#/components/parameters/filterParams"
+      - "$ref": "#/components/parameters/sortParams"
+      - "$ref": "#/components/parameters/limitOffsetParams"
+      - name: trading_pair_id
+        in: path
+        description: Trading Pair ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A list of Minute Exchange
+          content:
+            application/json:
+              schema:
+                required:
+                - items
+                type: object
+                properties:
+                  items:
+                    type: array
+                    description: An array containing Minute Exchange Rates
+                    items:
+                      "$ref": "#/components/schemas/TradingMinuteRate"
+                  pagination:
+                    "$ref": "#/components/schemas/paginationResponse"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/trading_limits":
+    get:
+      tags:
+      - TradingLimit
+      summary: Returns the trading limits for an Entity.
+      description: |
+        This endpoint is used to show current trading limits configuration
+        for an Entity and the remaining amount they are allowed to trade.
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Trading limits object
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/TradingLimit"
+              example:
+                entity_id: e0a26b1b54a6009d9ad9c6efd3aa5c77enty
+                interval: 604800
+                amount: '50000.00'
+                remaining_amount: '49686.69'
+                created_at: '2021-02-11T22:40:59Z'
+                updated_at: '2021-02-11T22:40:59Z'
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/trading/pairs":
+    get:
+      tags:
+      - TradingPair
+      summary: List all Trading Pairs
+      description: 'Returns a list of all Trading Pairs supported by the platform.
+
+'
+      parameters:
+      - "$ref": "#/components/parameters/filterParams"
+      - "$ref": "#/components/parameters/sortParams"
+      - "$ref": "#/components/parameters/limitOffsetParams"
+      responses:
+        '200':
+          description: A list of Trading Pairs
+          content:
+            application/json:
+              schema:
+                required:
+                - items
+                type: object
+                properties:
+                  items:
+                    type: array
+                    description: An array containing Trading Pairs
+                    items:
+                      "$ref": "#/components/schemas/TradingPair"
+                  pagination:
+                    "$ref": "#/components/schemas/paginationResponse"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/trading/pairs/{trading_pair_id}":
+    get:
+      tags:
+      - TradingPair
+      summary: Get a single Trading Pair
+      description: 'Returns a single Trading Pair identified by its ID.
+
+'
+      parameters:
+      - name: trading_pair_id
+        in: path
+        description: Trading Pair ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A single Trading Pair
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/TradingPair"
+              example:
+                id: 00000000000000000000000000000001trpr
+                from_asset_id: 00000000000000000000000000000001asst
+                to_asset_id: f0000000000000000000000000000001asst
+                code: BTC/EUR
+                precision: 2
+                min_amount: '0.0001'
+                created_at: '2019-03-01T21:47:06Z'
+                updated_at: '2019-03-01T21:47:06Z'
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/trading/pairs/{trading_pair_id}/price":
+    get:
+      tags:
+      - TradingPrice
+      summary: Returns the trade price for a given Trading Pair.
+      description: |
+        The Price endpoint provides an indicative trade price for a given Trading Pair.
+        The "amount" attribute is optional and defaults to "min_amount" attribute of a chosen "Trading Pair".
+        The provided result can only be used as an estimation and does not guarantee the price during the actual trade on the platform.
+      parameters:
+      - name: trading_pair_id
+        in: path
+        description: Trading Pair ID
+        required: true
+        schema:
+          type: string
+      - name: amount
+        in: query
+        description: amount
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A single Price
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Price"
+              example:
+                trading_pair_id: 00000000000000000000000000000001trpr
+                from_amount: '1.12300000'
+                traded_from_amount: '1.12300000'
+                traded_to_amount: '9956.64'
+                to_amount: '9857.07'
+                price: '8866.11'
+                fee_amount: '99.57'
+                created_at: '2020-07-16T11:26:41Z'
+                updated_at: '2020-07-16T11:26:41Z'
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/trading/trades":
+    get:
+      tags:
+      - Trade
+      summary: List all Trades
+      description: 'Returns a list of all Trades created by a given partner.
+
+'
+      parameters:
+      - "$ref": "#/components/parameters/filterParams"
+      - "$ref": "#/components/parameters/sortParams"
+      - "$ref": "#/components/parameters/limitOffsetParams"
+      responses:
+        '200':
+          description: A list of Trades
+          content:
+            application/json:
+              schema:
+                required:
+                - items
+                type: object
+                properties:
+                  items:
+                    type: array
+                    description: An array containing Trades
+                    items:
+                      "$ref": "#/components/schemas/Trade"
+                  pagination:
+                    "$ref": "#/components/schemas/paginationResponse"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+    post:
+      tags:
+      - Trade
+      summary: Create a new Trade
+      description: 'Creates a new Trade on the platform.
+
+'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - type
+              properties:
+                entity_id:
+                  type: string
+                  description: The Entity ID
+                trading_pair_id:
+                  type: string
+                  description: The Trading Pair ID
+                from_account_id:
+                  type: string
+                  description: The origin account ID
+                to_account_id:
+                  type: string
+                  description: The destination account ID
+                reference:
+                  type: string
+                  description: The Trade reference
+                from_amount:
+                  type: string
+                  description: The Trade amount
+            example:
+              from_amount: '209.1'
+              entity_id: b6ef80668690fa4dfbb51a3bc49a1fb7enty
+              trading_pair_id: 00000000000000000000000000000002trpr
+              from_account_id: 57e837a08685eff2cee29e82b6b09857cacc
+              to_account_id: d4f01daea26362d0de5fe89cb0f8d905acct
+              reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
+      responses:
+        '201':
+          description: A created Trade
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Trade"
+              example:
+                id: 82d19e27542a21c950eaae13059cf5f5trad
+                from_amount: '209.10'
+                traded_from_amount: 
+                traded_to_amount: 
+                to_amount: 
+                fee_amount: 
+                price: 
+                state: PENDING
+                reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
+                entity_id: b6ef80668690fa4dfbb51a3bc49a1fb7enty
+                trading_pair_id: 00000000000000000000000000000002trpr
+                from_account_id: 57e837a08685eff2cee29e82b6b09857cacc
+                to_account_id: d4f01daea26362d0de5fe89cb0f8d905acct
+                failure_reason: 
+                estimations:
+                  traded_from_amount: '207.00'
+                  traded_to_amount: '0.02288435'
+                  to_amount: '0.02288435'
+                  fee_amount: '2.10'
+                  price: '0.00011055'
+                created_at: '2021-11-26T14:35:45Z'
+                updated_at: '2021-11-26T14:35:45Z'
+        '400':
+          "$ref": "#/components/responses/InvalidRequest"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
+  "/trading/trades/{trade_id}":
+    get:
+      tags:
+      - Trade
+      summary: Get a single Trade
+      description: 'Returns a single Trade identified by its ID.
+
+'
+      parameters:
+      - name: trade_id
+        in: path
+        description: Trade ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A single Trade
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Trade"
+              example:
+                id: 82d19e27542a21c950eaae13059cf5f5trad
+                from_amount: '209.10'
+                traded_from_amount: 
+                traded_to_amount: 
+                to_amount: 
+                fee_amount: 
+                price: 
+                state: PENDING
+                reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
+                entity_id: b6ef80668690fa4dfbb51a3bc49a1fb7enty
+                trading_pair_id: 00000000000000000000000000000002trpr
+                from_account_id: 57e837a08685eff2cee29e82b6b09857cacc
+                to_account_id: d4f01daea26362d0de5fe89cb0f8d905acct
+                failure_reason: 
+                estimations:
+                  traded_from_amount: '207.00'
+                  traded_to_amount: '0.02288435'
+                  to_amount: '0.02288435'
+                  fee_amount: '2.10'
+                  price: '0.00011055'
+                created_at: '2021-11-26T14:35:45Z'
+                updated_at: '2021-11-26T14:35:45Z'
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/trading/trades/{trade_id}/cancel":
+    post:
+      tags:
+      - Trade
+      summary: Cancel an existing Trade
+      description: 'A Trade can be cancelled by the Partner given it is still on the
+        `PENDING` state. In case the Trade cannot be found the endpoint replies with
+        `404 Not Found` status code.
+
+'
+      parameters:
+      - name: trade_id
+        in: path
+        description: Trade ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A cancelled Trade
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Trade"
+              example:
+                id: 82d19e27542a21c950eaae13059cf5f5trad
+                from_amount: '209.10'
+                traded_from_amount: 
+                traded_to_amount: 
+                to_amount: 
+                fee_amount: 
+                price: 
+                state: CANCELLED
+                reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
+                entity_id: b6ef80668690fa4dfbb51a3bc49a1fb7enty
+                trading_pair_id: 00000000000000000000000000000002trpr
+                from_account_id: 57e837a08685eff2cee29e82b6b09857cacc
+                to_account_id: d4f01daea26362d0de5fe89cb0f8d905acct
+                failure_reason: 
+                estimations:
+                  traded_from_amount: '207.00'
+                  traded_to_amount: '0.02288435'
+                  to_amount: '0.02288435'
+                  fee_amount: '2.10'
+                  price: '0.00011055'
+                created_at: '2021-11-26T14:35:45Z'
+                updated_at: '2021-11-26T14:35:45Z'
+        '400':
+          "$ref": "#/components/responses/InvalidRequest"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/accounts/{account_id}/transactions":
+    get:
+      tags:
+      - Transaction
+      summary: List all Transactions of an Account
+      description: 'Returns a list of all Transactions of the given Account, owned
+        by the given Entity.
+
+'
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      - "$ref": "#/components/parameters/filterParams"
+      - "$ref": "#/components/parameters/sortParams"
+      - "$ref": "#/components/parameters/limitOffsetParams"
+      responses:
+        '200':
+          description: A list of Transactions
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/Transaction"
+                  pagination:
+                    "$ref": "#/components/schemas/paginationResponse"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/cancel":
+    post:
+      tags:
+      - Transaction
+      summary: Cancel a Transaction
+      description: 'Cancel a Transaction identified by its ID
+
+'
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      - name: transaction_id
+        in: path
+        description: Transaction ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A single Transaction
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Transaction"
+              example:
+                id: f59e8c8188500efce5be51eb71e9db08tran
+                account_id: ff6dc60c4f76dcea784bdc2ffed66e6facct
+                type: WITHDRAWAL
+                state: CANCELLED
+                amount: "-1.23450000"
+                fee_amount: '0.00100000'
+                total_amount: "-1.23550000"
+                reference: someting-fe8cbeecef486fe6edf9c3690e4f6b0a-unique
+                address: 1HesYJSP1QqcyPEjnQ9vzBL1wujruNGe7R
+                blockchain_txid: 0d0baf05852a856366a302ce9c9a9bbd36f95685a1e3d3bc9ef7715424ed577b
+                blockchain_output_n: 4
+                created_at: '2019-03-01T20:48:38Z'
+                updated_at: '2019-03-01T20:49:07Z'
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}":
+    get:
+      tags:
+      - Transaction
+      summary: Get a single Transaction
+      description: |
+        Returns a single Transaction identified by its ID of the given Account,
+        owned by the given Entity.
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      - name: transaction_id
+        in: path
+        description: Transaction ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A single Transaction
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Transaction"
+              example:
+                id: f59e8c8188500efce5be51eb71e9db08tran
+                account_id: ff6dc60c4f76dcea784bdc2ffed66e6facct
+                type: WITHDRAWAL
+                state: PENDING
+                amount: "-1.23450000"
+                fee_amount: '0.00100000'
+                reference: someting-fe8cbeecef486fe6edf9c3690e4f6b0a-unique
+                address: 1HesYJSP1QqcyPEjnQ9vzBL1wujruNGe7R
+                blockchain_txid: 0d0baf05852a856366a302ce9c9a9bbd36f95685a1e3d3bc9ef7715424ed577b
+                blockchain_output_n: 4
+                created_at: '2019-03-01T20:48:38Z'
+                updated_at: '2019-03-01T20:49:07Z'
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/accounts/{account_id}/transactions/transfer":
+    post:
+      tags:
+      - Transfer
+      summary: Create a Transfer
+      description: |
+        Issues a request to create a new Transfer
+        from the given Account, owned by the given Entity, to another Account
+        in the same Asset.
+        Transfers can only be initiated from Accounts of `isolation` `POOLED`.
+
+        Two Transactions are created in the course of processing a Transfer:
+        one Transaction of type TRANSFER_OUTGOING in the sender Account,
+        and a corresponding Transaction of type TRANSFER_INCOMING in the receiver Account.
+        The second, Transfer (Incoming) Transaction, is only created if and when the
+        first one, Transfer (Outgoing), is successfully completed.
+
+        The required `reference` attribute serves as idempotency key, and MUST be unique
+        across all Transactions initiated by the partner.
+
+        If a request is issued twice with the same attributes,
+        including the value of the `reference` attribute, the second response will be the same
+        as the first one, and only one Transfer Transaction will be created as the effect.
+
+        In the request to issue a Transfer either the `amount` or the `total_amount`
+        MUST be specified. If the `amount` is specified, it indicates the "transacted amount",
+        i.e. the exact amount that will be sent to the recipient Account.
+        If the `total_amount` is specified, it indicates the amount that will be deducted from
+        the Account Balance, the amount that will be sent to the recipient
+        is determined after the fees are calculated and applied. Specifying the `total_amount`
+        is useful in case it is desired to transfer the whole Balance of the Account.
+
+        The successful response of the Transfer request contains a reference to a Transaction,
+        which will *eventually* be created. If right after the partner tries to get this single
+        Transaction by its ID and receives a `"404 Not found"` response, it is advised to
+        repeat the attempt after some (rather short) period of time.
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+              - reference
+              - receiver_account_id
+              type: object
+              properties:
+                amount:
+                  type: string
+                  description: 'Transacted amount *(required if `total_amount` is
+                    not specified)*
+
+'
+                total_amount:
+                  type: string
+                  description: 'Total amount deducted from the Account *(required
+                    if `amount` is not specified)*
+
+'
+                reference:
+                  type: string
+                  description: A unique reference identifier provided by the partner
+                receiver_account_id:
+                  type: string
+                  description: An ID of the recipient Account, of the same Account
+            example:
+              reference: something-d4cbde56778cc85c2baf4d1b24c4097f-unique
+              receiver_account_id: 8edc66729b14bf1921292ad7ee0fbce8acct
+              total_amount: '10.00000000'
+      responses:
+        '201':
+          description: Successfully processed Transfer request response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/TransactionRequestResponse"
+        '400':
+          "$ref": "#/components/responses/InvalidRequest"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+  "/entities/{entity_id}/accounts/{account_id}/transactions/withdrawal":
+    post:
+      tags:
+      - Withdrawal
+      summary: Create a Withdrawal
+      description: |
+        Issues a request to create a new Withdrawal Transaction from the given Account, owned
+        by the given Entity.
+
+        The required `reference` attribute serves as idempotency key, and MUST be unique
+        across all Transactions initiated by the partner.
+
+        If a request is issued twice with the same attributes,
+        including the value of the `reference` attribute, the second response will be the same
+        as the first one, and only one Withdrawal Transaction will be created as the effect.
+
+        In the request to issue a Withdrawal either the `amount` or the `total_amount`
+        MUST be specified. If the `amount` is specified, it indicates the "transacted amount",
+        i.e. the exact amount that will be sent to the given address on the blockchain.
+        If the `total_amount` is specified, it indicates the amount that will be deducted from
+        the Account Balance, the amount that will be sent to the recipient on the blockchain
+        is determined after the fees are calculated and applied. Specifying the `total_amount`
+        is useful in case it is desired to withdraw the whole Balance of the Account.
+
+        The successful response of the Withdrawal request contains a reference to a Transaction,
+        which will *eventually* be created. If right after the partner tries to get this single
+        Transaction by its ID and receives a `"404 Not found"` response, it is advised to
+        repeat the attempt after some (rather short) period of time.
+      parameters:
+      - name: entity_id
+        in: path
+        description: Entity ID
+        required: true
+        schema:
+          type: string
+      - name: account_id
+        in: path
+        description: Account ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+              - reference
+              - address
+              type: object
+              properties:
+                amount:
+                  type: string
+                  description: 'Transacted amount *(required if `total_amount` is
+                    not specified)*
+
+'
+                total_amount:
+                  type: string
+                  description: 'Total amount deducted from the Account *(required
+                    if `amount` is not specified)*
+
+'
+                reference:
+                  type: string
+                  description: A unique reference identifier provided by the partner
+                address:
+                  type: string
+                  description: A digital asset specific address, recipient of Withdrawal
+            example:
+              reference: something-daada07e2bcd43ccc443750568effbe2-unique
+              address: 1MbH8VxfH74VLcv8q3BjBQizcnV2c7Tmre
+              amount: '1.15000000'
+      responses:
+        '201':
+          description: Successfully processed Withdrawal request response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/TransactionRequestResponse"
+        '400':
+          "$ref": "#/components/responses/InvalidRequest"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+components:
+  schemas:
+    paginationResponse:
+      required:
+      - next
+      - prev
+      properties:
+        next:
+          type: integer
+          nullable: true
+          description: 'The number of the next page in the dataset if available
+
+'
+        prev:
+          type: integer
+          nullable: true
+          description: 'The number of the previous page in the dataset if available
+
+'
+    TransactionRequestResponse:
+      description: 'A successul response to a Transaction initiation request (e.g.
+        Withdrawal or Transfer).
+
+'
+      type: object
+      required:
+      - transaction_id
+      properties:
+        transaction_id:
+          type: string
+          description: ID of the Transaction that will be eventually created for this
+            request
+      example:
+        transaction_id: afa4bcc92adaad64fdaad3c48b8cb840tran
+    Account:
+      oneOf:
+      - "$ref": "#/components/schemas/AccountBase"
+      - "$ref": "#/components/schemas/AccountToken"
+    AccountBase:
+      type: object
+      required:
+      - id
+      - entity_id
+      - asset_id
+      - balance
+      - available_balance
+      - type
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Account
+        entity_id:
+          type: string
+          description: ID of the Entity owning the Account
+        asset_id:
+          type: string
+          description: ID of the Asset the Account is linked with
+        balance:
+          type: string
+          description: Balance of the Account
+        available_balance:
+          type: string
+          description: Available Balance of the Account
+        type:
+          type: string
+          description: The type of the Account
+          example: BASE
+          enum:
+          - BASE
+        isolation:
+          type: string
+          description: "(deprecated) The isolation level of the Account"
+          example: POOLED
+          enum:
+          - POOLED
+          - SEGREGATED
+        created_at:
+          type: string
+          description: Time at which the Account was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the Account was last updated
+          format: date-time
+      example:
+        id: '09934947ffdd4bef50ba88ddc5eab0bfacct'
+        entity_id: 359fe08986bbc6b62ea406f864b1ab90enty
+        asset_id: 00000000000000000000000000000001asst
+        balance: '123.45670000'
+        available_balance: '123.45600000'
+        isolation: POOLED
+        created_at: '2019-03-01T22:31:06Z'
+        updated_at: '2019-03-01T22:31:06Z'
+    AccountToken:
+      type: object
+      required:
+      - id
+      - base_account_id
+      - entity_id
+      - asset_id
+      - balance
+      - available_balance
+      - type
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Account
+        base_account_id:
+          type: string
+          description: 'The ID of the base Account if Account belongs to an Asset
+            of type `TOKEN`
+
+'
+        entity_id:
+          type: string
+          description: ID of the Entity owning the Account
+        asset_id:
+          type: string
+          description: ID of the Asset the Account is linked with
+        balance:
+          type: string
+          description: Balance of the Account
+        available_balance:
+          type: string
+          description: Available Balance of the Account
+        type:
+          type: string
+          description: The type of the Account
+          example: TOKEN
+          enum:
+          - TOKEN
+        isolation:
+          type: string
+          description: The isolation level of the Account
+          example: SEGREGATED
+          enum:
+          - POOLED
+          - SEGREGATED
+        created_at:
+          type: string
+          description: Time at which the Account was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the Account was last updated
+          format: date-time
+      example:
+        id: '09934947ffdd4bef50ba88ddc5eab0bfacct'
+        base_account_id: e3c4bc7bdfeaed3c0a3cebd2addcd5acct
+        entity_id: 359fe08986bbc6b62ea406f864b1ab90enty
+        asset_id: 00000000000000000000000000000001asst
+        balance: '123.45670000'
+        available_balance: '123.45600000'
+        isolation: SEGREGATED
+        created_at: '2019-03-01T22:31:06Z'
+        updated_at: '2019-03-01T22:31:06Z'
+    Address:
+      type: object
+      required:
+      - id
+      - account_id
+      - address
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unqiue ID of the Address
+        account_id:
+          type: string
+          description: ID of the Account the Address belongs to
+        address:
+          type: string
+          description: A digital asset specific address
+          example: 1NgiUwkhYVYMy3eoMC9dHcvdHejGxcuaWm
+        created_at:
+          type: string
+          description: Time at which the Address was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the Address was last updated
+          format: date-time
+      example:
+        id: dfddb6ba632e3ee65e49f37b059763cdaddr
+        account_id: df10de8c583c8b2ca85ca169df349bffacct
+        address: 1NgiUwkhYVYMy3eoMC9dHcvdHejGxcuaWm
+        created_at: '2019-03-01T21:47:06Z'
+        updated_at: '2019-03-01T21:47:06Z'
+    ApprovalMethod:
+      description: 'An ApprovalMethod registered for some Entity
+
+'
+      oneOf:
+      - "$ref": "#/components/schemas/ApprovalMethodAUTHY_PUSH"
+      - "$ref": "#/components/schemas/ApprovalMethodSMS"
+      - "$ref": "#/components/schemas/ApprovalMethodDSA_ED25519"
+      - "$ref": "#/components/schemas/ApprovalMethodGROUP"
+    ApprovalMethodAUTHY_PUSH:
+      description: |
+        An ApprovalMethod of type `AUTHY_PUSH`.
+
+        It represents an MFA method which uses Authy push notifications
+        for approving Transactions.
+
+        In case of AUTHY_PUSH type of ApprovalMethod, an ACTIVATED state
+        means that the person is succesfully enrolled in Authy service,
+        installed and configured the Authy app on their (mobile) device.
+      type: object
+      required:
+      - id
+      - entity_id
+      - type
+      - state
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of this ApprovalMethod
+        entity_id:
+          type: string
+          description: ID of the Entity this ApprovalMethod is registered for
+        type:
+          type: string
+          description: Type of the ApprovalMethod
+          enum:
+          - AUTHY_PUSH
+        state:
+          type: string
+          description: Current state of the ApprovalMethod
+          enum:
+          - PENDING
+          - ACTIVATED
+          - DEACTIVATED
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was updated
+          format: date-time
+      example:
+        id: 6ec2fbc16ccb8238cbc89b3bf7ea7f39apmt
+        entity_id: 31adbcbbcede1a7a8cffb4a0e598ad5centy
+        type: AUTHY_PUSH
+        state: ACTIVATED
+        created_at: '2019-11-03T12:21:16Z'
+        updated_at: '2019-11-03T12:46:10Z'
+    ApprovalMethodSMS:
+      description: |
+        An ApprovalMethod of type `SMS`.
+
+        It represents an MFA method which uses Verify SMS notifications
+        for approving Transactions.
+
+        In case of SMS type of ApprovalMethod, an ACTIVATED state
+        means that the person is succesfully KYCed.
+      type: object
+      required:
+      - id
+      - entity_id
+      - type
+      - state
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of this ApprovalMethod
+        entity_id:
+          type: string
+          description: ID of the Entity this ApprovalMethod is registered for
+        type:
+          type: string
+          description: Type of the ApprovalMethod
+          enum:
+          - SMS
+        state:
+          type: string
+          description: Current state of the ApprovalMethod
+          enum:
+          - PENDING
+          - ACTIVATED
+          - DEACTIVATED
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was updated
+          format: date-time
+      example:
+        id: 6ec2fbc16ccb8238cbc89b3bf7ea7f39apmt
+        entity_id: 31adbcbbcede1a7a8cffb4a0e598ad5centy
+        type: SMS
+        state: ACTIVATED
+        created_at: '2019-11-03T12:21:16Z'
+        updated_at: '2019-11-03T12:46:10Z'
+    ApprovalMethodDSA_ED25519:
+      description: |
+        An ApprovalMethod of type `DSA_ED25519`.
+
+        It represents an MFA method which uses an ECDSA algorithm to produce
+        digitally signed proofs for approving Transactions.
+
+        In case of DSA_ED25519 type of ApprovalMethod, an ACTIVATED state
+        means that the platform operator has successfully validated the sumbitted
+        public key and activated the ApprovalMethod.
+      type: object
+      required:
+      - id
+      - entity_id
+      - type
+      - state
+      - pub_key
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of this ApprovalMethod
+        entity_id:
+          type: string
+          description: ID of the Entity this ApprovalMethod is registered for
+        type:
+          type: string
+          description: Type of the ApprovalMethod
+          enum:
+          - DSA_ED25519
+        state:
+          type: string
+          description: Current state of the ApprovalMethod
+          enum:
+          - PENDING
+          - ACTIVATED
+          - DEACTIVATED
+        pub_key:
+          type: string
+          description: |
+            A public key part of the Entity's Approval key.
+
+            A 32-byte Ed25519 public key in a hexadecimal representation.
+          example: aba6103aef8c3f6e3c38f0d38bee5ebaf6b6f6427aec641d6253155c97f4ed2e
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was updated
+          format: date-time
+      example:
+        id: 2f1beeaf79a1d7ce8afaeaf54bfc9efaapmt
+        entity_id: 0ec4a04df2fcd18416fef957b32cc7b7enty
+        type: DSA_ED25519
+        state: PENDING
+        pub_key: 6db8efd521dd049eb6da49cdd67ef4ec31ca66ca2ac5d219dd9dfef36d2dccb8
+        created_at: '2019-11-03T13:05:51Z'
+        updated_at: '2019-11-03T13:05:51Z'
+    ApprovalMethodGROUP:
+      description: 'An ApprovalMethod of type `GROUP`.
+
+'
+      type: object
+      required:
+      - id
+      - entity_id
+      - type
+      - state
+      - approval_group
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of this ApprovalMethod
+        entity_id:
+          type: string
+          description: ID of the Entity this ApprovalMethod is registered for
+        type:
+          type: string
+          description: Type of the ApprovalMethod
+          enum:
+          - GROUP
+        state:
+          type: string
+          description: Current state of the ApprovalMethod
+          enum:
+          - PENDING
+          - ACTIVATED
+          - DEACTIVATED
+        approval_group:
+          type: object
+          properties:
+            id:
+              type: string
+              description: ApprovalGroup ID
+            quorum:
+              type: integer
+              description: ApprovalGroup quorum
+            members:
+              type: array
+              items:
+                type: string
+                description: Entity ID of the ApprovalGroup Member
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was updated
+          format: date-time
+      example:
+        id: 6ec2fbc16ccb8238cbc89b3bf7ea7f39apmt
+        entity_id: 31adbcbbcede1a7a8cffb4a0e598ad5centy
+        approval_group:
+          id: 4aeeac12d4b92c967cb826ac5dee5a8eapgr
+          quorum: 2
+          memmbers:
+          - 7d57be2d17a328150abd28daaae76d47enty
+          - 9f32fe2d17a328150abd28daaae76d47enty
+        type: GROUP
+        state: ACTIVATED
+        created_at: '2019-11-03T12:21:16Z'
+        updated_at: '2019-11-03T12:46:10Z'
+    ApprovalRequest:
+      description: |
+        The Object that represents an ApprovalRequest. Depending on the type an
+        ApprovalRequest might have different attributes.
+
+        An ApprovalRequest can be of type: `AUTHY_PUSH`, `SMS` or `DSA_ED25519`
+      oneOf:
+      - "$ref": "#/components/schemas/ApprovalRequestAUTHY_PUSH"
+      - "$ref": "#/components/schemas/ApprovalRequestSMS"
+      - "$ref": "#/components/schemas/ApprovalRequestDSA_ED25519"
+      - "$ref": "#/components/schemas/ApprovalRequestGROUP"
+      - "$ref": "#/components/schemas/ApprovalRequestAUTHY_PUSH_DEPRECATED"
+      - "$ref": "#/components/schemas/ApprovalRequestSMS_DEPRECATED"
+      - "$ref": "#/components/schemas/ApprovalRequestDSA_ED25519_DEPRECATED"
+    ApprovalRequestAUTHY_PUSH:
+      description: |
+        An ApprovalRequest for ApprovalMethod of type `AUTHY_PUSH`.
+
+        This ApprovalMethod is provided for Entities of type `PERSON` as Account holder.
+      type: object
+      required:
+      - id
+      - entity_id
+      - approval_method_id
+      - resource_id
+      - resource_type
+      - state
+      - type
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: The ID of the ApprovalRequest
+        entity_id:
+          type: string
+          description: The ID of the Entity that owns the ApprovalRequest
+        approval_method_id:
+          type: string
+          description: The ID of the associated ApprovalMethod
+        resource_id:
+          type: string
+          description: The ID of the resource that will be approved with this ApprovalRequest
+        resource_type:
+          type: string
+          description: The type of the resource that will be approved with this ApprovalRequest.
+        state:
+          type: string
+          description: The state of the ApprovalRequest
+          enum:
+          - PENDING
+          - APPROVED
+          - CANCELLED
+          - FAILED
+        type:
+          type: string
+          description: Approval method
+          example: AUTHY_PUSH
+          enum:
+          - AUTHY_PUSH
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was last updated
+          format: date-time
+      example:
+        id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
+        state: PENDING
+        entity_id: c7cbbb0930f21e1525257cac1fc97e54enty
+        approval_method_id: aa28b780ec044732f2a02ab44e6275cfapmt
+        resource_id: d8ffb93a9269086393e271cf564dc1a7atrx
+        resource_type: TRANSACTION
+        type: AUTHY_PUSH
+        created_at: '2019-11-03T13:05:51Z'
+        updated_at: '2019-11-03T13:05:51Z'
+    ApprovalRequestSMS:
+      description: |
+        An ApprovalRequest for ApprovalMethod of type `SMS`.
+
+        This ApprovalMethod is provided for Entities of type `PERSON` as Account holder.
+      type: object
+      required:
+      - id
+      - entity_id
+      - approval_method_id
+      - resource_id
+      - resource_type
+      - state
+      - type
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: The ID of the ApprovalRequest
+        state:
+          type: string
+          description: The state of the ApprovalRequest
+          enum:
+          - PENDING
+          - APPROVED
+          - CANCELLED
+          - FAILED
+        entity_id:
+          type: string
+          description: The ID of the Entity that owns the ApprovalRequest
+        approval_method_id:
+          type: string
+          description: The ID of the associated ApprovalMethod
+        resource_id:
+          type: string
+          description: The ID of the resource that will be approved with this ApprovalRequest
+        resource_type:
+          type: string
+          description: The type of the resource that will be approved with this ApprovalRequest.
+        type:
+          type: string
+          description: Approval method
+          example: SMS
+          enum:
+          - SMS
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was last updated
+          format: date-time
+      example:
+        id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
+        state: PENDING
+        entity_id: c7cbbb0930f21e1525257cac1fc97e54enty
+        approval_method_id: aa28b780ec044732f2a02ab44e6275cfapmt
+        resource_id: d8ffb93a9269086393e271cf564dc1a7atrx
+        resource_type: TRANSACTION
+        type: SMS
+        created_at: '2019-11-03T13:05:51Z'
+        updated_at: '2019-11-03T13:05:51Z'
+    ApprovalRequestDSA_ED25519:
+      description: |
+        An ApprovalRequest for ApprovalMethod of type `DSA_ED25519`.
+
+        This method is provided for Entities of type `PARTNER`, as Account holder.
+
+        When requested, the ApprovalRequest will contain a challenge that MUST be
+        solved by the Account holder in order for the Transaction to be processed.
+      type: object
+      required:
+      - id
+      - entity_id
+      - approval_method_id
+      - resource_id
+      - resource_type
+      - state
+      - type
+      - challenge
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: The ID of the ApprovalRequest
+        state:
+          type: string
+          description: The state of the ApprovalRequest
+          enum:
+          - CREATING
+          - PENDING
+          - APPROVED
+          - CANCELLED
+          - FAILED
+        entity_id:
+          type: string
+          description: The ID of the Entity that owns the ApprovalRequest
+        approval_method_id:
+          type: string
+          description: The ID of the associated ApprovalMethod
+        resource_id:
+          type: string
+          description: The ID of the resource that will be approved with this ApprovalRequest
+        resource_type:
+          type: string
+          description: The type of the resource that will be approved with this ApprovalRequest.
+        type:
+          type: string
+          description: Approval method
+        challenge:
+          type: object
+          description: |
+            An array containing a list of attributes that are used to construct a
+            signature as a solution to the challenge message
+          properties:
+            attrs:
+              type: array
+              description: 'An array containing the keys used to construct the challenge
+                message
+
+'
+              items:
+                type: string
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was last updated
+          format: date-time
+      example:
+        id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
+        state: PENDING
+        entity_id: c7cbbb0930f21e1525257cac1fc97e54enty
+        approval_method_id: aa28b780ec044732f2a02ab44e6275cfapmt
+        resource_id: d8ffb93a9269086393e271cf564dc1a7atrx
+        resource_type: TRANSACTION
+        type: DSA_ED25519
+        challenge:
+          attrs:
+          - id
+          - account_id
+          - type
+          - reference
+          - amount
+          - fee_amount
+          - address
+        created_at: '2019-11-03T13:05:51Z'
+        updated_at: '2019-11-03T13:05:51Z'
+    ApprovalRequestAUTHY_PUSH_DEPRECATED:
+      description: |
+        -- THIS SCHEMA IS DEPRECATED AND MIGHT BE REMOVED IN THE FUTURE --
+        An ApprovalRequest for ApprovalMethod of type `AUTHY_PUSH`.
+
+        This ApprovalMethod is provided for Entities of type `PERSON` as Account holder.
+      type: object
+      required:
+      - id
+      - entity_id
+      - approval_method_id
+      - resource_id
+      - resource_type
+      - state
+      - type
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: The ID of the ApprovalRequest
+        entity_id:
+          type: string
+          description: The ID of the Entity that owns the ApprovalRequest
+        approval_method_id:
+          type: string
+          description: The ID of the associated ApprovalMethod
+        resource_id:
+          type: string
+          description: The ID of the resource that will be approved with this ApprovalRequest
+        resource_type:
+          type: string
+          description: The type of the resource that will be approved with this ApprovalRequest.
+        transaction_id:
+          type: string
+          description: The ID of the Transaction that will be approved with this ApprovalRequest
+        state:
+          type: string
+          description: The state of the ApprovalRequest
+          enum:
+          - PENDING
+          - APPROVED
+          - CANCELLED
+          - FAILED
+        type:
+          type: string
+          description: Approval method
+          example: AUTHY_PUSH
+          enum:
+          - AUTHY_PUSH
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was last updated
+          format: date-time
+      example:
+        id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
+        state: PENDING
+        entity_id: c7cbbb0930f21e1525257cac1fc97e54enty
+        approval_method_id: aa28b780ec044732f2a02ab44e6275cfapmt
+        resource_id: d8ffb93a9269086393e271cf564dc1a7atrx
+        transaction_id: d8ffb93a9269086393e271cf564dc1a7atrx
+        resource_type: TRANSACTION
+        type: AUTHY_PUSH
+        created_at: '2019-11-03T13:05:51Z'
+        updated_at: '2019-11-03T13:05:51Z'
+    ApprovalRequestSMS_DEPRECATED:
+      description: |
+        An ApprovalRequest for ApprovalMethod of type `SMS`.
+
+        This ApprovalMethod is provided for Entities of type `PERSON` as Account holder.
+      type: object
+      required:
+      - id
+      - entity_id
+      - approval_method_id
+      - transaction_id
+      - resource_id
+      - resource_type
+      - state
+      - type
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: The ID of the ApprovalRequest
+        state:
+          type: string
+          description: The state of the ApprovalRequest
+          enum:
+          - PENDING
+          - APPROVED
+          - CANCELLED
+          - FAILED
+        entity_id:
+          type: string
+          description: The ID of the Entity that owns the ApprovalRequest
+        approval_method_id:
+          type: string
+          description: The ID of the associated ApprovalMethod
+        transaction_id:
+          type: string
+          description: The ID of the Transaction that will be approved with this ApprovalRequest
+        resource_id:
+          type: string
+          description: The ID of the resource that will be approved with this ApprovalRequest
+        resource_type:
+          type: string
+          description: The type of the resource that will be approved with this ApprovalRequest.
+        type:
+          type: string
+          description: Approval method
+          example: SMS
+          enum:
+          - SMS
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was last updated
+          format: date-time
+      example:
+        id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
+        state: PENDING
+        entity_id: c7cbbb0930f21e1525257cac1fc97e54enty
+        approval_method_id: aa28b780ec044732f2a02ab44e6275cfapmt
+        resource_id: d8ffb93a9269086393e271cf564dc1a7atrx
+        resource_type: TRANSACTION
+        type: SMS
+        created_at: '2019-11-03T13:05:51Z'
+        updated_at: '2019-11-03T13:05:51Z'
+    ApprovalRequestDSA_ED25519_DEPRECATED:
+      description: |
+        An ApprovalRequest for ApprovalMethod of type `DSA_ED25519`.
+
+        This method is provided for Entities of type `PARTNER`, as Account holder.
+
+        When requested, the ApprovalRequest will contain a challenge that MUST be
+        solved by the Account holder in order for the Transaction to be processed.
+      type: object
+      required:
+      - id
+      - entity_id
+      - approval_method_id
+      - resource_id
+      - resource_type
+      - transaction_id
+      - state
+      - type
+      - challenge
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: The ID of the ApprovalRequest
+        state:
+          type: string
+          description: The state of the ApprovalRequest
+          enum:
+          - CREATING
+          - PENDING
+          - APPROVED
+          - CANCELLED
+          - FAILED
+        transaction_id:
+          type: string
+          description: The ID of the Transaction that will be approved with this ApprovalRequest
+        entity_id:
+          type: string
+          description: The ID of the Entity that owns the ApprovalRequest
+        approval_method_id:
+          type: string
+          description: The ID of the associated ApprovalMethod
+        resource_id:
+          type: string
+          description: The ID of the resource that will be approved with this ApprovalRequest
+        resource_type:
+          type: string
+          description: The type of the resource that will be approved with this ApprovalRequest.
+        type:
+          type: string
+          description: Approval method
+        challenge:
+          type: object
+          description: |
+            An array containing a list of attributes that are used to construct a
+            signature as a solution to the challenge message
+          properties:
+            attrs:
+              type: array
+              description: 'An array containing the keys used to construct the challenge
+                message
+
+'
+              items:
+                type: string
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was last updated
+          format: date-time
+      example:
+        id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
+        state: PENDING
+        entity_id: c7cbbb0930f21e1525257cac1fc97e54enty
+        approval_method_id: aa28b780ec044732f2a02ab44e6275cfapmt
+        resource_id: d8ffb93a9269086393e271cf564dc1a7atrx
+        resource_type: TRANSACTION
+        type: DSA_ED25519
+        challenge:
+          attrs:
+          - id
+          - account_id
+          - type
+          - reference
+          - amount
+          - fee_amount
+          - address
+        created_at: '2019-11-03T13:05:51Z'
+        updated_at: '2019-11-03T13:05:51Z'
+    ApprovalRequestGROUP:
+      description: 'An ApprovalRequest for ApprovalMethod of type `GROUP`.
+
+'
+      type: object
+      required:
+      - id
+      - state
+      - entity_id
+      - approval_method_id
+      - resource_type
+      - resource_id
+      - type
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: The ID of the ApprovalRequest
+        state:
+          type: string
+          description: The state of the ApprovalRequest
+          enum:
+          - CREATING
+          - PENDING
+          - APPROVED
+          - CANCELLED
+          - FAILED
+        entity_id:
+          type: string
+          description: The ID of the Entity that owns the ApprovalRequest
+        approval_method_id:
+          type: string
+          description: The ID of the associated ApprovalMethod
+        approval_group_id:
+          type: string
+          description: The ID of the associated ApprovalGroup
+        resource_id:
+          type: string
+          description: A reference to the corresponding resource
+        resource_type:
+          type: string
+          description: Type of resource
+        type:
+          type: string
+          description: ApprovalMethod type
+          example: GROUP
+          enum:
+          - GROUP
+        created_at:
+          type: string
+          description: Time at which this resource was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which this resource was last updated
+          format: date-time
+      example:
+        id: 2f1fa4af79a1d7ce8a8ff4f54bfc9efaprq
+        state: PENDING
+        resource_type: TRANSACTION
+        entity_id: c7cbbb0930f21e1525257cac1fc97e54enty
+        approval_method_id: aa28b780ec044732f2a02ab44e6275cfapmt
+        approval_group_id: c05c94a9e4e511df38d345e0642b86b6apgr
+        resource_id: afa4bcc92adaad64fdaad3c48b8cb840tran
+        type: GROUP
+        created_at: '2019-11-03T13:05:51Z'
+        updated_at: '2019-11-03T13:05:51Z'
+    Asset:
+      oneOf:
+      - "$ref": "#/components/schemas/AssetBase"
+      - "$ref": "#/components/schemas/AssetToken"
+      - "$ref": "#/components/schemas/AssetFiat"
+      type: object
+    AssetBase:
+      required:
+      - id
+      - code
+      - description
+      - precision
+      - address_validation
+      - tx_min_amount
+      - type
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Asset
+        code:
+          type: string
+          description: |
+            A non-unique and non-permanent ISO code-like identifier of
+            the digital asset
+        description:
+          type: string
+          description: 'A human readable description of an Asset
+
+'
+        precision:
+          type: integer
+          description: 'Precision of monetary amounts in this asset (i.e. number of
+            decimal places)
+
+'
+        address_validation:
+          type: string
+          description: 'Regular expression which can be used to validate addresses
+            for this Asset
+
+'
+        tx_min_amount:
+          type: string
+          description: 'Minimal amount allowed for outgoing transactions in this Asset
+
+'
+        type:
+          type: string
+          description: The type of the Asset. `BASE` in this case.
+          enum:
+          - BASE
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      example:
+        id: 00000000000000000000000000000001asst
+        code: BTC
+        description: Bitcoin
+        precision: 8
+        address_validation: "^(bc(0([ac-hj-np-z02-9]{39}|[ac-hj-np-z02-9]{59})|1[ac-hj-np-z02-9]{8,87})|[13][a-km-zA-HJ-NP-Z1-9]{25,35})$"
+        tx_min_amount: '0.00001'
+        type: BASE
+        created_at: '2019-03-01T22:46:38Z'
+        updated_at: '2019-03-01T22:46:38Z'
+    AssetToken:
+      required:
+      - id
+      - code
+      - description
+      - precision
+      - address_validation
+      - tx_min_amount
+      - type
+      - base_asset_id
+      - token_url
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Asset
+        code:
+          type: string
+          description: |
+            A non-unique and non-permanent ISO code-like identifier of
+            the digital asset
+        description:
+          type: string
+          description: 'A human readable description of an Asset
+
+'
+        precision:
+          type: integer
+          description: 'Precision of monetary amounts in this asset (i.e. number of
+            decimal places)
+
+'
+        address_validation:
+          type: string
+          description: 'Regular expression which can be used to validate addresses
+            for this Asset
+
+'
+        tx_min_amount:
+          type: string
+          description: 'Minimal amount allowed for outgoing transactions in this Asset
+
+'
+        type:
+          type: string
+          description: The type of the Asset. `TOKEN` in this case.
+          enum:
+          - TOKEN
+        base_asset_id:
+          type: string
+          description: 'The ID of the Asset this Token belongs to.
+
+'
+        token_url:
+          type: string
+          description: |
+            The type and address of the Token Asset in URL form.
+
+            Currently only ERC20 tokens on ETH are supported and the URL form has the following format:
+            `erc20://<CONTRACT_ADDRESS>`. Here `<CONTRACT_ADDRESS>` represents the ETH address
+            of the smart contract implementing the ERC20 token.
+          example: erc20://0x722dd3F80BAC40c951b51BdD28Dd19d435762180
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      example:
+        id: 00030000000000000000000000000002asst
+        code: TKN
+        description: Token
+        precision: 8
+        address_validation: "^0x[a-fA-F0-9]{40}$"
+        tx_min_amount: '0.00001'
+        type: TOKEN
+        base_asset_id: 00000000000000000000000000000002asst
+        example: erc20://0x722dd3F80BAC40c951b51BdD28Dd19d435762180
+        created_at: '2019-03-01T22:46:38Z'
+        updated_at: '2019-03-01T22:46:38Z'
+    AssetFiat:
+      required:
+      - id
+      - code
+      - description
+      - precision
+      - address_validation
+      - tx_min_amount
+      - type
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Asset
+        code:
+          type: string
+          description: |
+            A non-unique and non-permanent ISO code-like identifier of
+            the digital asset
+        description:
+          type: string
+          description: 'A human readable description of an Asset
+
+'
+        precision:
+          type: integer
+          description: 'Precision of monetary amounts in this asset (i.e. number of
+            decimal places)
+
+'
+        address_validation:
+          type: string
+          nullable: true
+          description: "(DEPRECATED) Will not be used in FIAT assets\n"
+        tx_min_amount:
+          type: string
+          nullable: true
+          description: 'Minimal amount allowed for outgoing transactions in this Asset
+
+'
+        type:
+          type: string
+          description: The type of the Asset. `FIAT` in this case.
+          enum:
+          - FIAT
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      example:
+        id: f0000000000000000000000000000001asst
+        type: FIAT
+        code: EUR
+        precision: 2
+        description: Euro
+        address_validation: 
+        tx_min_amount: '30.0'
+        created_at: '2020-11-24T12:56:55Z'
+        updated_at: '2020-11-24T12:57:09Z'
+    ClosureRequest:
+      type: object
+      required:
+      - id
+      - entity_id
+      - reason
+      - state
+      - valid_until
+      - legal_closure_scheduled_at
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the ClosureRequest
+        reason:
+          type: string
+          description: Reason for Account closure
+          example: ORDINARY_INTERNAL
+          enum:
+          - CUSTOMER_WISH
+          - ORDINARY_INTERNAL
+          - COMPLIANCE_IMMEDIATE_INTERNAL
+        valid_until:
+          type: string
+          description: Time until which the Entity can empty their Accounts
+          format: date-time
+        legal_closure_scheduled_at:
+          type: string
+          description: Time in which the Entity will be Legally Closed
+          format: date-time
+        state:
+          type: string
+          description: The state of the ClosureRequest
+          example: PENDING
+          enum:
+          - PENDING
+          - APPROVED
+          - PROCESSING
+          - FAILED
+          - COMPLETED
+        created_at:
+          type: string
+          description: Time at which the ClosureRequest was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the ClosureRequest was last updated
+          format: date-time
+      example:
+        id: ae93e4dcb3d0f5d0e36a227a94ff39e5creq
+        reason: ORDINARY_INTERNAL
+        entity_id: 275cf8f7559fd88710b4c919f85777aaenty
+        state: APPROVED
+        valid_until: '2019-07-01T22:31:06Z'
+        legal_closure_scheduled_at: '2019-05-01T22:31:06Z'
+        created_at: '2019-03-01T22:31:06Z'
+        updated_at: '2019-03-01T22:31:06Z'
+    Entity:
+      oneOf:
+      - "$ref": "#/components/schemas/EntityPartner"
+      - "$ref": "#/components/schemas/EntityPerson"
+      - "$ref": "#/components/schemas/EntityRepresentativePerson"
+      - "$ref": "#/components/schemas/EntityBusiness"
+    EntityPartner:
+      type: object
+      required:
+      - id
+      - type
+      - state
+      - business_id
+      - trading_terms_conditions_signed_at
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Entity
+        state:
+          type: string
+          description: State of Entity
+        type:
+          type: string
+          description: Type of Entity
+          example: PARTNER
+          enum:
+          - PARTNER
+        business_id:
+          type: string
+          description: The ID of the business, provided by Solarisbank API
+        trading_terms_conditions_signed_at:
+          type: string
+          description: Time at which the customer acknowledged the T&Cs for trading
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          description: Time at which the Entity was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the Entity was last updated
+          format: date-time
+      example:
+        id: 1cbce42a62fc0cdeb1cf17df3ecd6fd6enty
+        type: PARTNER
+        state: ACTIVE
+        business_id: 880bbac68a34add190786b9c74f4c82fcbiz
+        trading_terms_conditions_signed_at: '2019-03-01T22:45:06Z'
+        created_at: '2019-03-01T22:31:06Z'
+        updated_at: '2019-03-01T22:31:06Z'
+    EntityPerson:
+      type: object
+      required:
+      - id
+      - type
+      - state
+      - person_id
+      - terms_conditions_signed_at
+      - trading_terms_conditions_signed_at
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Entity
+        type:
+          type: string
+          description: Type of Entity
+          example: PERSON
+          enum:
+          - PERSON
+        person_id:
+          type: string
+          description: The ID of the person, provided by solarisBank KYC product
+        terms_conditions_signed_at:
+          type: string
+          description: Time at which the customer acknowledged the T&Cs
+          format: date-time
+          nullable: true
+        state:
+          type: string
+          description: 'The state of an Entity of type `PERSON`.
+
+'
+          example: ACTIVE
+          enum:
+          - PENDING
+          - LOCKED
+          - ACTIVE
+          - CLOSING
+          - LEGALLY_CLOSED
+          - CLOSED
+        legally_closed_at:
+          type: string
+          description: Time at which the Entity's state was set to `LEGALLY_CLOSED`
+          format: date-time
+          nullable: true
+        closed_at:
+          type: string
+          description: Time at which the Entity's state was set to `CLOSED`
+          format: date-time
+          nullable: true
+        trading_terms_conditions_signed_at:
+          type: string
+          description: Time at which the customer acknowledged the T&Cs for trading
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          description: Time at which the Entity was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the Entity was last updated
+          format: date-time
+      example:
+        id: 7d57be2d17a328150abd28daaae76d47enty
+        type: PERSON
+        state: ACTIVE
+        person_id: e3c4bc7bdfeaed3c0a3cebd2addcd5accper
+        terms_conditions_signed_at: '2019-03-01T22:45:06Z'
+        legally_closed_at: '2021-02-01T13:22:12Z'
+        closed_at: '2021-03-01T16:54:16Z'
+        trading_terms_conditions_signed_at: '2019-03-01T22:45:06Z'
+        created_at: '2019-03-01T22:31:06Z'
+        updated_at: '2019-03-01T22:45:06Z'
+    EntityRepresentativePerson:
+      type: object
+      required:
+      - id
+      - type
+      - state
+      - entity_id
+      - person_id
+      - trading_terms_conditions_signed_at
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Entity
+        type:
+          type: string
+          description: Type of Entity
+          example: REPRESENTATIVE_PERSON
+          enum:
+          - REPRESENTATIVE_PERSON
+        person_id:
+          type: string
+          description: The ID of the person, provided by Solarisbank's KYC product
+        entity_id:
+          type: string
+          description: The ID of the Entity they respresent.
+        state:
+          type: string
+          description: 'The state of an Entity of type `REPRESENTATIVE_PERSON`.
+
+'
+          example: ACTIVE
+          enum:
+          - PENDING
+          - LOCKED
+          - ACTIVE
+        trading_terms_conditions_signed_at:
+          type: string
+          description: Time at which the customer acknowledged the T&Cs for trading
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          description: Time at which the Entity was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the Entity was last updated
+          format: date-time
+      example:
+        id: 7d57be2d17a328150abd28daaae76d47enty
+        type: REPRESENTATIVE_PERSON
+        state: ACTIVE
+        person_id: e3c4bc7bdfeaed3c0a3cebd2addcd5accper
+        entity_id: 10ef67dc895d6c19c273b1ffba0c1692enty
+        terms_conditions_signed_at: '2019-03-01T22:45:06Z'
+        legally_closed_at: '2021-02-01T13:22:12Z'
+        closed_at: '2021-03-01T16:54:16Z'
+        trading_terms_conditions_signed_at: '2019-03-01T22:45:06Z'
+        created_at: '2019-03-01T22:31:06Z'
+        updated_at: '2019-03-01T22:45:06Z'
+    EntityBusiness:
+      type: object
+      required:
+      - id
+      - name
+      - type
+      - state
+      - terms_conditions_signed_at
+      - business_id
+      - trading_terms_conditions_signed_at
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Entity
+        type:
+          type: string
+          description: Type of Entity
+          example: PERSON
+          enum:
+          - BUSINESS
+        state:
+          type: string
+          description: State of Entity
+        name:
+          type: string
+          description: A description for the Entity
+          example: Ono Sendai Ltd.
+        terms_conditions_signed_at:
+          type: string
+          description: Time at which the customer acknowledged the T&Cs
+          format: date-time
+          nullable: true
+        business_id:
+          type: string
+          description: The ID of the business, provided by Solarisbank API
+        trading_terms_conditions_signed_at:
+          type: string
+          description: Time at which the customer acknowledged the T&Cs for trading
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          description: Time at which the Entity was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the Entity was last updated
+          format: date-time
+      example:
+        id: 7d57be2d17a328150abd28daaae76d47enty
+        type: BUSINESS
+        state: ACTIVE
+        business_id: 880bbac68a34add190786b9c74f4c82fcbiz
+        terms_conditions_signed_at: '2019-03-01T22:45:06Z'
+        trading_terms_conditions_signed_at: '2019-03-01T22:45:06Z'
+        created_at: '2019-03-01T22:31:06Z'
+        updated_at: '2019-03-01T22:45:06Z'
+    LedgerEntry:
+      description: |
+        A Ledger Entry is an account entry which indicates by which amount the Account
+        balance was changed. The amount of a Ledger Entry can be either positive or negative,
+        where positive amounts represent an increase of the Account balance and negative
+        amounts represent a decrease.
+      type: object
+      required:
+      - id
+      - account_id
+      - transaction_id
+      - type
+      - amount
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Ledger Entry
+        account_id:
+          type: string
+          description: ID of the Account the Ledger Entry belongs to
+        transaction_id:
+          type: string
+          description: ID of the Transaction that produced this Ledger Entry
+        type:
+          type: string
+          description: Type of the Ledger Entry
+          example: DEPOSIT_AMOUNT
+          enum:
+          - DEPOSIT_AMOUNT
+          - DEPOSIT_FEE
+          - WITHDRAWAL_AMOUNT
+          - WITHDRAWAL_FEE
+          - TRANSFER_AMOUNT
+          - TRANSFER_FEE
+          - WITHDRAWAL_BATCH_FEE
+        amount:
+          type: string
+          description: Amount of the Ledger Entry, positive or negative
+          example: '0.15000000'
+        created_at:
+          type: string
+          description: Time at which the Ledger Entry was created
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      example:
+        id: 1c0fb8dbafa519adba070bba252b1263lent
+        account_id: 1570f8eba8a6cffebf6354b718c138e7acct
+        transaction_id: ce9e6e3d62d7d0811a3f8c8aabbac466tran
+        type: WITHDRAWAL_AMOUNT
+        amount: "-1.00000000"
+        created_at: '2019-03-01T22:31:06Z'
+        updated_at: '2019-03-01T22:31:06Z'
+    TradingExchangeRate:
+      description: 'Represents a Base TradingExchangeRate object.
+
+'
+      type: object
+      required:
+      - trading_pair_id
+      - price
+      - starts_at
+      - ends_at
+      properties:
+        trading_pair_id:
+          type: string
+          description: An unique ID of the Trading Pair
+        price:
+          type: string
+          description: The TradingRate price on a specific range of time
+        starts_at:
+          type: string
+          description: The start date time of a given TradingExchangeRate price
+          format: date-time
+        ends_at:
+          type: string
+          description: The end date time of a given TradingExchangeRate price
+          format: date-time
+      example:
+        trading_pair_id: 00000000000000000000000000000001trpr
+        price: '7728.19'
+        starts_at: '2021-01-01T01:00:00Z'
+        ends_at: '2021-01-01T01:01:00Z'
+    TradingDailyRate:
+      description: 'Represents a TradingDailyRate object.
+
+'
+      allOf:
+      - "$ref": "#/components/schemas/TradingExchangeRate"
+    TradingHourlyRate:
+      description: 'Represents a TradingHourlyRate object.
+
+'
+      allOf:
+      - "$ref": "#/components/schemas/TradingExchangeRate"
+    TradingMinuteRate:
+      description: 'Represents a TradingMinuteRate object.
+
+'
+      allOf:
+      - "$ref": "#/components/schemas/TradingExchangeRate"
+    TradingLimit:
+      description: |
+        Current trading limits configuration
+        for an Entity and the remaining amount they are allowed to trade.
+      type: object
+      required:
+      - entity_id
+      - interval
+      - amount
+      - remaining_amount
+      - created_at
+      - updated_at
+      properties:
+        entity_id:
+          type: string
+          description: A unique ID of the Entity
+        interval:
+          type: integer
+          description: an Integer, which represents a time interval `amount` is applied
+            within, in seconds
+        amount:
+          type: string
+          description: |
+            a String, which represents maximum cumulative amount of Trades within `interval`,
+            in EUR with EUR asset precision
+        remaining_amount:
+          type: string
+          description: |
+            a String, which represents remaining amount available within `interval`,
+            in EUR with EUR asset precision
+        created_at:
+          type: string
+          description: Time at which the TradingLimit was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the TradingLimit was updated
+          format: date-time
+      example:
+        entity_id: e0a26b1b54a6009d9ad9c6efd3aa5c77enty
+        interval: 604800
+        amount: '50000.00'
+        remaining_amount: '49686.69'
+        created_at: '2021-02-11T22:40:59Z'
+        updated_at: '2021-02-11T22:40:59Z'
+    TradingPair:
+      description: 'A Trading Pair represents two assets (currency) which can be part
+        of a Trade.
+
+'
+      type: object
+      required:
+      - id
+      - from_asset_id
+      - to_asset_id
+      - code
+      - precision
+      - min_amount
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Trading Pair
+        from_asset_id:
+          type: string
+          description: The base asset (currency) of a Trade
+        to_asset_id:
+          type: string
+          description: The counter asset (currency) of a Trade
+        code:
+          type: string
+          description: The code that represents the Trading Pair
+        precision:
+          type: integer
+          description: The Trading Pair precision
+        min_amount:
+          type: string
+          description: The minimal amount for the Trading Pair
+        created_at:
+          type: string
+          description: Time at which the Trading Pair was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the Trading Pair was last updated
+          format: date-time
+      example:
+        id: 00000000000000000000000000000001trpr
+        from_asset_id: 00000000000000000000000000000001asst
+        to_asset_id: f0000000000000000000000000000001asst
+        code: BTC/EUR
+        precision: 2
+        min_amount: '0.0001'
+        created_at: '2019-03-01T21:47:06Z'
+        updated_at: '2019-03-01T21:47:06Z'
+    Price:
+      description: 'A Price indicates a trade price for a given Trading Pair.
+
+'
+      type: object
+      required:
+      - trading_pair_id
+      - price
+      - amount
+      - value
+      - created_at
+      - updated_at
+      properties:
+        trading_pair_id:
+          type: string
+          description: A unique ID of the Trading Pair
+        from_amount:
+          type: string
+          description: The amount of the Trade
+        traded_from_amount:
+          type: string
+          description: The amount traded on the Exchange(minus Platform fees for fiat->crypto)
+        traded_to_amount:
+          type: string
+          description: The amount received from the Exchange(minus Exchange fees)
+        to_amount:
+          type: string
+          description: The final amount sent to the to_account_id(minus Platform fees
+            for crypto->fiat)
+        fee_amount:
+          type: string
+          description: Collected Platform fees
+        price:
+          type: string
+          description: Price, calculated as traded_to_amount / traded_from_amount
+        created_at:
+          type: string
+          description: Time at which the Price was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the Price was last updated
+          format: date-time
+      example:
+        trading_pair_id: 00000000000000000000000000000001trpr
+        from_amount: '1.12300000'
+        traded_from_amount: '1.12300000'
+        traded_to_amount: '9956.64'
+        to_amount: '9857.07'
+        price: '8866.11'
+        fee_amount: '99.57'
+        created_at: '2020-07-16T11:26:41Z'
+        updated_at: '2020-07-16T11:26:41Z'
+    Trade:
+      description: 'Represents a Trade on the platform.
+
+'
+      type: object
+      required:
+      - id
+      - from_amount
+      - traded_from_amount
+      - traded_to_amount
+      - to_amount
+      - fee_amount
+      - price
+      - state
+      - reference
+      - entity_id
+      - trading_pair_id
+      - from_account_id
+      - to_account_id
+      - failure_reason
+      - estimations
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Trade
+        from_amount:
+          type: string
+          description: Trade amount
+        traded_from_amount:
+          type: string
+          description: The amount traded on the Exchange(minus Platform fees for fiat->crypto)
+        traded_to_amount:
+          type: string
+          description: The amount received from the Exchange(minus Exchange fees)
+        to_amount:
+          type: string
+          description: The final amount sent to the to_account_id(minus Platform fees
+            for crypto->fiat)
+        fee_amount:
+          type: string
+          description: Fee collected by the Platform
+        price:
+          type: string
+          description: Price, calculated as traded_to_amount / traded_from_amount
+            and rounded to the precision of the TradingPair
+        state:
+          type: string
+          description: The state of the Trade
+        reference:
+          type: string
+          description: The idempotency key, chosen by the API client
+        entity_id:
+          type: string
+          description: The Entity ID
+        trading_pair_id:
+          type: string
+          description: The Trading Pair ID
+        from_account_id:
+          type: string
+          description: The origin account ID
+        to_account_id:
+          type: string
+          description: The destination account ID
+        failure_reason:
+          type: string
+          description: Machine-readable description of the Trade failure
+        estimations:
+          type: object
+          description: Trade estimations, calculated prior to execution
+        created_at:
+          type: string
+          description: Time at which the Trade was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which the Trade was last updated
+          format: date-time
+      example:
+        id: 82d19e27542a21c950eaae13059cf5f5trad
+        from_amount: '209.10'
+        traded_from_amount: 
+        traded_to_amount: 
+        to_amount: 
+        fee_amount: 
+        price: 
+        state: PENDING
+        reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
+        entity_id: b6ef80668690fa4dfbb51a3bc49a1fb7enty
+        trading_pair_id: 00000000000000000000000000000002trpr
+        from_account_id: 57e837a08685eff2cee29e82b6b09857cacc
+        to_account_id: d4f01daea26362d0de5fe89cb0f8d905acct
+        failure_reason: 
+        estimations:
+          traded_from_amount: '207.00'
+          traded_to_amount: '0.02288435'
+          to_amount: '0.02288435'
+          fee_amount: '2.10'
+          price: '0.00011055'
+        created_at: '2021-11-26T14:35:45Z'
+        updated_at: '2021-11-26T14:35:45Z'
+    Transaction:
+      description: |
+        A Transaction can be of type: DEPOSIT, WITHDRAWAL
+        WITHDRAWAL_FEE, TRANSFER_OUTGOING or TRANSFER_INCOMING
+      oneOf:
+      - "$ref": "#/components/schemas/TransactionDeposit"
+      - "$ref": "#/components/schemas/TransactionWithdrawal"
+      - "$ref": "#/components/schemas/TransactionWithdrawalFee"
+      - "$ref": "#/components/schemas/TransactionTransferOutgoing"
+      - "$ref": "#/components/schemas/TransactionTransferIncoming"
+    TransactionCommonAttributes:
+      description: 'This schema represents a set of common attributes of a Transaction
+
+'
+      type: object
+      required:
+      - id
+      - account_id
+      - type
+      - state
+      - amount
+      - fee_amount
+      - fee_account_id
+      - end_to_end_id
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of a Transaction
+        account_id:
+          type: string
+          description: ID of an Account the Transaction belongs to
+        type:
+          type: string
+          description: Type of Transaction
+          enum:
+          - DEPOSIT
+          - WITHDRAWAL
+          - WITHDRAWAL_FEE
+          - TRANSFER_OUTGOING
+          - TRANSFER_INCOMING
+        state:
+          type: string
+          description: Current state of the Transaction
+          enum:
+          - PENDING
+          - APPROVED
+          - COMPLETED
+          - FAILED
+          - CANCELLED
+        amount:
+          type: string
+          description: Transacted amount, positive or negative
+          example: '123.00010000'
+        fee_amount:
+          type: string
+          description: Charged fee, always positive or 0
+          example: '0.00123000'
+        fee_account_id:
+          type: string
+          description: The ID of the Account that will pay for the fees
+        end_to_end_id:
+          type: string
+          description: Identifier used to track a Transaction across the system
+        created_at:
+          type: string
+          description: Time at which a transaction was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which a transaction was updated
+          format: date-time
+    TransactionDeposit:
+      description: |
+        A Deposit is a Transaction, which represents a transfer of funds on blockchain
+        to some  digital asset Address linked with some Account
+      type: object
+      required:
+      - id
+      - account_id
+      - type
+      - state
+      - amount
+      - end_to_end_id
+      - fee_amount
+      - fee_account_id
+      - address
+      - blockchain_txid
+      - blockchain_output_n
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of a Transaction
+        account_id:
+          type: string
+          description: ID of an Account the Transaction belongs to
+        type:
+          type: string
+          description: The type of a transaction
+          enum:
+          - DEPOSIT
+        state:
+          type: string
+          description: Current state of the Transaction
+          enum:
+          - PENDING
+          - APPROVED
+          - COMPLETED
+          - FAILED
+          - CANCELLED
+        amount:
+          type: string
+          description: Transacted amount, positive
+          example: '123.00010000'
+        end_to_end_id:
+          type: string
+          description: Identifier used to track a Transaction across the system
+        fee_amount:
+          type: string
+          description: Charged fee, always positive or 0
+          example: '0.00123000'
+        fee_account_id:
+          type: string
+          description: The ID of the Account that will pay for the fees
+        address:
+          type: string
+          description: A digital asset specific address used for deposit
+          example: 1CU5YgjquupDw6UeXEyA9VEBH34R7fZ19b
+        blockchain_txid:
+          nullable: true
+          description: "(string) If specified, contains a blockchain transaction reference
+            (txid, hash etc)"
+          example: b2715bcc492ccfa30beaa7cf0d64bee751d5247a459966ce5b9d190eb1c2f185
+        blockchain_output_n:
+          nullable: true
+          description: "(integer) If specified, references an index of blockchain
+            transaction output (starts with 0)"
+          example: 0
+        created_at:
+          type: string
+          description: Time at which a transaction was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which a transaction was updated
+          format: date-time
+      example:
+        id: f59e8c8188500efce5be51eb71e9db08tran
+        account_id: ff6dc60c4f76dcea784bdc2ffed66e6facct
+        type: DEPOSIT
+        state: PENDING
+        amount: '1.23450000'
+        end_to_end_id: 7a444b4839658d2a0c0c8c02a74b6a1207b1f579d9c79afe491a6fe4d56fb0f6
+        fee_amount: '0.00000000'
+        fee_account_id: ff6dc60c4f76dcea784bdc2ffed66e6facct
+        address: 1PC9aZC4hNX2rmmrt7uHTfYAS3hRbph4UN
+        blockchain_txid: b2715bcc492ccfa30beaa7cf0d64bee751d5247a459966ce5b9d190eb1c2f185
+        blockchain_output_n: 0
+        created_at: '2019-03-01T20:31:38Z'
+        updated_at: '2019-03-01T20:46:07Z'
+    TransactionWithdrawal:
+      description: |
+        A Withdrawal is a Transaction, which represents a transfer of funds on blockchain
+        from some Account to an external digital asset address
+      type: object
+      required:
+      - id
+      - account_id
+      - type
+      - state
+      - amount
+      - end_to_end_id
+      - fee_amount
+      - fee_account_id
+      - linked_tx_ids
+      - reference
+      - address
+      - blockchain_txid
+      - blockchain_output_n
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of a Transaction
+        account_id:
+          type: string
+          description: ID of an Account the Transaction belongs to
+        type:
+          type: string
+          description: The type of a transaction
+          enum:
+          - WITHDRAWAL
+        state:
+          type: string
+          description: Current state of the Transaction
+          enum:
+          - PENDING
+          - APPROVED
+          - COMPLETED
+          - FAILED
+          - CANCELLED
+        amount:
+          type: string
+          description: Transacted amount, negative
+          example: "-123.00000000"
+        end_to_end_id:
+          type: string
+          description: Identifier used to track a Transaction across the system
+        fee_amount:
+          type: string
+          description: Charged fee, always positive or 0
+          example: '0.00123000'
+        fee_account_id:
+          type: string
+          description: The ID of the Account that will pay for the fees
+        linked_tx_ids:
+          type: array
+          items:
+            type: string
+          description: |
+            An array containing the IDs of Transactions that are linked to this Withdrawal.
+            E.g. the ID the corresponsing WITHDRAWAL_FEE Transaction
+        reference:
+          type: string
+          description: 'A reference identifier supplied with the Withdrawal request
+            by the partner
+
+'
+        address:
+          type: string
+          description: A digital asset specific address where funds are sent to
+          example: 1MaXZE92yjuy4NYjTspmdWHMRT3jQUcTf4
+        blockchain_txid:
+          nullable: true
+          description: "(string) If specified, contains a blockchain transaction reference
+            (txid, hash etc)"
+          example: 0d0baf05852a856366a302ce9c9a9bbd36f95685a1e3d3bc9ef7715424ed577b
+        blockchain_output_n:
+          nullable: true
+          description: "(integer) If specified, references an index of blockchain
+            transaction output (starts with 0)"
+          example: 4
+        created_at:
+          type: string
+          description: Time at which a transaction was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which a transaction was updated
+          format: date-time
+      example:
+        id: f59e8c8188500efce5be51eb71e9db08tran
+        account_id: ff6dc60c4f76dcea784bdc2ffed66e6facct
+        type: WITHDRAWAL
+        state: PENDING
+        amount: "-1.23450000"
+        fee_amount: '0.00100000'
+        end_to_end_id: 7a444b4839658d2a0c0c8c02a74b6a1207b1f579d9c79afe491a6fe4d56fb0f6
+        fee_account_id: ff6dc60c4f76dcea784bdc2ffed66e6facct
+        linked_tx_ids:
+        - afc2a61eade4b640e49b94e777a0b26aatrx
+        reference: someting-fe8cbeecef486fe6edf9c3690e4f6b0a-unique
+        address: 1HesYJSP1QqcyPEjnQ9vzBL1wujruNGe7R
+        blockchain_txid: 0d0baf05852a856366a302ce9c9a9bbd36f95685a1e3d3bc9ef7715424ed577b
+        blockchain_output_n: 4
+        created_at: '2019-03-01T20:48:38Z'
+        updated_at: '2019-03-01T20:49:07Z'
+    TransactionWithdrawalFee:
+      description: |
+        A Transaction of type WITHDRAWAL_FEE represents the fee that is collected from an
+        Account to pay for a Withdrawal.
+      type: object
+      required:
+      - id
+      - account_id
+      - type
+      - state
+      - amount
+      - end_to_end_id
+      - fee_amount
+      - fee_account_id
+      - linked_tx_ids
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of a Transaction
+        account_id:
+          type: string
+          description: ID of an Account the Transaction belongs to
+        type:
+          type: string
+          description: The type of a transaction
+          enum:
+          - WITHDRAWAL_FEE
+        state:
+          type: string
+          description: Current state of the Transaction
+          enum:
+          - PENDING
+          - APPROVED
+          - COMPLETED
+          - FAILED
+          - CANCELLED
+        amount:
+          type: string
+          description: Transacted amount, negative
+          example: "-0.00001234"
+        end_to_end_id:
+          type: string
+          description: Identifier used to track a Transaction across the system
+        fee_amount:
+          type: string
+          description: Charged fee, always 0
+          example: '0'
+        fee_account_id:
+          type: string
+          description: The ID of the Account that will pay for the fees
+        linked_tx_ids:
+          type: array
+          items:
+            type: string
+          description: |
+            An array containing the IDs of Transactions that are linked to this Transaction.
+            E.g. the ID of the Withdrawal that caused this WITHDRAWAL_FEE Transaction.
+        created_at:
+          type: string
+          description: Time at which a transaction was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which a transaction was updated
+          format: date-time
+    TransactionTransferOutgoing:
+      description: |
+        A Transfer (Outgoing) is a Transaction, which represents a transfer of funds from
+        a current Account to another (receiver) Account within the same Asset.
+      type: object
+      required:
+      - id
+      - account_id
+      - type
+      - state
+      - amount
+      - end_to_end_id
+      - fee_amount
+      - fee_account_id
+      - reference
+      - sender_account_id
+      - receiver_account_id
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of a Transaction
+        account_id:
+          type: string
+          description: ID of an Account the Transaction belongs to
+        type:
+          type: string
+          description: The type of a transaction
+          enum:
+          - TRANSFER_OUTGOING
+        state:
+          type: string
+          description: Current state of the Transaction
+          enum:
+          - PENDING
+          - APPROVED
+          - COMPLETED
+          - FAILED
+          - CANCELLED
+        amount:
+          type: string
+          description: Transacted amount, negative
+          example: "-1.23000000"
+        end_to_end_id:
+          type: string
+          description: Identifier used to track a Transaction across the system
+        fee_amount:
+          type: string
+          description: Charged fee, always positive or 0
+          example: '0.00100000'
+        fee_account_id:
+          type: string
+          description: The ID of the Account that will pay for the fees
+        reference:
+          type: string
+          description: 'A reference identifier supplied with the Transfer request
+            by the partner
+
+'
+        sender_account_id:
+          type: string
+          description: ID of the sender Account
+        receiver_account_id:
+          type: string
+          description: ID of the receiver Account
+        created_at:
+          type: string
+          description: Time at which a transaction was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which a transaction was updated
+          format: date-time
+      example:
+        id: f59e8c8188500efce5be51eb71e9db08tran
+        account_id: ff6dc60c4f76dcea784bdc2ffed66e6facct
+        type: TRANSFER_OUTGOING
+        state: COMPLETED
+        amount: "-0.98760000"
+        end_to_end_id: 7a444b4839658d2a0c0c8c02a74b6a1207b1f579d9c79afe491a6fe4d56fb0f6
+        fee_amount: '0.000000000'
+        fee_account_id: ff6dc60c4f76dcea784bdc2ffed66e6facct
+        reference: something-fc522958ced6c1b5c2c57d6dddecfa0a-unique
+        sender_account_id: ff6dc60c4f76dcea784bdc2ffed66e6facct
+        receiver_account_id: 4aeeac12d4b92c967cb826ac5dee5a8eacct
+        created_at: '2019-03-01T21:03:43Z'
+        updated_at: '2019-03-01T21:03:51Z'
+    TransactionTransferIncoming:
+      description: |
+        A Transfer (Incoming) is a Transaction, which represents a transfer of funds from
+        another (sender) Account to the current Account
+      type: object
+      required:
+      - id
+      - account_id
+      - type
+      - state
+      - amount
+      - end_to_end_id
+      - fee_amount
+      - fee_account_id
+      - sender_account_id
+      - receiver_account_id
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of a Transaction
+        account_id:
+          type: string
+          description: ID of an Account the Transaction belongs to
+        type:
+          type: string
+          description: The type of a transaction
+          enum:
+          - TRANSFER_INCOMING
+        state:
+          type: string
+          description: Current state of the Transaction
+          enum:
+          - PENDING
+          - APPROVED
+          - COMPLETED
+          - FAILED
+          - CANCELLED
+        amount:
+          type: string
+          description: Transacted amount, positive
+          example: '123.00000000'
+        end_to_end_id:
+          type: string
+          description: Identifier used to track a Transaction across the system
+        fee_amount:
+          type: string
+          description: Charged fee, always positive or 0
+          example: '0.00100000'
+        fee_account_id:
+          type: string
+          description: The ID of the Account that will pay for the fees
+        sender_account_id:
+          type: string
+          description: ID of the sender Account
+        receiver_account_id:
+          type: string
+          description: ID of the receiver Account
+        created_at:
+          type: string
+          description: Time at which a transaction was created
+          format: date-time
+        updated_at:
+          type: string
+          description: Time at which a transaction was updated
+          format: date-time
+      example:
+        id: f59e8c8188500efce5be51eb71e9db08tran
+        account_id: ff6dc60c4f76dcea784bdc2ffed66e6facct
+        type: TRANSFER_INCOMING
+        state: COMPLETED
+        amount: '1.23450000'
+        end_to_end_id: 7a444b4839658d2a0c0c8c02a74b6a1207b1f579d9c79afe491a6fe4d56fb0f6
+        fee_amount: '0.000100000'
+        fee_account_id: ff6dc60c4f76dcea784bdc2ffed66e6facct
+        reference: something-fc522958ced6c1b5c2c57d6dddecfa0a-unique
+        sender_account_id: ff6dc60c4f76dcea784bdc2ffed66e6facct
+        receiver_account_id: 4aeeac12d4b92c967cb826ac5dee5a8eacct
+        created_at: '2019-03-01T21:03:43Z'
+        updated_at: '2019-03-01T21:03:51Z'
+  parameters:
+    filterParams:
+      in: query
+      name: filter
+      schema:
+        type: object
+        properties:
+          attribute_name:
+            type: string
+      style: deepObject
+      explode: true
+    sortParams:
+      in: query
+      name: sort
+      schema:
+        type: array
+        items:
+          type: string
+      style: form
+      explode: true
+    limitOffsetParams:
+      in: query
+      name: pagination
+      schema:
+        type: object
+        properties:
+          page:
+            type: integer
+          size:
+            type: integer
+            default: 100
+      style: deepObject
+      explode: true
+  responses:
+    InvalidRequest:
+      description: Request contains invalid parameters
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - message
+            - params
+            properties:
+              message:
+                type: string
+                description: Human readable error message
+              params:
+                type: object
+                description: A map of attributes and machine readable error codes
+                additionalProperties:
+                  type: string
+                  enum:
+                  - invalid
+                  - not_found
+                  - taken
+            example:
+              message: Invalid request
+              params:
+                entity_id: not_found
+    Unauthorized:
+      description: |
+        Authentication error, either because the authentication scheme is invalid
+        (e.g. missing nonce), or the produced signature is invalid
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - message
+            properties:
+              message:
+                type: string
+            example:
+              message: Unauthorized
+    NotFound:
+      description: Requested resource was not found
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - message
+            properties:
+              message:
+                type: string
+            example:
+              message: Not found
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - message
+            properties:
+              message:
+                type: string
+            example:
+              message: Internal server error
+    UnavailableError:
+      description: Service Temporarily Unavailable error
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - message
+            properties:
+              message:
+                type: string
+            example:
+              message: Service Temporarily Unavailable

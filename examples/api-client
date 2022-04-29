@@ -1,0 +1,183 @@
+#!/usr/bin/env ruby
+
+# frozen_string_literal: true
+
+require "http"
+require "thor"
+require "yaml"
+require_relative "api-authentication"
+
+class ApiClient < Thor
+  DEFAULT_CONFIG_PATH = "api-client.yml"
+  DEFAULT_HEADERS = { "Content-Type" => "application/json" }.freeze
+  APPROVAL_TYPE = "DSA_ED25519"
+
+  class_option :config, type: :string, aliases: ["-c"], desc: "Use configuration from given file"
+
+  desc "config", "Display currently used configuration"
+  def config
+    load_config
+    puts "Using config: #{config_path}"
+    puts "base API URL: #{@config["api_url"]}"
+    puts "  API key ID: #{@config["api_key"]["id"]}"
+    api_key_pub = API::Authentication.pub_key_from_seed(@config["api_key"]["seed"])
+    puts "API key(pub): #{api_key_pub}"
+  end
+
+  desc "generate_key", "Generate a new API key pair"
+  def generate_key
+    puts "Generating a new API key pair"
+    key = API::Authentication.generate_key_pair
+    puts "   seed: #{key[:seed]}"
+    puts "pub_key: #{key[:pub_key]}"
+  end
+
+  desc "get PATH", "Send a GET request"
+  long_desc <<-LONGDESC.tr("\n", "\x5")
+    Send an authenticated GET request to a given PATH:
+
+    api-client get /v1/assets
+    api-client get /v1/entities/?page=42
+  LONGDESC
+  option :verbose, type: :boolean, aliases: ["-v"], desc: "Produce verbose output"
+  option :quiet,   type: :boolean, aliases: ["-q"], desc: "Output only request response"
+  def get(path)
+    load_config
+    result = request("GET", path)
+    pretty_print_response(result.body)
+    abort unless result.status.success?
+  end
+
+  desc "post PATH [BODY]", "Send a POST request"
+  long_desc <<-LONGDESC.tr("\n", "\x5")
+    Send an authenticated POST request to a given PATH with an optional JSON BODY:
+
+    api-client post /v1/test
+    api-client post /v1/entities '{"person_id": "blah-blah"}'
+  LONGDESC
+  option :verbose,  type: :boolean, aliases: ["-v"], desc: "Produce verbose output"
+  option :quiet,    type: :boolean, aliases: ["-q"], desc: "Output only request response"
+  option :filename, type: :string,  aliases: ["-f"], desc: "Read JSON body payload from filename"
+  def post(path, body = nil)
+    load_config
+    if options[:filename] && body
+      abort "You cannot specify JSON body both as filename AND as command line argument"
+    end
+    begin
+      body = File.read(options[:filename]) if options[:filename]
+    rescue StandardError => e
+      abort e.to_s
+    end
+    body ||= "{}"
+    begin
+      JSON.parse(body) # validates POST body
+    rescue StandardError => _e
+      abort "Provided POST request body does not appear to be a valid JSON"
+    end
+    load_config
+    result = request("POST", path, body)
+    pretty_print_response(result.body)
+    abort unless result.status.success?
+  end
+
+  desc "sign FILENAME", "Sign contents of given file using currently configured key"
+  def sign(filename)
+    load_config
+    message = File.read(filename)
+    key = API::Authentication.signing_key_from_seed(@config["api_key"]["seed"])
+    puts API::Authentication.b2h(key.sign(message))
+  rescue StandardError => e
+    abort "Failed to load sign data: #{e}"
+  end
+
+  desc "approval CHALLENGE_FILENAME TX_FILENAME", "Generate a DSA_ED25519 approval response"
+  long_desc <<-LONGDESC.tr("\n", "\x5")
+    Generate a DSA_ED25519 Transaction approval response from a stored
+    approval challenge (in JSON) and a Transaction representation (in JSON).
+
+    The approval response is generated using currently configured key
+    as an Approval key.
+
+    api-client approval tx-withdrawal-challenge.json tx-2451.json
+    api-client approval -c approval-key.yml challenge.json tx-3214.json
+  LONGDESC
+  def approval(challenge_filename, tx_filename)
+    load_config
+    challenge = JSON.parse(File.read(challenge_filename))
+    raise "Unrecognized approval method in challenge" unless challenge["type"] == APPROVAL_TYPE
+    tx        = JSON.parse(File.read(tx_filename))
+    key       = API::Authentication.signing_key_from_seed(@config["api_key"]["seed"])
+    challenge_message = challenge["challenge"]["attrs"].map do |attr_name|
+      "#{attr_name}: #{tx[attr_name]}"
+    end.join("\n")
+    response = {
+      type: APPROVAL_TYPE,
+      challenge: { sha256: Digest::SHA256.hexdigest(challenge_message) },
+      response: API::Authentication.b2h(key.sign(challenge_message))
+    }
+    puts JSON.pretty_generate(response)
+  rescue StandardError => e
+    abort "Failed to generate an approval response: #{e}"
+  end
+
+  private
+
+  # Returns default or configured config path
+  #
+  # @return [String]
+  #
+  def config_path
+    options[:config] || DEFAULT_CONFIG_PATH
+  end
+
+  # Loads and validates config stored in CONFIG_PATH
+  #
+  def load_config
+    @config = YAML.safe_load(File.read(config_path))
+    raise "A Hash is expected as config" unless @config.is_a?(Hash)
+    raise "A base API URL is not configured" unless @config["api_url"].is_a?(String)
+    raise "An API key is not configured" unless @config["api_key"].is_a?(Hash)
+    raise "An API key ID is not configured" unless @config["api_key"]["id"].is_a?(String)
+    raise "An API key seed (hex) is not configured" unless @config["api_key"]["seed"].is_a?(String)
+  rescue StandardError => e
+    abort "Failed to load config: #{e}"
+  end
+
+  # Executes an authenticated request against the API.
+  #
+  # @param request_method [String] "GET" or "POST"
+  # @param path [String] absolute path, e.g. "/v1/assets"
+  # @param body [String] body of the request
+  #
+  # @return [HTTP::Response]
+  #
+  def request(request_method, path, body = "")
+    url = @config["api_url"] + path
+    puts "> #{request_method.to_s.upcase} #{url}" unless options[:quiet]
+    auth_headers = API::Authentication.construct_headers(
+      @config["api_key"]["id"], @config["api_key"]["seed"], request_method, path, body
+    )
+    headers = DEFAULT_HEADERS.merge(auth_headers)
+    headers.each { |k, v| puts "> #{k}: #{v}" } if options[:verbose]
+    t_start = Time.now
+    result = HTTP.headers(headers).send(request_method.downcase.to_sym, url, body: body)
+    puts "< #{result.status} (#{(Time.now - t_start).round(3)}s)" unless options[:quiet]
+    result
+  rescue StandardError => e
+    puts "Failed to execute HTTP request: #{e}"
+    abort
+  end
+
+  # Attempts to pretty print the response body (parse as JSON and pretty print).
+  # If failed, prints the response as-is.
+  #
+  # @param body [String]
+  #
+  def pretty_print_response(body)
+    puts JSON.pretty_generate(JSON.parse(body))
+  rescue StandardError => _e
+    puts body
+  end
+end # class ApiClient
+
+ApiClient.start(ARGV)

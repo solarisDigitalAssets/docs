@@ -1,0 +1,11 @@
+# frozen_string_literal: true
+
+source "https://rubygems.org"
+
+gem "ed25519", "~> 1.2"
+gem "http", "~> 4.1"
+gem "thor", "~> 0.20"
+
+group :development do
+  gem "pry"
+end
