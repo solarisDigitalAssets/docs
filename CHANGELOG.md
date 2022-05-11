@@ -1,5 +1,9 @@
 # Changelog
 
+## 11-05-2022
+
+- Added filtering documentation to `Custody_API_Guide.md`
+
 ## 08-09-2021
 
 - Update `Trading Limits#remaing_amount` description on `Brokerage_API_Guide.md`
