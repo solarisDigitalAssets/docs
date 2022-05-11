@@ -5,7 +5,7 @@
 
 - [Brokerage API Guide](#solaris-digital-assets-platform---brokerage-api-guide)
   - [Table of Contents](#table-of-contents)
-  - [Entities](#entities)
+  - [Terms and Condition](#terms-and-conditions)
     - [Example](#example)
   - [Trading Pairs](#trading-pairs)
     - [Example](#example-1)
@@ -13,7 +13,7 @@
     - [Example](#example-2)
   - [Exchange Rates](#exchange-rates)
     - [Daily Exchange Rates](#daily-exchange-rates)
-      - [Example](#example-3)       
+      - [Example](#example-3)
     - [Hourly Exchange Rates](#hourly-exchange-rates)
       - [Example](#example-4)
     - [Minute Exchange Rates](#minute-exchange-rates)
@@ -26,7 +26,8 @@
     - [Example](#example-7)
 
 
-## Entities
+## Terms and Conditions
+
 Entities are required to accept trading terms and conditions in order to request trades on the platform. This is done by issuing a POST request to `/v1/entities/{entity_id}/trading_terms_and_conditions`.
 It is the partner's responsibility to present trading terms and conditions to the customer. The partner MUST NOT call this endpoint otherwise.
 
