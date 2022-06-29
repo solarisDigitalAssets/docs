@@ -47,6 +47,8 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/trading_terms_and_conditi
 
 Any Trading Pair has a unique identifier, a human readable code, corresponding identifiers of the assets and timestamps.
 
+It’s only possible to trade those trading pairs whose `is_tradable` attribute is set to true.
+
 The code is a string which consists of 2 assets separated by a slash symbol, where the first asset is a base asset and second is a quote asset. The Trading Pair always indicates a direction of the trade, for example:
 
 - "BTC/EUR" means "I trade BTC for EUR" == "I sell BTC"
@@ -83,6 +85,7 @@ GET /v1/trading/pairs
       "id": "00000000000000000000000000000001trpr",
       "from_asset_id": "00000000000000000000000000000001asst",
       "to_asset_id": "f0000000000000000000000000000001asst",
+      "is_tradable": true,
       "code": "BTC/EUR",
       "precision": 2,
       "min_amount": "0.0001",
@@ -93,6 +96,7 @@ GET /v1/trading/pairs
       "id": "00000000000000000000000000000002trpr",
       "from_asset_id": "f0000000000000000000000000000001asst",
       "to_asset_id": "00000000000000000000000000000001asst",
+      "is_tradable": true,
       "code": "EUR/BTC",
       "precision": 8,
       "min_amount": "10",
@@ -115,6 +119,7 @@ GET /v1/trading/pairs/00000000000000000000000000000001trpr
   "id": "00000000000000000000000000000001trpr",
   "from_asset_id": "00000000000000000000000000000001asst",
   "to_asset_id": "f0000000000000000000000000000001asst",
+  "is_tradable": true,
   "code": "BTC/EUR",
   "precision": 2,
   "min_amount": "0.0001",
@@ -298,6 +303,10 @@ Note: Solarisbank account must meet the following requirements:
 2. `type` is `CHECKING_PERSONAL` or `CHECKING_BUSINESS`
 3. `locking_status` is `NO_BLOCK`
 4. `status` is `ACTIVE`
+
+Note: TradingPair must meet the following requirement:
+
+- `is_tradable` should be `true`
 
 In case of successful execution the endpoint responds with `201 Created` status and an initial state of the Trade which is `PENDING`.
 
