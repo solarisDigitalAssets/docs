@@ -131,6 +131,7 @@ GET /v1/trading/pairs/00000000000000000000000000000001trpr
 ## Price
 
 The Price endpoint provides an indicative trade price for a given Trading Pair.
+It’s only usable with those trading pairs whose `is_tradable` attribute is set to true.
 
 The `amount` attribute is optional and defaults to `min_amount` attribute of a chosen `Trading Pair`.
 
