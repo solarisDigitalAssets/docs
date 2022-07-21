@@ -3,7 +3,7 @@ info:
   title: Solarisbank Digital Assets Platform API
   contact:
     email: sda-tech@solarisbank.de
-  version: 0.25.1
+  version: 0.26.0
   description: |
     This is a draft for Solarisbank Digital Assets Platform API
 
@@ -195,7 +195,7 @@ paths:
       summary: List all Accounts of an Entity
       description: 'Returns a list of all Accounts owned by the given Entity
 
-'
+        '
       parameters:
       - name: entity_id
         in: path
@@ -228,6 +228,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
     post:
       tags:
       - Account
@@ -248,7 +250,7 @@ paths:
         description: 'An `asset_id` attribute must be specified, linking the new Account
           with an existing Asset.
 
-'
+          '
         content:
           application/json:
             schema:
@@ -285,6 +287,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}":
     get:
       tags:
@@ -292,7 +296,7 @@ paths:
       summary: Get a single Account
       description: 'Returns an Account identified by its ID, owned by the given Entity
 
-'
+        '
       parameters:
       - name: entity_id
         in: path
@@ -319,15 +323,18 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/addresses":
     get:
       tags:
       - Address
       summary: List all Addresses of an Account
-      description: 'Returns a list of all Addresses linked with the given Account,
-        owned by the given Entity
+      description: |
+        Returns a list of all Addresses linked with the given Account, owned by the given Entity.
 
-'
+        NOTE: For token Accounts, the list returned is always empty.
+        For such Accounts the Addresses are owned by their corresponding base Account.
       parameters:
       - name: entity_id
         in: path
@@ -366,6 +373,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
     post:
       tags:
       - Address
@@ -374,9 +383,11 @@ paths:
         Creates a new Address linked with the given Account, owned by the given Entity.
 
         As the Account is associated with a single Asset the new Address is created for this particular Asset.
-
         No additional parameters are required to create a new Address. This Address
         can immediately be used to receive funds on the blockchain.
+
+        NOTE: Creating Addresses for token Accounts is not permitted, as you should create them
+        in the corresponding base Account.
       parameters:
       - name: entity_id
         in: path
@@ -401,8 +412,12 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '404':
           "$ref": "#/components/responses/NotFound"
+        '422':
+          "$ref": "#/components/responses/InvalidResource"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/addresses/{address_id}":
     get:
       tags:
@@ -443,6 +458,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/approval_methods":
     get:
       tags:
@@ -497,6 +514,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
     post:
       tags:
       - ApprovalMethod
@@ -567,6 +586,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/approval_methods/{approval_method_id}":
     get:
       tags:
@@ -575,7 +596,7 @@ paths:
       description: 'Returns an ApprovalMethod identified by its ID, owned by the given
         Entity
 
-'
+        '
       parameters:
       - name: entity_id
         in: path
@@ -602,6 +623,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request":
     post:
       deprecated: true
@@ -692,8 +715,12 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '404':
           "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/TooManyRequests"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
     get:
       deprecated: true
       tags:
@@ -789,7 +816,7 @@ paths:
         description: 'A response to the ApprovalRequest''s challenge when type is
           `DSA_ED25519`
 
-'
+          '
         content:
           application/json:
             schema:
@@ -805,7 +832,7 @@ paths:
                   description: 'Optional, an object containing a SHA-256 hash of the
                     challenge message that will be considered for validation
 
-'
+                    '
                   properties:
                     sha256:
                       type: string
@@ -849,8 +876,14 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '404':
           "$ref": "#/components/responses/NotFound"
+        '422':
+          "$ref": "#/components/responses/InvalidResource"
+        '429':
+          "$ref": "#/components/responses/TooManyRequests"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/approval_requests":
     post:
       tags:
@@ -877,7 +910,7 @@ paths:
         description: 'An ApprovalMethod ID is required, check the [Custody API Guide](Custody_API_Guide.md)
           for more details
 
-'
+          '
         content:
           application/json:
             schema:
@@ -938,10 +971,12 @@ paths:
           "$ref": "#/components/responses/InvalidRequest"
         '401':
           "$ref": "#/components/responses/Unauthorized"
-        '404':
-          "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/TooManyRequests"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/approval_requests/{approval_request_id}":
     get:
       tags:
@@ -949,7 +984,7 @@ paths:
       summary: Retrieves the ApprovalRequest for the given Transaction
       description: 'Fetches the ApprovalRequest for given ApprovalRequest ID
 
-'
+        '
       parameters:
       - name: approval_request_id
         in: path
@@ -1011,7 +1046,7 @@ paths:
         description: 'A response to the ApprovalRequest''s challenge when type is
           `DSA_ED25519` or `SMS`
 
-'
+          '
         content:
           application/json:
             schema:
@@ -1027,7 +1062,7 @@ paths:
                   description: 'Optional, an object containing a SHA-256 hash of the
                     challenge message that will be considered for validation
 
-'
+                    '
                   properties:
                     sha256:
                       type: string
@@ -1071,8 +1106,14 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '404':
           "$ref": "#/components/responses/NotFound"
+        '422':
+          "$ref": "#/components/responses/InvalidResource"
+        '429':
+          "$ref": "#/components/responses/TooManyRequests"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/assets":
     get:
       tags:
@@ -1080,7 +1121,7 @@ paths:
       summary: List all Assets
       description: 'Returns a list of all Digital Assets supported by the platform.
 
-'
+        '
       parameters:
       - "$ref": "#/components/parameters/filterParams"
       - "$ref": "#/components/parameters/sortParams"
@@ -1106,6 +1147,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/assets/{asset_id}":
     get:
       tags:
@@ -1113,7 +1156,7 @@ paths:
       summary: Get a single Asset
       description: 'Returns a single Asset found by its ID
 
-'
+        '
       parameters:
       - name: asset_id
         in: path
@@ -1134,15 +1177,17 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/closure_requests":
     get:
       tags:
-      - ClosureRequests
+      - ClosureRequest
       summary: List all ClosureRequests
       description: 'Returns a list of all ClosureRequests of the Entity identified
         by `entity_id`
 
-'
+        '
       parameters:
       - "$ref": "#/components/parameters/filterParams"
       - "$ref": "#/components/parameters/sortParams"
@@ -1173,6 +1218,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
     post:
       tags:
       - ClosureRequest
@@ -1227,6 +1274,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/closure_requests/{closure_request_id}":
     get:
       tags:
@@ -1234,7 +1283,7 @@ paths:
       summary: Get a single ClosureRequest
       description: 'Returns a single ClosureRequest found by its ID
 
-'
+        '
       parameters:
       - name: entity_id
         in: path
@@ -1270,6 +1319,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/closure_requests/{closure_request_id}/confirm":
     post:
       tags:
@@ -1313,6 +1364,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities":
     get:
       tags:
@@ -1320,7 +1373,7 @@ paths:
       summary: List all Entities
       description: 'Returns a list of all Entities of this partner
 
-'
+        '
       parameters:
       - "$ref": "#/components/parameters/filterParams"
       - "$ref": "#/components/parameters/sortParams"
@@ -1345,13 +1398,15 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
     post:
       tags:
       - Entity
       summary: Create an Entity
       description: 'Creates a new Entity of type PERSON or BUSINESS owned by the partner.
 
-'
+        '
       requestBody:
         required: true
         description: |
@@ -1405,6 +1460,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}":
     get:
       tags:
@@ -1412,7 +1469,7 @@ paths:
       summary: Get a single Entity
       description: 'Returns a single Entity found by its ID
 
-'
+        '
       parameters:
       - name: entity_id
         in: path
@@ -1439,6 +1496,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/terms_and_conditions":
     post:
       tags:
@@ -1465,6 +1524,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/trading_terms_and_conditions":
     post:
       tags:
@@ -1491,6 +1552,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/ledger_entries":
     get:
       tags:
@@ -1499,7 +1562,7 @@ paths:
       description: 'Returns a list of all Ledger Entries of a given Account, owned
         by the given Entity
 
-'
+        '
       parameters:
       - name: entity_id
         in: path
@@ -1538,6 +1601,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/ledger_entries/{ledger_entry_id}":
     get:
       tags:
@@ -1578,6 +1643,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/trading/pairs/{trading_pair_id}/daily_rates":
     get:
       tags:
@@ -1586,7 +1653,7 @@ paths:
       description: 'Returns a list of all Daily Exchange Rates identified by a given
         Trading Pair.
 
-'
+        '
       parameters:
       - "$ref": "#/components/parameters/filterParams"
       - "$ref": "#/components/parameters/sortParams"
@@ -1618,6 +1685,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/trading/pairs/{trading_pair_id}/hourly_rates":
     get:
       tags:
@@ -1626,7 +1695,7 @@ paths:
       description: 'Returns a list of all Hourly Exchange Rates identified by a given
         Trading Pair.
 
-'
+        '
       parameters:
       - "$ref": "#/components/parameters/filterParams"
       - "$ref": "#/components/parameters/sortParams"
@@ -1658,6 +1727,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/trading/pairs/{trading_pair_id}/minute_rates":
     get:
       tags:
@@ -1666,7 +1737,7 @@ paths:
       description: 'Returns a list of all Minute Exchange Rates identified by a given
         Trading Pair.
 
-'
+        '
       parameters:
       - "$ref": "#/components/parameters/filterParams"
       - "$ref": "#/components/parameters/sortParams"
@@ -1698,6 +1769,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/trading_limits":
     get:
       tags:
@@ -1733,6 +1806,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/trading/pairs":
     get:
       tags:
@@ -1740,7 +1815,7 @@ paths:
       summary: List all Trading Pairs
       description: 'Returns a list of all Trading Pairs supported by the platform.
 
-'
+        '
       parameters:
       - "$ref": "#/components/parameters/filterParams"
       - "$ref": "#/components/parameters/sortParams"
@@ -1766,6 +1841,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/trading/pairs/{trading_pair_id}":
     get:
       tags:
@@ -1773,7 +1850,7 @@ paths:
       summary: Get a single Trading Pair
       description: 'Returns a single Trading Pair identified by its ID.
 
-'
+        '
       parameters:
       - name: trading_pair_id
         in: path
@@ -1803,6 +1880,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/trading/pairs/{trading_pair_id}/price":
     get:
       tags:
@@ -1848,6 +1927,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/trading/trades":
     get:
       tags:
@@ -1855,7 +1936,7 @@ paths:
       summary: List all Trades
       description: 'Returns a list of all Trades created by a given partner.
 
-'
+        '
       parameters:
       - "$ref": "#/components/parameters/filterParams"
       - "$ref": "#/components/parameters/sortParams"
@@ -1881,13 +1962,15 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
     post:
       tags:
       - Trade
       summary: Create a new Trade
       description: 'Creates a new Trade on the platform.
 
-'
+        '
       requestBody:
         required: true
         content:
@@ -1932,18 +2015,18 @@ paths:
               example:
                 id: 82d19e27542a21c950eaae13059cf5f5trad
                 from_amount: '209.10'
-                traded_from_amount: 
-                traded_to_amount: 
-                to_amount: 
-                fee_amount: 
-                price: 
+                traded_from_amount:
+                traded_to_amount:
+                to_amount:
+                fee_amount:
+                price:
                 state: PENDING
                 reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
                 entity_id: b6ef80668690fa4dfbb51a3bc49a1fb7enty
                 trading_pair_id: 00000000000000000000000000000002trpr
                 from_account_id: 57e837a08685eff2cee29e82b6b09857cacc
                 to_account_id: d4f01daea26362d0de5fe89cb0f8d905acct
-                failure_reason: 
+                failure_reason:
                 estimations:
                   traded_from_amount: '207.00'
                   traded_to_amount: '0.02288435'
@@ -1967,7 +2050,7 @@ paths:
       summary: Get a single Trade
       description: 'Returns a single Trade identified by its ID.
 
-'
+        '
       parameters:
       - name: trade_id
         in: path
@@ -1985,18 +2068,18 @@ paths:
               example:
                 id: 82d19e27542a21c950eaae13059cf5f5trad
                 from_amount: '209.10'
-                traded_from_amount: 
-                traded_to_amount: 
-                to_amount: 
-                fee_amount: 
-                price: 
+                traded_from_amount:
+                traded_to_amount:
+                to_amount:
+                fee_amount:
+                price:
                 state: PENDING
                 reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
                 entity_id: b6ef80668690fa4dfbb51a3bc49a1fb7enty
                 trading_pair_id: 00000000000000000000000000000002trpr
                 from_account_id: 57e837a08685eff2cee29e82b6b09857cacc
                 to_account_id: d4f01daea26362d0de5fe89cb0f8d905acct
-                failure_reason: 
+                failure_reason:
                 estimations:
                   traded_from_amount: '207.00'
                   traded_to_amount: '0.02288435'
@@ -2011,6 +2094,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/trading/trades/{trade_id}/cancel":
     post:
       tags:
@@ -2020,7 +2105,7 @@ paths:
         `PENDING` state. In case the Trade cannot be found the endpoint replies with
         `404 Not Found` status code.
 
-'
+        '
       parameters:
       - name: trade_id
         in: path
@@ -2038,18 +2123,18 @@ paths:
               example:
                 id: 82d19e27542a21c950eaae13059cf5f5trad
                 from_amount: '209.10'
-                traded_from_amount: 
-                traded_to_amount: 
-                to_amount: 
-                fee_amount: 
-                price: 
+                traded_from_amount:
+                traded_to_amount:
+                to_amount:
+                fee_amount:
+                price:
                 state: CANCELLED
                 reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
                 entity_id: b6ef80668690fa4dfbb51a3bc49a1fb7enty
                 trading_pair_id: 00000000000000000000000000000002trpr
                 from_account_id: 57e837a08685eff2cee29e82b6b09857cacc
                 to_account_id: d4f01daea26362d0de5fe89cb0f8d905acct
-                failure_reason: 
+                failure_reason:
                 estimations:
                   traded_from_amount: '207.00'
                   traded_to_amount: '0.02288435'
@@ -2064,8 +2149,12 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '404':
           "$ref": "#/components/responses/NotFound"
+        '422':
+          "$ref": "#/components/responses/InvalidResource"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/transactions":
     get:
       tags:
@@ -2074,7 +2163,7 @@ paths:
       description: 'Returns a list of all Transactions of the given Account, owned
         by the given Entity.
 
-'
+        '
       parameters:
       - name: entity_id
         in: path
@@ -2113,6 +2202,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/cancel":
     post:
       tags:
@@ -2120,7 +2211,7 @@ paths:
       summary: Cancel a Transaction
       description: 'Cancel a Transaction identified by its ID
 
-'
+        '
       parameters:
       - name: entity_id
         in: path
@@ -2165,8 +2256,12 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '404':
           "$ref": "#/components/responses/NotFound"
+        '422':
+          "$ref": "#/components/responses/InvalidResource"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}":
     get:
       tags:
@@ -2220,6 +2315,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/transactions/transfer":
     post:
       tags:
@@ -2284,13 +2381,13 @@ paths:
                   description: 'Transacted amount *(required if `total_amount` is
                     not specified)*
 
-'
+                    '
                 total_amount:
                   type: string
                   description: 'Total amount deducted from the Account *(required
                     if `amount` is not specified)*
 
-'
+                    '
                 reference:
                   type: string
                   description: A unique reference identifier provided by the partner
@@ -2316,6 +2413,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/transactions/withdrawal":
     post:
       tags:
@@ -2372,13 +2471,13 @@ paths:
                   description: 'Transacted amount *(required if `total_amount` is
                     not specified)*
 
-'
+                    '
                 total_amount:
                   type: string
                   description: 'Total amount deducted from the Account *(required
                     if `amount` is not specified)*
 
-'
+                    '
                 reference:
                   type: string
                   description: A unique reference identifier provided by the partner
@@ -2404,6 +2503,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
 components:
   schemas:
     paginationResponse:
@@ -2416,18 +2517,18 @@ components:
           nullable: true
           description: 'The number of the next page in the dataset if available
 
-'
+            '
         prev:
           type: integer
           nullable: true
           description: 'The number of the previous page in the dataset if available
 
-'
+            '
     TransactionRequestResponse:
       description: 'A successul response to a Transaction initiation request (e.g.
         Withdrawal or Transfer).
 
-'
+        '
       type: object
       required:
       - transaction_id
@@ -2520,7 +2621,7 @@ components:
           description: 'The ID of the base Account if Account belongs to an Asset
             of type `TOKEN`
 
-'
+            '
         entity_id:
           type: string
           description: ID of the Entity owning the Account
@@ -2600,7 +2701,7 @@ components:
     ApprovalMethod:
       description: 'An ApprovalMethod registered for some Entity
 
-'
+        '
       oneOf:
       - "$ref": "#/components/schemas/ApprovalMethodAUTHY_PUSH"
       - "$ref": "#/components/schemas/ApprovalMethodSMS"
@@ -2773,7 +2874,7 @@ components:
     ApprovalMethodGROUP:
       description: 'An ApprovalMethod of type `GROUP`.
 
-'
+        '
       type: object
       required:
       - id
@@ -3038,7 +3139,7 @@ components:
               description: 'An array containing the keys used to construct the challenge
                 message
 
-'
+                '
               items:
                 type: string
         created_at:
@@ -3268,7 +3369,7 @@ components:
               description: 'An array containing the keys used to construct the challenge
                 message
 
-'
+                '
               items:
                 type: string
         created_at:
@@ -3301,7 +3402,7 @@ components:
     ApprovalRequestGROUP:
       description: 'An ApprovalRequest for ApprovalMethod of type `GROUP`.
 
-'
+        '
       type: object
       required:
       - id
@@ -3396,24 +3497,24 @@ components:
           type: string
           description: 'A human readable description of an Asset
 
-'
+            '
         precision:
           type: integer
           description: 'Precision of monetary amounts in this asset (i.e. number of
             decimal places)
 
-'
+            '
         address_validation:
           type: string
           description: 'Regular expression which can be used to validate addresses
             for this Asset
 
-'
+            '
         tx_min_amount:
           type: string
           description: 'Minimal amount allowed for outgoing transactions in this Asset
 
-'
+            '
         type:
           type: string
           description: The type of the Asset. `BASE` in this case.
@@ -3461,24 +3562,24 @@ components:
           type: string
           description: 'A human readable description of an Asset
 
-'
+            '
         precision:
           type: integer
           description: 'Precision of monetary amounts in this asset (i.e. number of
             decimal places)
 
-'
+            '
         address_validation:
           type: string
           description: 'Regular expression which can be used to validate addresses
             for this Asset
 
-'
+            '
         tx_min_amount:
           type: string
           description: 'Minimal amount allowed for outgoing transactions in this Asset
 
-'
+            '
         type:
           type: string
           description: The type of the Asset. `TOKEN` in this case.
@@ -3488,7 +3589,7 @@ components:
           type: string
           description: 'The ID of the Asset this Token belongs to.
 
-'
+            '
         token_url:
           type: string
           description: |
@@ -3540,13 +3641,13 @@ components:
           type: string
           description: 'A human readable description of an Asset
 
-'
+            '
         precision:
           type: integer
           description: 'Precision of monetary amounts in this asset (i.e. number of
             decimal places)
 
-'
+            '
         address_validation:
           type: string
           nullable: true
@@ -3556,7 +3657,7 @@ components:
           nullable: true
           description: 'Minimal amount allowed for outgoing transactions in this Asset
 
-'
+            '
         type:
           type: string
           description: The type of the Asset. `FIAT` in this case.
@@ -3574,7 +3675,7 @@ components:
         code: EUR
         precision: 2
         description: Euro
-        address_validation: 
+        address_validation:
         tx_min_amount: '30.0'
         created_at: '2020-11-24T12:56:55Z'
         updated_at: '2020-11-24T12:57:09Z'
@@ -3722,7 +3823,7 @@ components:
           type: string
           description: 'The state of an Entity of type `PERSON`.
 
-'
+            '
           example: ACTIVE
           enum:
           - PENDING
@@ -3796,7 +3897,7 @@ components:
           type: string
           description: 'The state of an Entity of type `REPRESENTATIVE_PERSON`.
 
-'
+            '
           example: ACTIVE
           enum:
           - PENDING
@@ -3945,7 +4046,7 @@ components:
     TradingExchangeRate:
       description: 'Represents a Base TradingExchangeRate object.
 
-'
+        '
       type: object
       required:
       - trading_pair_id
@@ -3975,19 +4076,19 @@ components:
     TradingDailyRate:
       description: 'Represents a TradingDailyRate object.
 
-'
+        '
       allOf:
       - "$ref": "#/components/schemas/TradingExchangeRate"
     TradingHourlyRate:
       description: 'Represents a TradingHourlyRate object.
 
-'
+        '
       allOf:
       - "$ref": "#/components/schemas/TradingExchangeRate"
     TradingMinuteRate:
       description: 'Represents a TradingMinuteRate object.
 
-'
+        '
       allOf:
       - "$ref": "#/components/schemas/TradingExchangeRate"
     TradingLimit:
@@ -4039,7 +4140,7 @@ components:
       description: 'A Trading Pair represents two assets (currency) which can be part
         of a Trade.
 
-'
+        '
       type: object
       required:
       - id
@@ -4089,7 +4190,7 @@ components:
     Price:
       description: 'A Price indicates a trade price for a given Trading Pair.
 
-'
+        '
       type: object
       required:
       - trading_pair_id
@@ -4142,7 +4243,7 @@ components:
     Trade:
       description: 'Represents a Trade on the platform.
 
-'
+        '
       type: object
       required:
       - id
@@ -4221,18 +4322,18 @@ components:
       example:
         id: 82d19e27542a21c950eaae13059cf5f5trad
         from_amount: '209.10'
-        traded_from_amount: 
-        traded_to_amount: 
-        to_amount: 
-        fee_amount: 
-        price: 
+        traded_from_amount:
+        traded_to_amount:
+        to_amount:
+        fee_amount:
+        price:
         state: PENDING
         reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
         entity_id: b6ef80668690fa4dfbb51a3bc49a1fb7enty
         trading_pair_id: 00000000000000000000000000000002trpr
         from_account_id: 57e837a08685eff2cee29e82b6b09857cacc
         to_account_id: d4f01daea26362d0de5fe89cb0f8d905acct
-        failure_reason: 
+        failure_reason:
         estimations:
           traded_from_amount: '207.00'
           traded_to_amount: '0.02288435'
@@ -4254,7 +4355,7 @@ components:
     TransactionCommonAttributes:
       description: 'This schema represents a set of common attributes of a Transaction
 
-'
+        '
       type: object
       required:
       - id
@@ -4472,7 +4573,7 @@ components:
           description: 'A reference identifier supplied with the Withdrawal request
             by the partner
 
-'
+            '
         address:
           type: string
           description: A digital asset specific address where funds are sent to
@@ -4638,7 +4739,7 @@ components:
           description: 'A reference identifier supplied with the Transfer request
             by the partner
 
-'
+            '
         sender_account_id:
           type: string
           description: ID of the sender Account
@@ -4783,7 +4884,24 @@ components:
       explode: true
   responses:
     InvalidRequest:
-      description: Request contains invalid parameters
+      description: |
+        Request contains invalid parameters.
+
+        This error response includes a `params` object, which contains
+        a set of invalid request attributes and their corresponding attribute error codes.
+
+        The documented attribute error codes are the following:
+
+        * `blank` -- This attribute requires a value, but it was missing in the request.
+        * `invalid` -- The value for this attribute provided by the request is invalid.
+          For example, this may mean an invalid data type, or the formatting, or the correctness
+          of a blockchain address.
+        * `not_found` -- A resource referenced by this attribute was not found. This may happen
+          when sending a request that contains an attribute, which references another resource.
+          E.g. when creating an Account and using `asset_id` to reference the Asset.
+        * `taken` -- The value provided for this attribute is expected to be unique,
+          but it is already taken by another resource. E.g. when providing a `reference` key
+          in creating a Transaction.
       content:
         application/json:
           schema:
@@ -4801,6 +4919,7 @@ components:
                 additionalProperties:
                   type: string
                   enum:
+                  - blank
                   - invalid
                   - not_found
                   - taken
@@ -4836,8 +4955,57 @@ components:
                 type: string
             example:
               message: Not found
+    InvalidResource:
+      description: |
+        Invalid resource (Unprocessable entity).
+
+        The request could not be processed, because the referenced resource's state prevents it.
+
+        For example, it is not possible to approve a FAILED Approval Request. In that case this
+        error response is going to be returned.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - message
+            properties:
+              message:
+                type: string
+            example:
+              message: Invalid resource
+    TooManyRequests:
+      description: |
+        Too many requests.
+
+        Some endpoints are restricted by limitations of the underlying service
+        or an external provider.
+
+        For example, when creating or approving an Approval Request
+        of type SMS a rate-limiting threshold of an external provider can be reached. In that case
+        this error response is going to be returned.
+
+        NOTE: This is a transient error.
+        The same request with the same attributes may be attempted again.
+        Although it is advised to implement a backoff strategy as a reaction to this error response.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - message
+            properties:
+              message:
+                type: string
+            example:
+              message: Too many requests
     InternalServerError:
-      description: Internal server error
+      description: |
+        Internal server error.
+
+        An unspecified failure of an underlying or external service.
+
+        NOTE: This is a transient error. The request with the same attributes may be attempted again.
       content:
         application/json:
           schema:
@@ -4850,7 +5018,11 @@ components:
             example:
               message: Internal server error
     UnavailableError:
-      description: Service Temporarily Unavailable error
+      description: |
+        The request could not be processed, because the underlying or external
+        service is temporarily unavailable.
+
+        NOTE: This is a transient error. The request with the same attributes may be attempted again.
       content:
         application/json:
           schema:
