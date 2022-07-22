@@ -301,7 +301,7 @@ The request body must contain the following parameters:
 Note: Solarisbank account must meet the following requirements:
 
 1. `bic` is `SOBKDEB2XXX` (Solarisbank Corona)
-2. `type` is `CHECKING_PERSONAL` or `CHECKING_BUSINESS`
+2. `type` is `WALLET_PERSONAL`, `WALLET_BUSINESS`, `CHECKING_PERSONAL` or `CHECKING_BUSINESS`
 3. `locking_status` is `NO_BLOCK`
 4. `status` is `ACTIVE`
 
@@ -330,6 +330,8 @@ List of the Trade states:
 | CANCELLED | The Trade has been cancelled by the client(see Cancelling a Trade) |
 | FAILING   | The Trade has been approved, but could not get executed, so the Platform is in a process of reversing the progress |
 | FAILED    | The Trade has been successfully failed, the payment for the Trade, if happened, has been refunded |
+
+A Trade goes to FAILED state once the Approval Timeout is reached.
 
 Example below shows a creation of the `EUR/BTC` Trade(buying BTC for EUR) with the amount of 209.1 EUR, where `from_account_id` belongs to Solarisbank and `to_account_id` belongs to Solaris Digital Assets.
 
