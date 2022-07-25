@@ -331,7 +331,7 @@ List of the Trade states:
 | FAILING   | The Trade has been approved, but could not get executed, so the Platform is in a process of reversing the progress |
 | FAILED    | The Trade has been successfully failed, the payment for the Trade, if happened, has been refunded |
 
-A Trade goes to FAILED state once the Approval Timeout is reached.
+A Trade goes to FAILED state once the Approval Timeout of 2 minutes is reached.
 
 Example below shows a creation of the `EUR/BTC` Trade(buying BTC for EUR) with the amount of 209.1 EUR, where `from_account_id` belongs to Solarisbank and `to_account_id` belongs to Solaris Digital Assets.
 
