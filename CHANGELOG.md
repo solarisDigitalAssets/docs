@@ -1,5 +1,11 @@
 # Changelog
 
+## 26-07-2022
+
+API updated to v0.27.0
+
+- Introduced new error responses, which correspond to HTTP statuses 422, 429, 503.
+
 ## 11-05-2022
 
 - Added filtering documentation to `Custody_API_Guide.md`
