@@ -3,7 +3,7 @@ info:
   title: Solarisbank Digital Assets Platform API
   contact:
     email: sda-tech@solarisbank.de
-  version: 0.26.0
+  version: 0.27.0
   description: |
     This is a draft for Solarisbank Digital Assets Platform API
 
