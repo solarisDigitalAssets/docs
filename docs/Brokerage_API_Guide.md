@@ -331,8 +331,6 @@ List of the Trade states:
 | FAILING   | The Trade has been approved, but could not get executed, so the Platform is in a process of reversing the progress |
 | FAILED    | The Trade has been successfully failed, the payment for the Trade, if happened, has been refunded |
 
-A Trade goes to FAILED state once the Approval Timeout of 2 minutes is reached.
-
 Example below shows a creation of the `EUR/BTC` Trade(buying BTC for EUR) with the amount of 209.1 EUR, where `from_account_id` belongs to Solarisbank and `to_account_id` belongs to Solaris Digital Assets.
 
 Format:
@@ -445,6 +443,8 @@ The Trade approval process consists of two steps:
 
 - Creating a new ApprovalRequest for a Trade
 - Approving the ApprovalRequest
+
+The Trade is expected to be APPROVED within 2 minutes after creation, otherwise it will automatically become FAILED.
 
 The complete guide on how to create and approve ApprovalRequests and a list of ApprovalMethods available on the platform is available under [Custody API](https://github.com/solarisDigitalAssets/docs/blob/master/docs/Custody_API_Guide.md#approvalmethods). The `resource_type` must be `TRADE` and the `resource_id` must be an id of the Trade.
 
