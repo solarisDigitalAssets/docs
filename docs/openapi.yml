@@ -3,7 +3,7 @@ info:
   title: Solarisbank Digital Assets Platform API
   contact:
     email: sda-tech@solarisbank.de
-  version: 0.25.1
+  version: 0.28.0
   description: |
     This is a draft for Solarisbank Digital Assets Platform API
 
@@ -169,6 +169,8 @@ tags:
   description: Entities registered and controlled by the Partner
 - name: LedgerEntry
   description: Ledger Entries of an Account
+- name: Tier
+  description: Withdrawal restrictions configured per-Partner
 - name: TradingExchangeRate
   description: Exchange Rates
 - name: TradingLimit
@@ -228,6 +230,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
     post:
       tags:
       - Account
@@ -285,6 +289,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}":
     get:
       tags:
@@ -319,15 +325,18 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/addresses":
     get:
       tags:
       - Address
       summary: List all Addresses of an Account
-      description: 'Returns a list of all Addresses linked with the given Account,
-        owned by the given Entity
+      description: |
+        Returns a list of all Addresses linked with the given Account, owned by the given Entity.
 
-'
+        NOTE: For token Accounts, the list returned is always empty.
+        For such Accounts the Addresses are owned by their corresponding base Account.
       parameters:
       - name: entity_id
         in: path
@@ -366,6 +375,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
     post:
       tags:
       - Address
@@ -374,9 +385,11 @@ paths:
         Creates a new Address linked with the given Account, owned by the given Entity.
 
         As the Account is associated with a single Asset the new Address is created for this particular Asset.
-
         No additional parameters are required to create a new Address. This Address
         can immediately be used to receive funds on the blockchain.
+
+        NOTE: Creating Addresses for token Accounts is not permitted, as you should create them
+        in the corresponding base Account.
       parameters:
       - name: entity_id
         in: path
@@ -401,8 +414,12 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '404':
           "$ref": "#/components/responses/NotFound"
+        '422':
+          "$ref": "#/components/responses/InvalidResource"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/addresses/{address_id}":
     get:
       tags:
@@ -443,6 +460,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/approval_methods":
     get:
       tags:
@@ -497,6 +516,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
     post:
       tags:
       - ApprovalMethod
@@ -567,6 +588,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/approval_methods/{approval_method_id}":
     get:
       tags:
@@ -602,6 +625,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/approval_request":
     post:
       deprecated: true
@@ -692,8 +717,12 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '404':
           "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/TooManyRequests"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
     get:
       deprecated: true
       tags:
@@ -849,8 +878,14 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '404':
           "$ref": "#/components/responses/NotFound"
+        '422':
+          "$ref": "#/components/responses/InvalidResource"
+        '429':
+          "$ref": "#/components/responses/TooManyRequests"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/approval_requests":
     post:
       tags:
@@ -938,10 +973,12 @@ paths:
           "$ref": "#/components/responses/InvalidRequest"
         '401':
           "$ref": "#/components/responses/Unauthorized"
-        '404':
-          "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/TooManyRequests"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/approval_requests/{approval_request_id}":
     get:
       tags:
@@ -1071,8 +1108,14 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '404':
           "$ref": "#/components/responses/NotFound"
+        '422':
+          "$ref": "#/components/responses/InvalidResource"
+        '429':
+          "$ref": "#/components/responses/TooManyRequests"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/assets":
     get:
       tags:
@@ -1106,6 +1149,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/assets/{asset_id}":
     get:
       tags:
@@ -1134,10 +1179,12 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/closure_requests":
     get:
       tags:
-      - ClosureRequests
+      - ClosureRequest
       summary: List all ClosureRequests
       description: 'Returns a list of all ClosureRequests of the Entity identified
         by `entity_id`
@@ -1173,6 +1220,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
     post:
       tags:
       - ClosureRequest
@@ -1227,6 +1276,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/closure_requests/{closure_request_id}":
     get:
       tags:
@@ -1270,6 +1321,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/closure_requests/{closure_request_id}/confirm":
     post:
       tags:
@@ -1313,6 +1366,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities":
     get:
       tags:
@@ -1345,6 +1400,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
     post:
       tags:
       - Entity
@@ -1405,6 +1462,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}":
     get:
       tags:
@@ -1439,6 +1498,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/terms_and_conditions":
     post:
       tags:
@@ -1465,6 +1526,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/trading_terms_and_conditions":
     post:
       tags:
@@ -1487,10 +1550,46 @@ paths:
             application/json:
               schema:
                 type: object
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
         '404':
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
+  "/entities/{entity_id}/tier":
+    get:
+      tags:
+      - Entity
+      - Tier
+      summary: Get the details of currently activated Tier for the Entity
+      description: |
+        Returns the currently activated Tier (if any) for the Entity, along with
+        information about when the Tier was activated for the Entity, and how much
+        volume has been transacted in that Tier.
+      parameters:
+      - name: entity_id
+        in: path
+        description: ID of the Entity whose Tier should be returned.
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Entity's activated Tier info
+          content:
+            application/json:
+              schema:
+                "$ref": "#components/schemas/EntityTierInfo"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/ledger_entries":
     get:
       tags:
@@ -1538,6 +1637,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/ledger_entries/{ledger_entry_id}":
     get:
       tags:
@@ -1578,6 +1679,68 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
+  "/tiers":
+    get:
+      tags:
+      - Tier
+      summary: List all Tiers
+      description: Returns a list of all Tiers configured for a Partner
+      parameters:
+      - "$ref": "#/components/parameters/filterParams"
+      - "$ref": "#/components/parameters/sortParams"
+      - "$ref": "#/components/parameters/limitOffsetParams"
+      responses:
+        '200':
+          description: A list of Tiers
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/Tier"
+                  pagination:
+                    "$ref": "#/components/schemas/paginationResponse"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
+  "/tiers/{tier_id}":
+    get:
+      tags:
+      - Tier
+      summary: Get a single Tier
+      description: Returns a single Tier found by its ID
+      parameters:
+      - name: tier_id
+        in: path
+        description: Tier ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A single Tier
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Tier"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/trading/pairs/{trading_pair_id}/daily_rates":
     get:
       tags:
@@ -1618,6 +1781,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/trading/pairs/{trading_pair_id}/hourly_rates":
     get:
       tags:
@@ -1658,6 +1823,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/trading/pairs/{trading_pair_id}/minute_rates":
     get:
       tags:
@@ -1698,6 +1865,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/trading_limits":
     get:
       tags:
@@ -1733,6 +1902,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/trading/pairs":
     get:
       tags:
@@ -1766,6 +1937,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/trading/pairs/{trading_pair_id}":
     get:
       tags:
@@ -1803,6 +1976,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/trading/pairs/{trading_pair_id}/price":
     get:
       tags:
@@ -1848,6 +2023,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/trading/trades":
     get:
       tags:
@@ -1881,6 +2058,8 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
     post:
       tags:
       - Trade
@@ -1932,6 +2111,7 @@ paths:
               example:
                 id: 82d19e27542a21c950eaae13059cf5f5trad
                 from_amount: '209.10'
+                filled_from_amount: '209.00'
                 traded_from_amount: 
                 traded_to_amount: 
                 to_amount: 
@@ -1986,6 +2166,7 @@ paths:
                 id: 82d19e27542a21c950eaae13059cf5f5trad
                 from_amount: '209.10'
                 traded_from_amount: 
+                filled_from_amount: 
                 traded_to_amount: 
                 to_amount: 
                 fee_amount: 
@@ -2011,6 +2192,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/trading/trades/{trade_id}/cancel":
     post:
       tags:
@@ -2039,6 +2222,7 @@ paths:
                 id: 82d19e27542a21c950eaae13059cf5f5trad
                 from_amount: '209.10'
                 traded_from_amount: 
+                filled_from_amount: 
                 traded_to_amount: 
                 to_amount: 
                 fee_amount: 
@@ -2064,8 +2248,12 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '404':
           "$ref": "#/components/responses/NotFound"
+        '422':
+          "$ref": "#/components/responses/InvalidResource"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/transactions":
     get:
       tags:
@@ -2113,6 +2301,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}/cancel":
     post:
       tags:
@@ -2165,8 +2355,12 @@ paths:
           "$ref": "#/components/responses/Unauthorized"
         '404':
           "$ref": "#/components/responses/NotFound"
+        '422':
+          "$ref": "#/components/responses/InvalidResource"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/transactions/{transaction_id}":
     get:
       tags:
@@ -2220,6 +2414,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/transactions/transfer":
     post:
       tags:
@@ -2316,6 +2512,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
   "/entities/{entity_id}/accounts/{account_id}/transactions/withdrawal":
     post:
       tags:
@@ -2404,6 +2602,8 @@ paths:
           "$ref": "#/components/responses/NotFound"
         '500':
           "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
 components:
   schemas:
     paginationResponse:
@@ -3886,6 +4086,44 @@ components:
         trading_terms_conditions_signed_at: '2019-03-01T22:45:06Z'
         created_at: '2019-03-01T22:31:06Z'
         updated_at: '2019-03-01T22:45:06Z'
+    EntityTierInfo:
+      type: object
+      required:
+      - id
+      - send_limit
+      - send_interval
+      - advancement_volume
+      - advancement_interval
+      - volume
+      - activated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Tier
+        send_limit:
+          type: string
+          description: The amount of EUR the Entity is allowed to send every send_interval
+            while on this Tier.
+        send_interval:
+          type: integer
+          description: The unit of time (in seconds) for which the Entity's withdrawal
+            is measured.
+        advancement_volume:
+          type: string
+          description: The amount of EUR the Entity must transact before it can advance
+            to the next Tier, if any.
+        advancement_interval:
+          type: integer
+          description: |
+            The amount of time (in seconds) which the Entity must be in this Tier before it can
+            advance to the next Tier, if any.
+        volume:
+          type: string
+          description: The amount of EUR the Entity has transacted while in this Tier.
+        activated_at:
+          type: string
+          format: date-time
+          description: The time at which the Tier was activated for the Entity.
     LedgerEntry:
       description: |
         A Ledger Entry is an account entry which indicates by which amount the Account
@@ -3942,6 +4180,51 @@ components:
         amount: "-1.00000000"
         created_at: '2019-03-01T22:31:06Z'
         updated_at: '2019-03-01T22:31:06Z'
+    Tier:
+      type: object
+      required:
+      - id
+      - level
+      - send_limit
+      - send_interval
+      - advancement_volume
+      - advancement_interval
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Tier
+        level:
+          type: integer
+          description: |
+            The level at which the Tier is.  Entities advance to Tier at the next higher
+            level on meeting current Tier's advancement criteria.
+        send_limit:
+          type: string
+          description: The amount of EUR an Entity is allowed to send every send_interval
+            while on this Tier.
+        send_interval:
+          type: integer
+          description: The unit of time (in seconds) for which the Entity's withdrawal
+            is measured.
+        advancement_volume:
+          type: string
+          description: The amount of EUR an Entity must transact before it can advance
+            to the next Tier, if any.
+        advancement_interval:
+          type: integer
+          description: |
+            The amount of time (in seconds) which an Entity must be in this Tier before
+            it can advance to the next Tier, if any.
+        created_at:
+          type: string
+          format: date-time
+          description: The time at which the Tier was created.
+        updated_at:
+          type: string
+          format: date-time
+          description: The time at which the Tier was last updated.
     TradingExchangeRate:
       description: 'Represents a Base TradingExchangeRate object.
 
@@ -4148,6 +4431,7 @@ components:
       - id
       - from_amount
       - traded_from_amount
+      - filled_from_amount
       - traded_to_amount
       - to_amount
       - fee_amount
@@ -4172,6 +4456,9 @@ components:
         traded_from_amount:
           type: string
           description: The amount traded on the Exchange(minus Platform fees for fiat->crypto)
+        filled_from_amount:
+          type: string
+          description: The Trade amount submitted to the Exchange
         traded_to_amount:
           type: string
           description: The amount received from the Exchange(minus Exchange fees)
@@ -4184,8 +4471,9 @@ components:
           description: Fee collected by the Platform
         price:
           type: string
-          description: Price, calculated as traded_to_amount / traded_from_amount
-            and rounded to the precision of the TradingPair
+          description: |
+            Price, calculated as `filled_from_amount / amount executed on the exchange` and rounded to base asset precision.
+            For example, in a  `BTC -> EUR` trade, the precision gonna be the one related to BTC.
         state:
           type: string
           description: The state of the Trade
@@ -4222,6 +4510,7 @@ components:
         id: 82d19e27542a21c950eaae13059cf5f5trad
         from_amount: '209.10'
         traded_from_amount: 
+        filled_from_amount: 
         traded_to_amount: 
         to_amount: 
         fee_amount: 
@@ -4783,7 +5072,24 @@ components:
       explode: true
   responses:
     InvalidRequest:
-      description: Request contains invalid parameters
+      description: |
+        Request contains invalid parameters.
+
+        This error response includes a `params` object, which contains
+        a set of invalid request attributes and their corresponding attribute error codes.
+
+        The documented attribute error codes are the following:
+
+        * `blank` -- This attribute requires a value, but it was missing in the request.
+        * `invalid` -- The value for this attribute provided by the request is invalid.
+          For example, this may mean an invalid data type, or the formatting, or the correctness
+          of a blockchain address.
+        * `not_found` -- A resource referenced by this attribute was not found. This may happen
+          when sending a request that contains an attribute, which references another resource.
+          E.g. when creating an Account and using `asset_id` to reference the Asset.
+        * `taken` -- The value provided for this attribute is expected to be unique,
+          but it is already taken by another resource. E.g. when providing a `reference` key
+          in creating a Transaction.
       content:
         application/json:
           schema:
@@ -4801,6 +5107,7 @@ components:
                 additionalProperties:
                   type: string
                   enum:
+                  - blank
                   - invalid
                   - not_found
                   - taken
@@ -4836,8 +5143,57 @@ components:
                 type: string
             example:
               message: Not found
+    InvalidResource:
+      description: |
+        Invalid resource (Unprocessable entity).
+
+        The request could not be processed, because the referenced resource's state prevents it.
+
+        For example, it is not possible to approve a FAILED Approval Request. In that case this
+        error response is going to be returned.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - message
+            properties:
+              message:
+                type: string
+            example:
+              message: Invalid resource
+    TooManyRequests:
+      description: |
+        Too many requests.
+
+        Some endpoints are restricted by limitations of the underlying service
+        or an external provider.
+
+        For example, when creating or approving an Approval Request
+        of type SMS a rate-limiting threshold of an external provider can be reached. In that case
+        this error response is going to be returned.
+
+        NOTE: This is a transient error.
+        The same request with the same attributes may be attempted again.
+        Although it is advised to implement a backoff strategy as a reaction to this error response.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - message
+            properties:
+              message:
+                type: string
+            example:
+              message: Too many requests
     InternalServerError:
-      description: Internal server error
+      description: |
+        Internal server error.
+
+        An unspecified failure of an underlying or external service.
+
+        NOTE: This is a transient error. The request with the same attributes may be attempted again.
       content:
         application/json:
           schema:
@@ -4850,7 +5206,11 @@ components:
             example:
               message: Internal server error
     UnavailableError:
-      description: Service Temporarily Unavailable error
+      description: |
+        The request could not be processed, because the underlying or external
+        service is temporarily unavailable.
+
+        NOTE: This is a transient error. The request with the same attributes may be attempted again.
       content:
         application/json:
           schema:

@@ -1,5 +1,12 @@
 # Changelog
 
+
+## 05-10-2022
+
+- Add `Trade#filled_from_amount` description on `Brokerage_API_Guide.md` and `openapi.yml`
+- Add `TradingPairs#is_tradable` description on `Brokerage_API_Guide.md`
+- Update Solarisbank account requirements on `Brokerage_API_Guide.md`
+
 ## 08-09-2021
 
 - Update `Trading Limits#remaing_amount` description on `Brokerage_API_Guide.md`

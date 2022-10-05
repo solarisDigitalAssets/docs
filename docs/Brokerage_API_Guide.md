@@ -5,7 +5,7 @@
 
 - [Brokerage API Guide](#solaris-digital-assets-platform---brokerage-api-guide)
   - [Table of Contents](#table-of-contents)
-  - [Entities](#entities)
+  - [Terms and Condition](#terms-and-conditions)
     - [Example](#example)
   - [Trading Pairs](#trading-pairs)
     - [Example](#example-1)
@@ -13,7 +13,7 @@
     - [Example](#example-2)
   - [Exchange Rates](#exchange-rates)
     - [Daily Exchange Rates](#daily-exchange-rates)
-      - [Example](#example-3)       
+      - [Example](#example-3)
     - [Hourly Exchange Rates](#hourly-exchange-rates)
       - [Example](#example-4)
     - [Minute Exchange Rates](#minute-exchange-rates)
@@ -26,7 +26,8 @@
     - [Example](#example-7)
 
 
-## Entities
+## Terms and Conditions
+
 Entities are required to accept trading terms and conditions in order to request trades on the platform. This is done by issuing a POST request to `/v1/entities/{entity_id}/trading_terms_and_conditions`.
 It is the partner's responsibility to present trading terms and conditions to the customer. The partner MUST NOT call this endpoint otherwise.
 
@@ -45,6 +46,8 @@ POST /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/trading_terms_and_conditi
 ## Trading Pairs
 
 Any Trading Pair has a unique identifier, a human readable code, corresponding identifiers of the assets and timestamps.
+
+It’s only possible to trade those trading pairs whose `is_tradable` attribute is set to true.
 
 The code is a string which consists of 2 assets separated by a slash symbol, where the first asset is a base asset and second is a quote asset. The Trading Pair always indicates a direction of the trade, for example:
 
@@ -82,6 +85,7 @@ GET /v1/trading/pairs
       "id": "00000000000000000000000000000001trpr",
       "from_asset_id": "00000000000000000000000000000001asst",
       "to_asset_id": "f0000000000000000000000000000001asst",
+      "is_tradable": true,
       "code": "BTC/EUR",
       "precision": 2,
       "min_amount": "0.0001",
@@ -92,6 +96,7 @@ GET /v1/trading/pairs
       "id": "00000000000000000000000000000002trpr",
       "from_asset_id": "f0000000000000000000000000000001asst",
       "to_asset_id": "00000000000000000000000000000001asst",
+      "is_tradable": true,
       "code": "EUR/BTC",
       "precision": 8,
       "min_amount": "10",
@@ -114,6 +119,7 @@ GET /v1/trading/pairs/00000000000000000000000000000001trpr
   "id": "00000000000000000000000000000001trpr",
   "from_asset_id": "00000000000000000000000000000001asst",
   "to_asset_id": "f0000000000000000000000000000001asst",
+  "is_tradable": true,
   "code": "BTC/EUR",
   "precision": 2,
   "min_amount": "0.0001",
@@ -125,6 +131,7 @@ GET /v1/trading/pairs/00000000000000000000000000000001trpr
 ## Price
 
 The Price endpoint provides an indicative trade price for a given Trading Pair.
+It’s only usable with those trading pairs whose `is_tradable` attribute is set to true.
 
 The `amount` attribute is optional and defaults to `min_amount` attribute of a chosen `Trading Pair`.
 
@@ -294,9 +301,13 @@ The request body must contain the following parameters:
 Note: Solarisbank account must meet the following requirements:
 
 1. `bic` is `SOBKDEB2XXX` (Solarisbank Corona)
-2. `type` is `CHECKING_PERSONAL` or `CHECKING_BUSINESS`
+2. `type` is `WALLET_PERSONAL`, `WALLET_BUSINESS`, `CHECKING_PERSONAL` or `CHECKING_BUSINESS`
 3. `locking_status` is `NO_BLOCK`
 4. `status` is `ACTIVE`
+
+Note: TradingPair must meet the following requirement:
+
+- `is_tradable` should be `true`
 
 In case of successful execution the endpoint responds with `201 Created` status and an initial state of the Trade which is `PENDING`.
 
@@ -304,9 +315,10 @@ The newly created Trade has a `PENDING` state and contains the trade estimations
 
 - `fee_amount` - a fee amount, collected by the Platform. This amount is always denominated in EUR(`f0000000000000000000000000000001asst`) and collected prior to the exchange for FIAT -> CRYPTO trades and after the exchange for CRYPTO -> FIAT trades.
 - `traded_from_amount` - an amount which was traded on the exchange
+- `filled_from_amount` - an amount which was submitted to the exchange
 - `traded_to_amount` - an amount received from the exchange
 - `to_amount` - an amount which `entity_id` has received
-- `price` - `traded_to_amount / traded_from_amount` rounded to the precision of the TradingPair
+- `price` - Calculated as `filled_from_amount / traded_from_amount` rounded to the precision of the TradingPair.
 
 List of the Trade states:
 
@@ -351,6 +363,7 @@ POST /v1/trading/trades
   "id": "82d19e27542a21c950eaae13059cf5f5trad",
   "from_amount": "209.10",
   "traded_from_amount": null,
+  "filled_from_amount": null,
   "traded_to_amount": null,
   "to_amount": null,
   "fee_amount": null,
@@ -397,6 +410,7 @@ POST /v1/trading/trades/{trade_id}/cancel
   "id": "82d19e27542a21c950eaae13059cf5f5trad",
   "from_amount": "209.10",
   "traded_from_amount": null,
+  "filled_from_amount": null,
   "traded_to_amount": null,
   "to_amount": null,
   "fee_amount": null,
@@ -432,6 +446,8 @@ The Trade approval process consists of two steps:
 
 - Creating a new ApprovalRequest for a Trade
 - Approving the ApprovalRequest
+
+The Trade is expected to be APPROVED within 2 minutes after creation, otherwise it will automatically become FAILED.
 
 The complete guide on how to create and approve ApprovalRequests and a list of ApprovalMethods available on the platform is available under [Custody API](https://github.com/solarisDigitalAssets/docs/blob/master/docs/Custody_API_Guide.md#approvalmethods). The `resource_type` must be `TRADE` and the `resource_id` must be an id of the Trade.
 
