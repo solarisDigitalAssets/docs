@@ -1,13 +1,13 @@
-# solaris Digital Assets Platform API Guide
+# Solaris Digital Assets Platform API Guide
 
 An API platform that provides a managed custody solution for storing digital assets.
 
 - Version: [0.26.0]
-- Updated: [2021-06-01]
+- Updated: [2022-05-11]
 
 ## Table of Contents
 
-- [solaris Digital Assets Platform API Guide](#solaris-digital-assets-platform-api-guide)
+- [Solaris Digital Assets Platform API Guide](#solaris-digital-assets-platform-api-guide)
   - [Table of Contents](#table-of-contents)
   - [Introduction](#introduction)
     - [Segregated Account](#segregated-account)
@@ -35,9 +35,9 @@ An API platform that provides a managed custody solution for storing digital ass
       - [Asset of type BASE](#asset-of-type-base)
       - [Asset of type TOKEN](#asset-of-type-token)
       - [Asset of type FIAT](#asset-of-type-fiat)
-  - [solaris Digital Assets recommendation: End customer onboarding](#solaris-digital-assets-recommendation-end-customer-onboarding)
-    - [solarisBank Identity API](#solarisbank-identity-api)
-    - [solaris Digital Assets API](#solaris-digital-assets-api)
+  - [Solaris Digital Assets recommendation: End customer onboarding](#solaris-digital-assets-recommendation-end-customer-onboarding)
+    - [Solarisbank Identity API](#solarisbank-identity-api)
+    - [Solaris Digital Assets API](#solaris-digital-assets-api)
       - [Requirements for the end customer to be able to perform transactions](#requirements-for-the-end-customer-to-be-able-to-perform-transactions)
   - [Entities](#entities)
     - [Entity states](#entity-states)
@@ -120,7 +120,7 @@ An API platform that provides a managed custody solution for storing digital ass
 
 ## Introduction
 
-The solaris Digital Assets Platform API is designed to allow partners to store digital asset funds on the platform, accept deposits, process withdrawals and keep track of balances in digital assets.
+The Solaris Digital Assets Platform API is designed to allow partners to store digital asset funds on the platform, accept deposits, process withdrawals and keep track of balances in digital assets.
 
 The partner can own a collection of Accounts on our platform, where each Account holds the funds owned by an Entity of a partner for some specific digital asset. There are two types of Accounts:
 
@@ -149,13 +149,13 @@ The partner can initiate Withdrawals to an external address or Transfers to a di
 
 ## Setup
 
-Before a partner can use the solaris Digital Assets Platform API we register them in our system. This happens completely on our side and is not exposed by API endpoints.
+Before a partner can use the Solaris Digital Assets Platform API we register them in our system. This happens completely on our side and is not exposed by API endpoints.
 
 During this process we are going to create a partner Entity. This Entity can then be used by the partner to authorise Transactions from Accounts the partner owns.
 
-The next step is to create a key pair that is going to be used by the partner to access the API. This happens on partner side, then the partner sends us the public key part. At no point the solaris Digital Assets Platform platform learns the corresponding private key.
+The next step is to create a key pair that is going to be used by the partner to access the API. This happens on partner side, then the partner sends us the public key part. At no point the Solaris Digital Assets Platform platform learns the corresponding private key.
 
-The Private key is used by the partner to sign every API request and the public key is used by solaris Digital Assets' API to verify the ownership and integrity of the request. We will provide additional instructions on how to generate key pairs combined with authentication code examples as separate document guide.
+The Private key is used by the partner to sign every API request and the public key is used by Solaris Digital Assets' API to verify the ownership and integrity of the request. We will provide additional instructions on how to generate key pairs combined with authentication code examples as separate document guide.
 
 Finally we register the public key received from the partner, after which the partner can access the API.
 
@@ -300,13 +300,16 @@ See:
 
 ## Filtering
 
-Endpoints that list resources support filtering, in order to get the desired resultset. At the moment
-the filtering scheme only supports exact matches (state = $SOME_STATE) or collection ranges (state IN ($POSSIBLE_STATES)),
-at the moment we do not support operational filters (>, <, <=, >=).
+Endpoints that list resources support filtering in order to get the desired result set. The filtering scheme supports the following operators:
 
-In order to filter you must add to the request query params in the following manner: `filter[$RESOURCE_ATTRIBUTE]=$DESIRED_VALUE`,
-several filters can be applied at once by chaining them.
-To filter using a collection of values use array notation: `filter[$RESOURCE_ATTRIBUTE][]=$FIRST_VALUE&filter[$RESOURCE_ATTRIBUTE][]=$SECOND_VALUE`
+- Exact match: `filter[state]=COMPLETED`
+- Collection range: `filter[state][]=COMPLETED&filter[state][]=FAILED`
+- gt(greater than): `filter[starts_at][gt]=2022-01-01T00:00:00Z`
+- gte(greater than or equal to): `filter[starts_at][gte]=2022-01-01T00:00:00Z`
+- lte(less than or equal to): `filter[starts_at][lte]=2022-01-02T00:00:00Z`
+- lt(less than): `filter[starts_at][lt]=2022-01-02T00:00:00Z`
+
+Add the 'filter' parameter to the request query as shown above to use its functionality. Multiple filters can be applied at once by chaining them.
 
 ### Examples
 
@@ -357,6 +360,32 @@ GET .../transactions?filter[state][]=COMPLETED&filter[state][]=FAILED
       "fee_amount": "0.00000000",
       "created_at": "2019-04-02T13:15:47Z",
       "updated_at": "2019-04-02T13:15:47Z"
+    }
+  ]
+}
+```
+
+- A time range:
+
+```
+GET .../transactions?filter[created_at][gte]=2022-01-01T00:00:00Z&filter[created_at][lt]=2022-01-02T00:00:00Z
+
+```
+
+```
+200 OK
+
+{
+  "items": [
+    {
+      "id": "944eed5b06bc80a9cae92154fb78425catrx",
+      "account_id": "721263078f2dcea6d7fa604aba51e90eacct",
+      "type": "DEPOSIT",
+      "state": "COMPLETED",
+      "amount": "0.01000000",
+      "fee_amount": "0.00000000",
+      "created_at": "2022-01-01T13:20:54Z",
+      "updated_at": "2022-01-01T13:21:00Z"
     }
   ]
 }
@@ -520,7 +549,7 @@ GET .../transactions?pagination[page]=1&pagination[size]=200
 
 ## IDs
 
-All resources exposed by the API have uniform unique ID scheme, which follows the scheme of solarisBank API — an ID is a String of 36 characters.
+All resources exposed by the API have uniform unique ID scheme, which follows the scheme of Solarisbank API — an ID is a String of 36 characters.
 
 ### Example
 
@@ -628,11 +657,11 @@ GET /v1/assets/00010000000000000000000000000002asst
 }
 ```
 
-## solaris Digital Assets recommendation: End customer onboarding
+## Solaris Digital Assets recommendation: End customer onboarding
 
-Before a partner can offer their customers the full feature set of solaris Digital Assets' API, the partner must onboard the customer. We recommend the following steps to fully onboard the customer:
+Before a partner can offer their customers the full feature set of Solaris Digital Assets' API, the partner must onboard the customer. We recommend the following steps to fully onboard the customer:
 
-### solarisBank Identity API
+### Solarisbank Identity API
 
 1. Partner should [create a person](https://docs.solarisbank.com/core/api/v1/#44qZGy7K-post-create-a-person) (end customer of Partner)
 2. Partner should [create an identification](https://docs.solarisbank.com/core/api/v1/#6Q8p3mGx-person-identification) for the person with a selected method
@@ -640,7 +669,7 @@ Before a partner can offer their customers the full feature set of solaris Digit
 - Once the identification has been created, Partner should request an identification link for the respective end customer by fetching a dedicated URL
 - Identification needs to be completed successfully. Should an identification not reach a final status, the existing link can be reused.
 
-### solaris Digital Assets API
+### Solaris Digital Assets API
 
 1. Partner should create an Entity for the person (see: Entity)
 2. Partner should create an approval method for the Entity (see: ApprovalMethods)
@@ -651,7 +680,7 @@ Before a partner can offer their customers the full feature set of solaris Digit
 
 - Partner should create an Address for the Account (see: Addresses)
 
-> NOTE: The order above is just solaris Digital Assets' recommendation. Creating a Person is a prerequisite to further develop on top of solaris Digital Assets' API.
+> NOTE: The order above is just Solaris Digital Assets' recommendation. Creating a Person is a prerequisite to further develop on top of Solaris Digital Assets' API.
 > Certain functionalities, like creating Account and Addresses is possible without successful KYC of an end customer. Although, for example in an event of a detected
 > Deposit, funds will never be unlocked until the KYC has been successfully completed. Hence, Withdrawals or Transfers will be not possible either.
 
@@ -669,7 +698,7 @@ Before a partner can offer their customers the full feature set of solaris Digit
 
 During the setup phase we only create one Entity of type `PARTNER`, which represents the partner as an Account holder.
 
-To be able to create Accounts on behalf of end customers, the partner MUST beforehand create corresponding Entities of type `PERSON`. During this process the partner MUST provide a `person_id` — a unique identifier of an individual provided by solarisBank KYC product.
+To be able to create Accounts on behalf of end customers, the partner MUST beforehand create corresponding Entities of type `PERSON`. During this process the partner MUST provide a `person_id` — a unique identifier of an individual provided by Solarisbank KYC product.
 
 Entities of type `REPRESENTATIVE_PERSON` represent Entities which can approve ApprovalRequests on a
 Transaction which belongs to another Entity. Several Entities of type `REPRESENTATIVE_PERSON` can have the same `person_id` as long as that
@@ -728,7 +757,8 @@ POST /v1/entities
 
 {
   "type": "BUSINESS",
-  "name": "Mustermann GmbH"
+  "name": "Mustermann GmbH",
+  "business_id": "880bbac68a34add190786b9c74f4c82fcbiz""
 }
 ```
 
@@ -739,6 +769,7 @@ POST /v1/entities
   "id": "10ef67dc895d6c19c273b1ffba0c1692enty",
   "type": "BUSINESS",
   "name": "Mustermann GmbH",
+  "business_id": "880bbac68a34add190786b9c74f4c82fcbiz""
   "terms_conditions_signed_at": null,
   "created_at": "2019-04-02T12:27:33Z",
   "updated_at": "2019-04-02T12:27:33Z",
@@ -1766,8 +1797,6 @@ POST /v1/approval_requests
   "id": "bd4c882738787267cdf849fcb799b45eaprq",
   "resource_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
   "resource_type": "TRANSACTION",
-  "entity_id": "10ef67dc895d6c19c273b1ffba0c1692enty",
-  "approval_method_id": "b2046aec77bdd03dc0db46e57e0a722bapmt",
   "type": "AUTHY_PUSH",
   "state": "PENDING",
   "created_at": "2019-11-23T13:05:51Z",
@@ -1791,8 +1820,6 @@ GET /v1/approval_requests/{approval_request_id}
   "id": "bd4c882738787267cdf849fcb799b45eaprq",
   "resource_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
   "resource_type": "TRANSACTION",
-  "entity_id": "10ef67dc895d6c19c273b1ffba0c1692enty",
-  "approval_method_id": "b2046aec77bdd03dc0db46e57e0a722bapmt",
   "type": "AUTHY_PUSH",
   "state": "APPROVED",
   "created_at": "2019-11-23T13:05:51Z",
@@ -1837,8 +1864,6 @@ POST /v1/approval_requests
   "id": "bd4c882738787267cdf849fcb799b45eaprq",
   "resource_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
   "resource_type": "TRANSACTION",
-  "entity_id": "10ef67dc895d6c19c273b1ffba0c1692enty",
-  "approval_method_id": "b2046aec77bdd03dc0db46e57e0a722bapmt",
   "type": "SMS",
   "state": "PENDING",
   "created_at": "2019-11-23T13:05:51Z",
@@ -1875,8 +1900,6 @@ GET /v1/approval_requests/{approval_request_id}
   "id": "bd4c882738787267cdf849fcb799b45eaprq",
   "resource_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
   "resource_type": "TRANSACTION",
-  "entity_id": "10ef67dc895d6c19c273b1ffba0c1692enty",
-  "approval_method_id": "b2046aec77bdd03dc0db46e57e0a722bapmt",
   "type": "SMS",
   "state": "APPROVED",
   "created_at": "2019-11-23T13:05:51Z",
@@ -1928,8 +1951,6 @@ POST /v1/approval_requests
   "id": "ba9e224ba82ea200114803e5ce3ee839aprq",
   "resource_id": "fc069dcbb6649ad7b5afb7210ef4d9d2atrx",
   "resource_type": "TRANSACTION",
-  "entity_id": "10ef67dc895d6c19c273b1ffba0c1692enty",
-  "approval_method_id": "b2046aec77bdd03dc0db46e57e0a722bapmt",
   "type": "DSA_ED25519",
   "state": "PENDING",
   "challenge": {
@@ -1983,8 +2004,6 @@ GET /v1/approval_requests/{approval_request_id}
   "id": "ba9e224ba82ea200114803e5ce3ee839aprq",
   "resource_id": "f4342c75f714405d89007ef13ce68688atrx",
   "resource_type": "TRANSACTION",
-  "entity_id": "10ef67dc895d6c19c273b1ffba0c1692enty",
-  "approval_method_id": "b2046aec77bdd03dc0db46e57e0a722bapmt",
   "type": "DSA_ED25519",
   "state": "PENDING",
   "challenge": {
@@ -2118,9 +2137,6 @@ POST /v1/approval_requests
   "id": "bd4c882738787267cdf849fcb799b45eaprq",
   "resource_id": "9c41ec8a82fb99b57cb5078ae0a8b569atrx",
   "resource_type": "TRANSACTION",
-  "entity_id": "10ef67dc895d6c19c273b1ffba0c1692enty"
-  "approval_method_id": "b2046aec77bdd03dc0db46e57e0a722bapmt"
-  "approval_group_id": "c05c94a9e4e511df38d345e0642b86b6apgr",
   "type": "GROUP",
   "state": "PENDING",
   "created_at": "2019-11-23T13:05:51Z",
@@ -2158,8 +2174,6 @@ POST /v1/approval_requests
   "type": "SMS",
   "resource_id": "bd4c882738787267cdf849fcb799b45eaprq",
   "resource_type": "APPROVAL_REQUEST",
-  "entity_id": "10ef67dc895d6c19c273b1ffba0c1692enty",
-  "approval_method_id": "9c41ec8a82fb99b57cb5078ae0a8b569apmt",
   "state": "PENDING",
   "created_at": "2019-11-23T13:05:51Z",
   "updated_at": "2019-11-23T13:05:52Z"
@@ -2220,12 +2234,14 @@ GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/accounts/9c41ec8a82fb99b57
 ## Callbacks
 
 The partner can use callbacks to get notifications regarding updates on the Resources (Transactions, ClosureRequests and Trades)
-on the platform. Every time a 
+on the platform. Every time a
+
 * new Transaction is created or an existing one is updated
-* existing Trade or ClosureRequest is updated 
+* existing Trade or ClosureRequest is updated
 
 a Callback with a reference to the Resource will be issued.
 Then the partner can fetch the current state of the Resource using an ordinary authenticated request
+
 to the corresponding API endpoint.
 
 During onboarding partner needs to provide a URL for callbacks endpoint, that can
@@ -2260,4 +2276,5 @@ X-Resource-Location: /v1/trading/trades/10ef67dc895d6c19c273b1ffba0c1692trad
 | X-Resource-Type     | Headers  | Type of the created/updated Resource            |
 | X-Resource-Location | Headers  | Absolute path to fetch created/updated Resource |
 | id                  | Body     | ID of the created/updated Resource              |
+
 ---
