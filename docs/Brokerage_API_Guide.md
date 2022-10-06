@@ -315,9 +315,10 @@ The newly created Trade has a `PENDING` state and contains the trade estimations
 
 - `fee_amount` - a fee amount, collected by the Platform. This amount is always denominated in EUR(`f0000000000000000000000000000001asst`) and collected prior to the exchange for FIAT -> CRYPTO trades and after the exchange for CRYPTO -> FIAT trades.
 - `traded_from_amount` - an amount which was traded on the exchange
+- `filled_from_amount` - an amount which was submitted to the exchange
 - `traded_to_amount` - an amount received from the exchange
 - `to_amount` - an amount which `entity_id` has received
-- `price` - `traded_to_amount / traded_from_amount` rounded to the precision of the TradingPair
+- `price` - Calculated as `filled_from_amount / traded_from_amount` rounded to the precision of the TradingPair.
 
 List of the Trade states:
 
@@ -362,6 +363,7 @@ POST /v1/trading/trades
   "id": "82d19e27542a21c950eaae13059cf5f5trad",
   "from_amount": "209.10",
   "traded_from_amount": null,
+  "filled_from_amount": null,
   "traded_to_amount": null,
   "to_amount": null,
   "fee_amount": null,
@@ -408,6 +410,7 @@ POST /v1/trading/trades/{trade_id}/cancel
   "id": "82d19e27542a21c950eaae13059cf5f5trad",
   "from_amount": "209.10",
   "traded_from_amount": null,
+  "filled_from_amount": null,
   "traded_to_amount": null,
   "to_amount": null,
   "fee_amount": null,

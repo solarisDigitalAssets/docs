@@ -3,7 +3,7 @@ info:
   title: Solarisbank Digital Assets Platform API
   contact:
     email: sda-tech@solarisbank.de
-  version: 0.27.0
+  version: 0.28.0
   description: |
     This is a draft for Solarisbank Digital Assets Platform API
 
@@ -169,6 +169,8 @@ tags:
   description: Entities registered and controlled by the Partner
 - name: LedgerEntry
   description: Ledger Entries of an Account
+- name: Tier
+  description: Withdrawal restrictions configured per-Partner
 - name: TradingExchangeRate
   description: Exchange Rates
 - name: TradingLimit
@@ -1548,6 +1550,40 @@ paths:
             application/json:
               schema:
                 type: object
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
+  "/entities/{entity_id}/tier":
+    get:
+      tags:
+      - Entity
+      - Tier
+      summary: Get the details of currently activated Tier for the Entity
+      description: |
+        Returns the currently activated Tier (if any) for the Entity, along with
+        information about when the Tier was activated for the Entity, and how much
+        volume has been transacted in that Tier.
+      parameters:
+      - name: entity_id
+        in: path
+        description: ID of the Entity whose Tier should be returned.
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Entity's activated Tier info
+          content:
+            application/json:
+              schema:
+                "$ref": "#components/schemas/EntityTierInfo"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
         '404':
           "$ref": "#/components/responses/NotFound"
         '500':
@@ -1637,6 +1673,66 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/LedgerEntry"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
+"/tiers":
+    get:
+      tags:
+      - Tier
+      summary: List all Tiers
+      description: Returns a list of all Tiers configured for a Partner
+      parameters:
+      - "$ref": "#/components/parameters/filterParams"
+      - "$ref": "#/components/parameters/sortParams"
+      - "$ref": "#/components/parameters/limitOffsetParams"
+      responses:
+        '200':
+          description: A list of Tiers
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/Tier"
+                  pagination:
+                    "$ref": "#/components/schemas/paginationResponse"
+        '401':
+          "$ref": "#/components/responses/Unauthorized"
+        '500':
+          "$ref": "#/components/responses/InternalServerError"
+        '503':
+          "$ref": "#/components/responses/UnavailableError"
+  "/tiers/{tier_id}":
+    get:
+      tags:
+      - Tier
+      summary: Get a single Tier
+      description: Returns a single Tier found by its ID
+      parameters:
+      - name: tier_id
+        in: path
+        description: Tier ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: A single Tier
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Tier"
         '401':
           "$ref": "#/components/responses/Unauthorized"
         '404':
@@ -2015,11 +2111,12 @@ paths:
               example:
                 id: 82d19e27542a21c950eaae13059cf5f5trad
                 from_amount: '209.10'
-                traded_from_amount:
-                traded_to_amount:
-                to_amount:
-                fee_amount:
-                price:
+                filled_from_amount: '209.00'
+                traded_from_amount: 
+                traded_to_amount: 
+                to_amount: 
+                fee_amount: 
+                price: 
                 state: PENDING
                 reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
                 entity_id: b6ef80668690fa4dfbb51a3bc49a1fb7enty
@@ -2068,11 +2165,12 @@ paths:
               example:
                 id: 82d19e27542a21c950eaae13059cf5f5trad
                 from_amount: '209.10'
-                traded_from_amount:
-                traded_to_amount:
-                to_amount:
-                fee_amount:
-                price:
+                traded_from_amount: 
+                filled_from_amount: 
+                traded_to_amount: 
+                to_amount: 
+                fee_amount: 
+                price: 
                 state: PENDING
                 reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
                 entity_id: b6ef80668690fa4dfbb51a3bc49a1fb7enty
@@ -2123,11 +2221,12 @@ paths:
               example:
                 id: 82d19e27542a21c950eaae13059cf5f5trad
                 from_amount: '209.10'
-                traded_from_amount:
-                traded_to_amount:
-                to_amount:
-                fee_amount:
-                price:
+                traded_from_amount: 
+                filled_from_amount: 
+                traded_to_amount: 
+                to_amount: 
+                fee_amount: 
+                price: 
                 state: CANCELLED
                 reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
                 entity_id: b6ef80668690fa4dfbb51a3bc49a1fb7enty
@@ -3987,6 +4086,44 @@ components:
         trading_terms_conditions_signed_at: '2019-03-01T22:45:06Z'
         created_at: '2019-03-01T22:31:06Z'
         updated_at: '2019-03-01T22:45:06Z'
+    EntityTierInfo:
+      type: object
+      required:
+      - id
+      - send_limit
+      - send_interval
+      - advancement_volume
+      - advancement_interval
+      - volume
+      - activated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Tier
+        send_limit:
+          type: string
+          description: The amount of EUR the Entity is allowed to send every send_interval
+            while on this Tier.
+        send_interval:
+          type: integer
+          description: The unit of time (in seconds) for which the Entity's withdrawal
+            is measured.
+        advancement_volume:
+          type: string
+          description: The amount of EUR the Entity must transact before it can advance
+            to the next Tier, if any.
+        advancement_interval:
+          type: integer
+          description: |
+            The amount of time (in seconds) which the Entity must be in this Tier before it can
+            advance to the next Tier, if any.
+        volume:
+          type: string
+          description: The amount of EUR the Entity has transacted while in this Tier.
+        activated_at:
+          type: string
+          format: date-time
+          description: The time at which the Tier was activated for the Entity.
     LedgerEntry:
       description: |
         A Ledger Entry is an account entry which indicates by which amount the Account
@@ -4043,6 +4180,51 @@ components:
         amount: "-1.00000000"
         created_at: '2019-03-01T22:31:06Z'
         updated_at: '2019-03-01T22:31:06Z'
+    Tier:
+      type: object
+      required:
+      - id
+      - level
+      - send_limit
+      - send_interval
+      - advancement_volume
+      - advancement_interval
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          description: A unique ID of the Tier
+        level:
+          type: integer
+          description: |
+            The level at which the Tier is.  Entities advance to Tier at the next higher
+            level on meeting current Tier's advancement criteria.
+        send_limit:
+          type: string
+          description: The amount of EUR an Entity is allowed to send every send_interval
+            while on this Tier.
+        send_interval:
+          type: integer
+          description: The unit of time (in seconds) for which the Entity's withdrawal
+            is measured.
+        advancement_volume:
+          type: string
+          description: The amount of EUR an Entity must transact before it can advance
+            to the next Tier, if any.
+        advancement_interval:
+          type: integer
+          description: |
+            The amount of time (in seconds) which an Entity must be in this Tier before
+            it can advance to the next Tier, if any.
+        created_at:
+          type: string
+          format: date-time
+          description: The time at which the Tier was created.
+        updated_at:
+          type: string
+          format: date-time
+          description: The time at which the Tier was last updated.
     TradingExchangeRate:
       description: 'Represents a Base TradingExchangeRate object.
 
@@ -4249,6 +4431,7 @@ components:
       - id
       - from_amount
       - traded_from_amount
+      - filled_from_amount
       - traded_to_amount
       - to_amount
       - fee_amount
@@ -4273,6 +4456,9 @@ components:
         traded_from_amount:
           type: string
           description: The amount traded on the Exchange(minus Platform fees for fiat->crypto)
+        filled_from_amount:
+          type: string
+          description: The Trade amount submitted to the Exchange
         traded_to_amount:
           type: string
           description: The amount received from the Exchange(minus Exchange fees)
@@ -4285,8 +4471,9 @@ components:
           description: Fee collected by the Platform
         price:
           type: string
-          description: Price, calculated as traded_to_amount / traded_from_amount
-            and rounded to the precision of the TradingPair
+          description: |
+            Price, calculated as `filled_from_amount / amount executed on the exchange` and rounded to base asset precision.
+            For example, in a  `BTC -> EUR` trade, the precision gonna be the one related to BTC.
         state:
           type: string
           description: The state of the Trade
@@ -4322,11 +4509,12 @@ components:
       example:
         id: 82d19e27542a21c950eaae13059cf5f5trad
         from_amount: '209.10'
-        traded_from_amount:
-        traded_to_amount:
-        to_amount:
-        fee_amount:
-        price:
+        traded_from_amount: 
+        filled_from_amount: 
+        traded_to_amount: 
+        to_amount: 
+        fee_amount: 
+        price: 
         state: PENDING
         reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
         entity_id: b6ef80668690fa4dfbb51a3bc49a1fb7enty
