@@ -2278,3 +2278,53 @@ X-Resource-Location: /v1/trading/trades/10ef67dc895d6c19c273b1ffba0c1692trad
 | id                  | Body     | ID of the created/updated Resource              |
 
 ---
+
+## Tiers
+
+The Tier system is used to place limits on withdrawals by Entities.
+
+A set of Tiers is configured for each partner, and each Entity belongs to a Tier. A Tier
+specifies the amount of money that an Entity can withdraw in the configured interval.
+
+Every Tier has a level and over time, Entities can move to Tiers with higher levels. An Entity
+can only move to the immediate next Tier (i.e. the Tier with the closest higher level), and only
+if it meets the eligibility criteria specified in its current Tier, i.e., it
+
+1. transacts at least a certain amount of money, and
+2. spends at least a certain amount of time in the current Tier.
+
+Entities are automatically advanced to the next Tier, if any, usually within a day of meeting
+the applicable eligibility criteria.
+
+Tiers can be retrieved using:
+
+```
+GET /v1/tiers
+GET /v1/tiers/:tier_id
+```
+
+The currently activated Tier for an Entity can be retrieved using:
+
+```
+GET /v1/entities/:entity_id/tier
+```
+
+### Examples
+
+```
+GET /v1/entities/10ef67dc895d6c19c273b1ffba0c1692enty/tier
+```
+
+```
+200 OK
+
+{
+  "id": "cee0a8088eb64906116afc050234d2f8tier",
+  "send_limit": "10000.00"
+  "send_interval": 3600,
+  "advancement_interval": 25200,
+  "advancement_volume": "50000.00",
+  "volume": "2300.45",
+  "activated_at": "2019-04-02T13:15:47Z"
+}
+```

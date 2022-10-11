@@ -1681,7 +1681,7 @@ paths:
           "$ref": "#/components/responses/InternalServerError"
         '503':
           "$ref": "#/components/responses/UnavailableError"
-"/tiers":
+  "/tiers":
     get:
       tags:
       - Tier
@@ -2112,11 +2112,11 @@ paths:
                 id: 82d19e27542a21c950eaae13059cf5f5trad
                 from_amount: '209.10'
                 filled_from_amount: '209.00'
-                traded_from_amount: 
-                traded_to_amount: 
-                to_amount: 
-                fee_amount: 
-                price: 
+                traded_from_amount:
+                traded_to_amount:
+                to_amount:
+                fee_amount:
+                price:
                 state: PENDING
                 reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
                 entity_id: b6ef80668690fa4dfbb51a3bc49a1fb7enty
@@ -2165,12 +2165,12 @@ paths:
               example:
                 id: 82d19e27542a21c950eaae13059cf5f5trad
                 from_amount: '209.10'
-                traded_from_amount: 
-                filled_from_amount: 
-                traded_to_amount: 
-                to_amount: 
-                fee_amount: 
-                price: 
+                traded_from_amount:
+                filled_from_amount:
+                traded_to_amount:
+                to_amount:
+                fee_amount:
+                price:
                 state: PENDING
                 reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
                 entity_id: b6ef80668690fa4dfbb51a3bc49a1fb7enty
@@ -2221,12 +2221,12 @@ paths:
               example:
                 id: 82d19e27542a21c950eaae13059cf5f5trad
                 from_amount: '209.10'
-                traded_from_amount: 
-                filled_from_amount: 
-                traded_to_amount: 
-                to_amount: 
-                fee_amount: 
-                price: 
+                traded_from_amount:
+                filled_from_amount:
+                traded_to_amount:
+                to_amount:
+                fee_amount:
+                price:
                 state: CANCELLED
                 reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
                 entity_id: b6ef80668690fa4dfbb51a3bc49a1fb7enty
@@ -4509,12 +4509,12 @@ components:
       example:
         id: 82d19e27542a21c950eaae13059cf5f5trad
         from_amount: '209.10'
-        traded_from_amount: 
-        filled_from_amount: 
-        traded_to_amount: 
-        to_amount: 
-        fee_amount: 
-        price: 
+        traded_from_amount:
+        filled_from_amount:
+        traded_to_amount:
+        to_amount:
+        fee_amount:
+        price:
         state: PENDING
         reference: 9bcf5ffa4bb4d4ebbf92fb74f3a61f85
         entity_id: b6ef80668690fa4dfbb51a3bc49a1fb7enty

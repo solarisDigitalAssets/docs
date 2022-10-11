@@ -2,9 +2,16 @@
 
 ## 05-10-2022
 
-- Added `Trade#filled_from_amount` description on `Brokerage_API_Guide.md` and `openapi.yml`
-- Added `TradingPairs#is_tradable` description on `Brokerage_API_Guide.md`
-- Updated Solarisbank account requirements on `Brokerage_API_Guide.md`
+- Add `Trade#filled_from_amount` description on `Brokerage_API_Guide.md` and `openapi.yml`
+- Add `TradingPairs#is_tradable` description on `Brokerage_API_Guide.md`
+- Update Solarisbank account requirements on `Brokerage_API_Guide.md`
+
+## 20-09-2022
+
+API updated to v0.28.0
+
+- Added Tier-related endpoints.
+- Added documentation about Tiers to `Custody_API_Guide.md`
 
 ## 26-07-2022
 
