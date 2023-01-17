@@ -1,20 +1,8 @@
-# Solaris Digital Assets Platform
+# ⛔️ DEPRECATED ⛔️
 
-In this project you will find code examples, tools and documentation related to the
-*solaris Digital Assets* Platform.
+This repository is no longer supported and will not receive future updates.
 
-## Examples
+You can find the maintained documentation for *Solaris Digital Assets* using the following links:
 
-* A basic API client as a CLI tool: [README](examples/README.md)
-
-## Documents
-
-* API specification for Custody API: [Custody_API_Guide.md](docs/Custody_API_Guide.md)
-* API specification for Brokerage API: [Brokerage_API_Guide.md](docs/Brokerage_API_Guide.md)
-* OpenAPI specification: [openapi.yml](docs/openapi.yml)
-
-## Changelog
-
-See the latest changes in [Changelog](CHANGELOG.md).
-
---
+* [Product Guides](https://docs.solarisgroup.com/guides/solaris-digital-assets/)
+* [API Reference](https://docs.solarisgroup.com/api-reference/solaris-digital-assets/)
